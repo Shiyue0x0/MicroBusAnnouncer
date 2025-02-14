@@ -1,0 +1,35 @@
+<resources>
+    <string-array name="mapStationShowType_entries">
+        <item>显示全部站点</item>
+        <item>仅显示当前路线站点</item>
+        <item>仅显示当前站点</item>
+    </string-array>
+    <string-array name="mapStationShowType_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <string-array name="headSignShowInfo_entries">
+        <item>到站/下一站</item>
+        <item>起点站/终点站</item>
+        <item>欢迎信息</item>
+        <item>速度信息</item>
+    </string-array>
+    <string-array name="headSignShowInfo_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+
+    <string-array name="restoreStationAndLine_entries">
+        <item>还原站点</item>
+        <item>还原路线</item>
+    </string-array>
+    <string-array name="restoreStationAndLine_values">
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+
+</resources>

@@ -1,0 +1,42 @@
+{
+  "Metadata": {
+    "Version": 1,
+    "Created": "2020-07-08",
+    "Description": "game haptic"
+  },
+  "Pattern": [
+    {
+      "Event": {
+        "Type": "continuous",
+        "RelativeTime": 0,
+        "Duration": 300,
+        "Parameters": {
+          "Intensity": 80,
+          "Frequency": 50,
+          "Curve": [
+            {
+              "Time": 0,
+              "Intensity": 0,
+              "Frequency": 0
+            },
+            {
+              "Time": 20,
+              "Intensity": 100,
+              "Frequency": 100
+            },
+            {
+              "Time": 280,
+              "Intensity": 100,
+              "Frequency": 100
+            },
+            {
+              "Time": 300,
+              "Intensity": 0,
+              "Frequency": 0
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

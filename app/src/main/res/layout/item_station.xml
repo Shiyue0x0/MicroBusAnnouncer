@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+
+    android:id="@+id/stationCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="12dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginEnd="12dp"
+    android:layout_marginBottom="8dp"
+    android:clickable="true"
+
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardBackgroundColor="?attr/cardBackgroundColor"
+    app:cardCornerRadius="24dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="16dp"
+
+        android:columnCount="3"
+        android:rowCount="2">
+
+
+        <TextView
+            android:id="@+id/station_id"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="left"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:text="000"
+            android:textColor="@color/textColor2"
+
+            android:textSize="32sp"
+            app:layout_constraintBottom_toBottomOf="@+id/station_latitude"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/station_cn_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="8dp"
+            android:paddingEnd="4dp"
+            android:text="站点0"
+
+
+            android:textColor="@color/textColor2"
+
+            android:textSize="@dimen/largeFontSize"
+            android:textStyle="bold"
+            app:layout_constraintStart_toEndOf="@+id/station_id"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
+        <com.microbus.announcer.ScrollingTextView
+            android:id="@+id/stationEnName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:paddingStart="4dp"
+
+            android:paddingEnd="8dp"
+            android:singleLine="true"
+            android:text="Station 0"
+
+            android:textColor="@color/textColor2"
+
+            android:textSize="@dimen/largeFontSize"
+            app:layout_constraintBottom_toBottomOf="@+id/station_cn_name"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toEndOf="@+id/station_cn_name"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/station_longitude"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+
+            android:text="0.0"
+            app:layout_constraintStart_toEndOf="@+id/station_id"
+            app:layout_constraintTop_toBottomOf="@+id/station_cn_name" />
+
+        <TextView
+            android:id="@+id/station_latitude"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+
+            android:text="0.0"
+            app:layout_constraintStart_toEndOf="@+id/station_id"
+            app:layout_constraintTop_toBottomOf="@+id/station_longitude" />
+
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefreshLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginTop="4dp"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/station_latitude">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/stationLineList"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent" />
+
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.cardview.widget.CardView>

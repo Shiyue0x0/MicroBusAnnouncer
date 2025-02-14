@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="系统">
+        <EditTextPreference
+            app:defaultValue=""
+            app:key="defaultLineName"
+            app:title="默认路线名称"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="showBottomBar"
+            app:title="显示底部导航栏"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="地图">
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="clickMapToCopyLngLat"
+            app:title="点击地图复制经纬度"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:key="clickMapToAddStation"
+            app:title="点击地图添加站点"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="clickLocationButtonToCopyLngLat"
+            app:title="点击定位按钮复制经纬度"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:key="lineTrajectoryCorrection"
+            app:title="线路轨迹纠偏"
+            app:useSimpleSummaryProvider="true" />
+        <DropDownPreference
+            android:entries="@array/mapStationShowType_entries"
+            android:entryValues="@array/mapStationShowType_values"
+            app:defaultValue="1"
+            app:key="mapStationShowType"
+            app:summary="%s"
+            app:title="地图站点显示方式" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="定位">
+        <EditTextPreference
+            app:defaultValue="15"
+            app:key="arriveStationDistance"
+            app:title="站点判定距离（米）"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:defaultValue="1000"
+            app:key="locationInterval"
+            app:title="定位间隔（毫秒）"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="highPrecisionLocation"
+            app:summary="重启生效"
+            app:title="开启高精度定位"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="findAllLineStation"
+            app:title="寻访路线中所有站点"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="AutoSwitchLineDirection"
+            app:title="自动切换路线方向"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="显示">
+        <EditTextPreference
+            app:defaultValue="5"
+            app:key="lineHeadCardChangeTime"
+            app:title="头牌刷新间隔（秒）"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:defaultValue="MicroBus"
+            app:key="welInfoLeft"
+            app:title="头牌左侧欢迎信息"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:defaultValue="Announcer"
+            app:key="welInfoRight"
+            app:title="头牌右侧欢迎信息"
+            app:useSimpleSummaryProvider="true" />
+        <MultiSelectListPreference
+            android:entries="@array/headSignShowInfo_entries"
+            android:entryValues="@array/headSignShowInfo_values"
+            app:defaultValue="@array/headSignShowInfo_values"
+            app:key="headSignShowInfo"
+            app:summary="重启生效"
+            app:title="头牌显示信息" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="提示">
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="stationChangeVibrator"
+            app:title="进出站震动提醒"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="voiceAnnouncements"
+            app:title="进出站普通话播报"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="enVoiceAnnouncements"
+            app:title="进出站英语播报"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="useTTS"
+            app:title="使用TTS"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="数据">
+        <Preference
+            android:key="backupStationAndLine"
+            android:title="备份站点与路线"
+            app:summary="路径：Documents/Announcer/Backups" />
+        <Preference
+            android:key="restoreStation"
+            android:title="还原站点"
+            app:summary="重启后生效" />
+        <Preference
+            android:key="restoreLine"
+            android:title="还原路线"
+            app:summary="重启后生效" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="关于">
+        <Preference
+            android:key="about"
+            android:summary="1.0"
+            android:title="@string/app_name" />
+    </PreferenceCategory>
+
+</PreferenceScreen>
