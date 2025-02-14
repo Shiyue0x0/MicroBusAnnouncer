@@ -66,9 +66,10 @@
 
         <service android:name="com.amap.api.location.APSService" />
 
+        <!--   这里填写自己的高德地图key       -->
         <meta-data
             android:name="com.amap.api.v2.apikey"
-            android:value="71a39e09f0be40fa74e0546493495740" />
+            android:value="" />
     </application>
 
 </manifest>
