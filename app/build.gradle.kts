@@ -11,9 +11,9 @@ android {
     defaultConfig {
         applicationId = "com.microbus.announcer"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        targetSdk = 35
+        versionCode = 101
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,7 +41,25 @@ android {
         viewBinding = true
     }
 
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "x86_64")
+        }
+    }
+    android.applicationVariants.all {
+        val buildType = this.buildType.name
+        val variant = this
+        outputs.all {
+            val abiName =
+                this.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI.name }?.identifier
+            val outputImpl = this as com.android.build.gradle.internal.api.ApkVariantOutputImpl
+            outputImpl.outputFileName = "An-${variant.versionName}-${buildType}-${abiName}.apk"
+        }
+    }
 }
+
 
 dependencies {
 
