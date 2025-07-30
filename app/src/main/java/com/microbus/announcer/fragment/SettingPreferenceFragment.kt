@@ -2,9 +2,7 @@ package com.microbus.announcer.fragment
 
 import android.app.Activity.RESULT_OK
 import android.app.AlertDialog
-import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -30,6 +28,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.min
+import androidx.core.net.toUri
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 
 
 open class SettingPreferenceFragment : PreferenceFragmentCompat() {
@@ -98,10 +100,19 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
                 true
         }
 
+
         //路线头牌刷新间隔
         val lineHeadCardChangeTimePreference: EditTextPreference? =
             findPreference("lineHeadCardChangeTime")
         lineHeadCardChangeTimePreference?.setOnBindEditTextListener { editText ->
+            editText.inputType = InputType.TYPE_CLASS_NUMBER
+            editText.setSelection(editText.text.length)
+        }
+
+        //超过秒数自动跟随定位
+        val autoFollowNavigationWhenAboveSecondPreference: EditTextPreference? =
+            findPreference("autoFollowNavigationWhenAboveSecond")
+        autoFollowNavigationWhenAboveSecondPreference?.setOnBindEditTextListener { editText ->
             editText.inputType = InputType.TYPE_CLASS_NUMBER
             editText.setSelection(editText.text.length)
         }
@@ -140,7 +151,7 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
         //还原站点
         findPreference<Preference>("restoreStation")?.setOnPreferenceClickListener {
             val uri =
-                Uri.parse("content://com.android.externalstorage.documents/document/primary:Documents%2fAnnouncer%2fBackups")
+                "content://com.android.externalstorage.documents/document/primary:Documents%2fAnnouncer%2fBackups".toUri()
             val intent = Intent(Intent.ACTION_GET_CONTENT)
             intent.addCategory(Intent.CATEGORY_OPENABLE)
             intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri)
@@ -154,13 +165,50 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
         //还原路线
         findPreference<Preference>("restoreLine")?.setOnPreferenceClickListener {
             val uri =
-                Uri.parse("content://com.android.externalstorage.documents/document/primary:Documents%2fAnnouncer%2fBackups")
+                "content://com.android.externalstorage.documents/document/primary:Documents%2fAnnouncer%2fBackups".toUri()
             val intent = Intent(Intent.ACTION_GET_CONTENT)
             intent.addCategory(Intent.CATEGORY_OPENABLE)
             intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri)
             intent.setType("application/*")
             @Suppress("DEPRECATION")
             startActivityForResult(intent, requestRestoreLine)
+
+            true
+        }
+
+        //  加载预设数据
+        findPreference<Preference>("loadPresetData")?.setOnPreferenceClickListener {
+
+            val fileList = ArrayList<Int>()
+            fileList.add(R.raw.station)
+            fileList.add(R.raw.line)
+
+            fileList.forEach {
+
+                val fileName = when(it){
+                    R.raw.station -> "station.db"
+                    R.raw.line -> "line.db"
+                    else -> ""
+                }
+
+                //  备份原数据
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
+                val dataTime = dateFormat.format(Date(System.currentTimeMillis()))
+                backupFile(fileName, "$dataTime-auto")
+
+                //  读取预设数据
+                Files.copy(
+                    resources.openRawResource(it),
+                    Paths.get(
+                        context?.getExternalFilesDir("")?.path + "/database/$fileName",
+                    ),
+                    StandardCopyOption.REPLACE_EXISTING
+                )
+            }
+
+            utils.showMsg("站点和路线已备份至\nDocuments/Announcer/Backups")
+            utils.showMsg("已加载预设数据，重启生效")
+            requireActivity().finish()
 
             true
         }
@@ -176,7 +224,7 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
 
     }
 
-
+    //    选取文件回调
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         @Suppress("DEPRECATION")
@@ -239,9 +287,9 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
 
             //备份当前文件
             val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
-            val dataTime = dateFormat.format(Date(System.currentTimeMillis()))
+            val dataTimeStr = dateFormat.format(Date(System.currentTimeMillis()))
             val inputStream = FileInputStream(outputPath)
-            backupFile(outputFileName, dataTime, inputStream)
+            backupFile(outputFileName, "$dataTimeStr-auto", inputStream)
             inputStream.close()
 
             //清空原文件
@@ -269,7 +317,6 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
 
     /**
      * 备份站点或路线
-     * @param
      */
     private fun backupFile(
         fileName: String,

@@ -9,7 +9,7 @@
             app:title="默认路线名称"
             app:useSimpleSummaryProvider="true" />
         <SwitchPreferenceCompat
-            app:defaultValue="true"
+            app:defaultValue="false"
             app:key="showBottomBar"
             app:title="显示底部导航栏"
             app:useSimpleSummaryProvider="true" />
@@ -17,7 +17,7 @@
 
     <PreferenceCategory app:title="地图">
         <SwitchPreferenceCompat
-            app:defaultValue="true"
+            app:defaultValue="false"
             app:key="clickMapToCopyLngLat"
             app:title="点击地图复制经纬度"
             app:useSimpleSummaryProvider="true" />
@@ -27,7 +27,7 @@
             app:title="点击地图添加站点"
             app:useSimpleSummaryProvider="true" />
         <SwitchPreferenceCompat
-            app:defaultValue="true"
+            app:defaultValue="false"
             app:key="clickLocationButtonToCopyLngLat"
             app:title="点击定位按钮复制经纬度"
             app:useSimpleSummaryProvider="true" />
@@ -43,6 +43,11 @@
             app:key="mapStationShowType"
             app:summary="%s"
             app:title="地图站点显示方式" />
+        <EditTextPreference
+            app:defaultValue="10"
+            app:key="autoFollowNavigationWhenAboveSecond"
+            app:title="超过秒数自动跟随定位"
+            app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="定位">
@@ -81,12 +86,12 @@
             app:title="头牌刷新间隔（秒）"
             app:useSimpleSummaryProvider="true" />
         <EditTextPreference
-            app:defaultValue="MicroBus"
+            app:defaultValue="MicroBus欢迎您 "
             app:key="welInfoLeft"
             app:title="头牌左侧欢迎信息"
             app:useSimpleSummaryProvider="true" />
         <EditTextPreference
-            app:defaultValue="Announcer"
+            app:defaultValue="安全驾驶 文明出行"
             app:key="welInfoRight"
             app:title="头牌右侧欢迎信息"
             app:useSimpleSummaryProvider="true" />
@@ -117,6 +122,11 @@
             app:useSimpleSummaryProvider="true" />
         <SwitchPreferenceCompat
             app:defaultValue="true"
+            app:key="arriveTimeAnnouncements"
+            app:title="进站时间播报"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
             app:key="useTTS"
             app:title="使用TTS"
             app:useSimpleSummaryProvider="true" />
@@ -135,7 +145,10 @@
             android:key="restoreLine"
             android:title="还原路线"
             app:summary="重启后生效" />
-
+        <Preference
+            android:key="loadPresetData"
+            android:title="加载预设数据"
+            app:summary="重启后生效" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="关于">

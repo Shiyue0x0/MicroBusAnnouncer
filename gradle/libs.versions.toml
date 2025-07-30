@@ -1,46 +1,32 @@
 [versions]
-agp = "8.3.2"
-androidaudioconverter = "0.0.8"
-androidCompressor = "1.1"
-annotationVersion = "1.6.0"
+agp = "8.11.1"
 design = "28.0.0"
 easypermissions = "3.0.0"
-ffmpegandroidVersion = "0.3.2"
-javaxSoundSampled = "1.0.2"
-kotlin = "1.9.0"
-coreKtx = "1.12.0"
+kotlin = "2.2.0"
+coreKtx = "1.16.0"
 junit = "4.13.2"
-junitVersion = "1.1.5"
-espressoCore = "3.5.1"
-appcompat = "1.6.1"
-kotlinxSerializationJson = "1.6.2"
-marqueetextview = "1.1"
-material = "1.10.0"
-activity = "1.8.0"
-constraintlayout = "2.1.4"
-mobileFfmpegFullGpl = "4.4"
-mobileFfmpegFullGplVersion = "4.4.LTS"
-naviXdmap = "latest.integration"
-playServicesLocation = "21.2.0"
-playServicesMaps = "18.2.0"
-recyclerviewVersion = "1.3.0"
-rxjava = "2.2.6"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+appcompat = "1.7.1"
+kotlinxSerializationJson = "1.9.0"
+material = "1.12.0"
+activity = "1.10.1"
+constraintlayout = "2.2.1"
+recyclerviewVersion = "1.4.0"
+rxjava = "2.2.21"
 swiperefreshlayout = "1.1.0"
-viewpager2Version = "1.0.0"
+viewpager2Version = "1.1.0"
 legacySupportV4 = "1.0.0"
 preferenceKtx = "1.2.1"
 preference = "1.2.1"
-fragment = "1.6.2"
-core = "1.13.1"
+fragment = "1.8.8"
+core = "1.16.0"
 
 [libraries]
-androidaudioconverter = { module = "com.github.adrielcafe:AndroidAudioConverter", version.ref = "androidaudioconverter" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefreshlayout", version.ref = "swiperefreshlayout" }
-annotation = { module = "androidx.annotation:annotation", version.ref = "annotationVersion" }
 design = { module = "com.android.support:design", version.ref = "design" }
 easypermissions = { module = "pub.devrel:easypermissions", version.ref = "easypermissions" }
-javax-sound-sampled = { module = "javax.sound.sampled:javax.sound.sampled", version.ref = "javaxSoundSampled" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -49,9 +35,6 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
-mobile-ffmpeg-full-gpl = { module = "com.arthenica:mobile-ffmpeg-full-gpl", version.ref = "mobileFfmpegFullGpl" }
-mobile-ffmpeg-full-gpl-v44lts = { module = "com.arthenica:mobile-ffmpeg-full-gpl", version.ref = "mobileFfmpegFullGplVersion" }
-navi-xdmap = { module = "com.amap.api:navi-3dmap", version.ref = "naviXdmap" }
 recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerviewVersion" }
 rxjava = { module = "io.reactivex.rxjava2:rxjava", version.ref = "rxjava" }
 viewpager2 = { module = "androidx.viewpager2:viewpager2", version.ref = "viewpager2Version" }
@@ -60,7 +43,6 @@ androidx-preference-ktx = { group = "androidx.preference", name = "preference-kt
 androidx-preference = { group = "androidx.preference", name = "preference", version.ref = "preference" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 androidx-core = { group = "androidx.core", name = "core", version.ref = "core" }
-writingminds-ffmpegandroid = { module = "com.writingminds:FFmpegAndroid", version.ref = "ffmpegandroidVersion" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

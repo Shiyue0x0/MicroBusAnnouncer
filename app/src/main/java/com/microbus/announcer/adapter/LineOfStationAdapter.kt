@@ -6,7 +6,6 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
-import com.microbus.announcer.Utils
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.databinding.ItemLineOfStationBinding
 
@@ -19,8 +18,6 @@ internal class LineOfStationAdapter(
     RecyclerView.Adapter<LineOfStationAdapter.LineOfStationViewHolder>() {
 
     private lateinit var stationList: ArrayList<String>
-
-    private var utils = Utils(context)
 
     internal class LineOfStationViewHolder(binding: ItemLineOfStationBinding) :
         ViewHolder(binding.root) {

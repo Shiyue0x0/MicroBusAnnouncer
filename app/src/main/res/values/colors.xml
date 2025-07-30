@@ -2,7 +2,6 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="transparent">#00000000</color>
 
     <color name="md_theme_light_primary">#0050E4</color>
     <color name="md_theme_light_onPrimary">#FFFFFF</color>
@@ -57,6 +56,5 @@
     <color name="md_theme_dark_inverseOnSurface">#1B1B1F</color>
     <color name="md_theme_dark_inverseSurface">#E4E1E6</color>
     <color name="md_theme_dark_inversePrimary">#0050E4</color>
-    <color name="md_theme_dark_surfaceTint">#B6C4FF</color>
     <color name="md_theme_dark_outlineVariant">#45464F</color>
 </resources>

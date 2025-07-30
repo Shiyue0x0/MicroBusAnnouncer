@@ -1,7 +1,6 @@
 package com.microbus.announcer
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
@@ -19,7 +18,7 @@ import com.microbus.announcer.fragment.LineFragment
 import com.microbus.announcer.fragment.MainFragment
 import com.microbus.announcer.fragment.SettingFragment
 import com.microbus.announcer.fragment.StationFragment
-import kotlin.system.exitProcess
+import androidx.core.view.get
 
 
 class MainActivity : AppCompatActivity() {
@@ -64,7 +63,6 @@ class MainActivity : AppCompatActivity() {
         fragmentList.add(StationFragment())
         fragmentList.add(SettingFragment())
         binding.viewPager.adapter = FragAdapter(this, fragmentList)
-
         binding.bottomNavigationView.setOnItemSelectedListener { item ->
             val mainFragment = fragmentList[0] as MainFragment
             if (mainFragment.isOperationLock)
@@ -91,11 +89,11 @@ class MainActivity : AppCompatActivity() {
                     return
                 }
                 super.onPageSelected(position)
-                binding.bottomNavigationView.menu.getItem(position).isChecked = true
+                binding.bottomNavigationView.menu[position].isChecked = true
             }
         })
 
-        if(utils.getShowBottomBar())
+        if(utils.getIsShowBottomBar())
             binding.bottomNavigationView.visibility = View.VISIBLE
         else
             binding.bottomNavigationView.visibility = View.GONE
@@ -123,7 +121,7 @@ class MainActivity : AppCompatActivity() {
                     exitTime = System.currentTimeMillis()
                 } else {
                     finish()
-                    exitProcess(0)
+//                    exitProcess(0)
                 }
                 return true
             }
@@ -131,15 +129,27 @@ class MainActivity : AppCompatActivity() {
         return super.onKeyDown(keyCode, event)
     }
 
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        val messageType = intent?.getIntExtra("message", -1)
-        if (messageType != null) {
-            binding.viewPager.currentItem = messageType
-        }
-    }
+//    override fun onNewIntent(intent: Intent?) {
+//        super.onNewIntent(intent)
+//        val messageType = intent?.getIntExtra("message", -1)
+//        if (messageType != null) {
+//            binding.viewPager.currentItem = messageType
+//        }
+//    }
 
-    fun switchToMain(lineId: Int) {
-        binding.viewPager.currentItem = 0
-    }
+//    override fun onPause() {
+//        super.onPause()
+//        val mainFrag = binding.viewPager.findFragment<MainFragment>()
+//        mainFrag.locationClient.stopLocation()
+//    }
+//
+//    override fun onResume() {
+//        super.onResume()
+//        if(binding.viewPager.isActivated){
+//            val mainFrag = binding.viewPager.findFragment<MainFragment>()
+//            mainFrag.locationClient.startLocation()
+//        }
+//
+//    }
+
 }

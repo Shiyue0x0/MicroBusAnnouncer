@@ -2,25 +2,22 @@ package com.microbus.announcer.adapter
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Build
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.microbus.announcer.Utils
-import com.microbus.announcer.adapter.StationOfLineAdapter.OnItemClickListener
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.AlertDialogLineInfoBinding
 import com.microbus.announcer.databinding.ItemLineBinding
-
+import androidx.core.content.edit
 
 internal class LineAdapter(
     private val context: Context,
@@ -29,7 +26,6 @@ internal class LineAdapter(
     RecyclerView.Adapter<LineAdapter.LineViewHolder>() {
 
     private lateinit var mClickListener: OnItemClickListener
-
     private var tag = javaClass.simpleName
     private lateinit var stationDatabaseHelper: StationDatabaseHelper
 
@@ -57,7 +53,7 @@ internal class LineAdapter(
         }
 
         override fun onClick(v: View?) {
-            mListener!!.onItemClick(v, line)
+            mListener!!.onItemClick(line)
         }
     }
 
@@ -69,7 +65,7 @@ internal class LineAdapter(
     }
 
     @SuppressLint("SetTextI18n")
-    override fun onBindViewHolder(holder: LineViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: LineViewHolder, @SuppressLint("RecyclerView") position: Int) {
         val utils = Utils(context)
 
         val line = lineDatabaseHelper.quertByCount(position + 1).first()
@@ -86,13 +82,13 @@ internal class LineAdapter(
         holder.lineId = line.id!!
         holder.lineName.text = line.name
 
-        val startingStation = stationDatabaseHelper.quertById(startingStationIndex)
+        val startingStation = stationDatabaseHelper.queryById(startingStationIndex)
         if (startingStation.isNotEmpty())
             holder.lineStartingStation.text = startingStation.first().cnName
         else
             holder.lineStartingStation.text = "未知"
 
-        val terminal = stationDatabaseHelper.quertById(terminalIndex)
+        val terminal = stationDatabaseHelper.queryById(terminalIndex)
         if (terminal.isNotEmpty())
             holder.lineTerminal.text = terminal.first().cnName
         else
@@ -103,11 +99,12 @@ internal class LineAdapter(
         holder.lineStationList.layoutManager = linearLayoutManager
         val adapter = StationOfLineAdapter(context, stationIndexList, stationDatabaseHelper, -1)
         holder.lineStationList.adapter = adapter
+
         //点击站点显示信息
         adapter.setOnItemClickListener(object :
             StationOfLineAdapter.OnItemClickListener {
             override fun onItemClick(view: View?, position: Int) {
-                val station = stationDatabaseHelper.quertById(stationIndexList[position]).first()
+                val station = stationDatabaseHelper.queryById(stationIndexList[position]).first()
                 utils.showMsg("${station.id} ${station.cnName}\n${station.enName}")
                 utils.haptic(holder.lineStationList)
             }
@@ -171,14 +168,14 @@ internal class LineAdapter(
                 val downLineStationList = downLineStation.split(' ')
                 var stationList: List<Station>
                 for (stationIdStr in upLineStationList) {
-                    stationList = stationDatabaseHelper.quertById(stationIdStr.toInt())
+                    stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
                     if (stationList.isEmpty()) {
                         utils.showMsg("上行站点 $stationIdStr 不存在")
                         return@setOnClickListener
                     }
                 }
                 for (stationIdStr in downLineStationList) {
-                    stationList = stationDatabaseHelper.quertById(stationIdStr.toInt())
+                    stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
                     if (stationList.isEmpty()) {
                         utils.showMsg("下行站点 $stationIdStr 不存在")
                         return@setOnClickListener
@@ -195,10 +192,8 @@ internal class LineAdapter(
             //设置默认路线名称
             binding.setDefaultLine.setOnClickListener {
                 val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-                prefs.edit().putString("defaultLineName", line.name).apply()
+                prefs.edit { putString("defaultLineName", line.name) }
                 alertDialog?.cancel()
-                //更新Setting
-
             }
 
             utils.haptic(holder.lineCard)
@@ -215,7 +210,7 @@ internal class LineAdapter(
     }
 
     interface OnItemClickListener {
-        fun onItemClick(view: View?, line: Line)
+        fun onItemClick(line: Line)
     }
 
     fun setOnItemClickListener(listener: OnItemClickListener?) {

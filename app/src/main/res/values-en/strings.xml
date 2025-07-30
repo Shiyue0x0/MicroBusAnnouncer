@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Announcer</string>
+    <string name="line_name">Line</string>
+    <string name="up_stations">Up Stations</string>
+    <string name="down_stations">Down Stations</string>
+
+    <string name="main_line_0">Line 0</string>
+    <string name="main_staring_station_name">Unknown</string>
+    <string name="main_terminal_name">Unknown</string>
+    <string name="main_to_title">To</string>
+    <string name="main_to_station_name">Unknown</string>
+    <string name="main_next_station_title">Next</string>
+    <string name="main_next_station_name">Unknown</string>
+    <string name="main_distance_title">Distance</string>
+    <string name="main_distance_unit">(m)</string>
+    <string name="main_distance_value">0.0</string>
+    <string name="main_speed_title">Speed</string>
+    <string name="main_speed_unit">(km/h)</string>
+    <string name="main_speed_value">0.0</string>
+    <string name="switch_location">Location</string>
+    <string name="switch_follow_location">Follow</string>
+</resources>

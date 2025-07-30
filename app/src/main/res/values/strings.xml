@@ -1,3 +1,23 @@
 <resources>
     <string name="app_name">Announcer</string>
+    <string name="line_name">路线名称</string>
+    <string name="up_stations">上行站点</string>
+    <string name="down_stations">下行站点</string>
+
+    <string name="main_line_0">Line 0</string>
+    <string name="main_staring_station_name">起点未知</string>
+    <string name="main_terminal_name">终点未知</string>
+    <string name="main_to_title">开往</string>
+    <string name="main_to_station_name">未知站点</string>
+    <string name="main_next_station_title">下一站</string>
+    <string name="main_next_station_name">未知站点</string>
+    <string name="main_distance_title">距离</string>
+    <string name="main_distance_unit">(m)</string>
+    <string name="main_distance_value">0.0</string>
+    <string name="main_speed_title">速度</string>
+    <string name="main_speed_unit">(km/h)</string>
+    <string name="main_speed_value">0.0</string>
+    <string name="switch_location">启用定位</string>
+    <string name="switch_follow_location">跟随定位</string>
+
 </resources>

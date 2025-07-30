@@ -3,14 +3,12 @@ package com.microbus.announcer
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
-import pub.devrel.easypermissions.AfterPermissionGranted
 import pub.devrel.easypermissions.EasyPermissions
+import androidx.core.net.toUri
 
 
 class PermissionManager(context: Context, private val fragment: Fragment) : Fragment() {
@@ -20,10 +18,9 @@ class PermissionManager(context: Context, private val fragment: Fragment) : Frag
         const val REQUEST_MANAGE_FILES_ACCESS = 1
     }
 
-    private var utils: Utils
+    private var utils: Utils = Utils(context)
 
     init {
-        utils = Utils(context)
         requestPermission(context)
     }
 
@@ -82,10 +79,10 @@ class PermissionManager(context: Context, private val fragment: Fragment) : Frag
      */
     fun requestManageFilesAccessPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val intent: Intent =
+            val intent =
                 Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
             Log.d(tag, context?.packageName.toString())
-            intent.setData(Uri.parse("package:" + this::class.java.`package`?.name))
+            intent.setData(("package:" + this::class.java.`package`?.name).toUri())
             //startActivityForResult(intent, REQUEST_MANAGE_FILES_ACCESS)
             fragment.startActivityForResult(intent, REQUEST_MANAGE_FILES_ACCESS)
         } else {

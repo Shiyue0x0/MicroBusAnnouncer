@@ -6,16 +6,15 @@ plugins {
 
 android {
     namespace = "com.microbus.announcer"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.microbus.announcer"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 101
-        versionName = "1.0.1"
+        targetSdk = 36
+        versionCode = 104
+        versionName = "1.0.4"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -29,16 +28,14 @@ android {
 
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
 
     buildFeatures {
         viewBinding = true
+        dataBinding = true
     }
 
     splits {
@@ -48,6 +45,7 @@ android {
             include("arm64-v8a", "x86_64")
         }
     }
+
     android.applicationVariants.all {
         val buildType = this.buildType.name
         val variant = this
@@ -58,6 +56,7 @@ android {
             outputImpl.outputFileName = "An-${variant.versionName}-${buildType}-${abiName}.apk"
         }
     }
+
 }
 
 
@@ -72,6 +71,7 @@ dependencies {
     implementation(libs.viewpager2)
     implementation(libs.recyclerview)
     implementation(files("libs/AMap3DMap_10.1.200_AMapSearch_9.7.4_AMapLocation_6.4.9_20241226_reIcon.jar"))
+    implementation(files("libs/mobile-ffmpeg-full-gpl-4.4.aar"))
     implementation(libs.androidx.legacy.support.v4)
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.preference)
@@ -80,7 +80,6 @@ dependencies {
     testImplementation(libs.junit)
     implementation(libs.rxjava)
     implementation(libs.androidx.swiperefreshlayout)
-    implementation(libs.mobile.ffmpeg.full.gpl.v44lts)
     implementation(libs.kotlinx.serialization.json)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

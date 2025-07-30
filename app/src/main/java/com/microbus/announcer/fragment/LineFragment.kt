@@ -102,11 +102,14 @@ class LineFragment : Fragment() {
         binding!!.lineRecyclerView.setAdapter(adapter)
         //点击路线切换到主控并运行
         adapter.setOnItemClickListener(object : LineAdapter.OnItemClickListener {
-            override fun onItemClick(view: View?, line: Line) {
+            override fun onItemClick(line: Line) {
                 val activity = requireActivity() as MainActivity
                 activity.binding.viewPager.currentItem = 0
                 val mainFragment = activity.fragmentList[0] as MainFragment
-                mainFragment.initLine(line)
+                utils.showMsg("已切换至 ${line.name} 运行")
+                mainFragment.originLine = line
+                mainFragment.initLineInterval()
+                mainFragment.loadLine(line)
             }
 
         })
@@ -165,14 +168,14 @@ class LineFragment : Fragment() {
             val downLineStationList = downLineStation.split(' ')
             var stationList: List<Station>
             for (stationIdStr in upLineStationList) {
-                stationList = stationDatabaseHelper.quertById(stationIdStr.toInt())
+                stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
                 if (stationList.isEmpty()) {
                     utils.showMsg("上行站点 $stationIdStr 不存在")
                     return@setOnClickListener
                 }
             }
             for (stationIdStr in downLineStationList) {
-                stationList = stationDatabaseHelper.quertById(stationIdStr.toInt())
+                stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
                 if (stationList.isEmpty()) {
                     utils.showMsg("下行站点 $stationIdStr 不存在")
                     return@setOnClickListener

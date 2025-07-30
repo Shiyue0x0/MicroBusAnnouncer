@@ -1,7 +1,6 @@
 package com.microbus.announcer.fragment
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
@@ -13,12 +12,9 @@ import android.view.View
 import android.view.View.FOCUSABLE
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
-import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
@@ -26,6 +22,7 @@ import com.amap.api.location.AMapLocation
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.location.AMapLocationClientOption
 import com.amap.api.location.AMapLocationListener
+import com.microbus.announcer.MainActivity
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.StationAdapter
@@ -39,8 +36,6 @@ import kotlinx.coroutines.launch
 
 
 class StationFragment : Fragment(), AMapLocationListener {
-
-    private var tag = javaClass.simpleName
 
     private var binding: FragmentStationBinding? = null
 
@@ -94,9 +89,9 @@ class StationFragment : Fragment(), AMapLocationListener {
                 //设置提示字符串
                 searchView.setQueryHint("ID、中文或英文名称")
 
-                searchView.imeOptions = EditorInfo.IME_ACTION_SEARCH;
+                searchView.imeOptions = EditorInfo.IME_ACTION_SEARCH
 
-                searchView.setIconifiedByDefault(true);
+                searchView.setIconifiedByDefault(true)
 
                 searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
 
@@ -152,15 +147,24 @@ class StationFragment : Fragment(), AMapLocationListener {
      * 刷新站点列表
      */
     private fun refreshStationList(stationList: List<Station>) {
+
         //获取所有站点，加载到界面
-        binding!!.stationRecyclerView.setAdapter(
-            StationAdapter(
-                requireContext(),
-                stationList,
-                stationDatabaseHelper,
-                lineDatabaseHelper
-            )
+        val adapter = StationAdapter(
+            requireContext(),
+            stationList,
+            stationDatabaseHelper,
+            lineDatabaseHelper
         )
+        binding!!.stationRecyclerView.setAdapter(adapter)
+        adapter.setOnItemClickListener(object: StationAdapter.OnItemClickListener{
+            override fun onItemClick(station: Station) {
+                val activity = requireActivity() as MainActivity
+                val mainFragment = activity.fragmentList[0] as MainFragment
+                utils.showMsg(station.cnName + "\n" + station.enName)
+                mainFragment.announce(2, station, "all")
+            }
+        })
+
     }
 
     private fun addStation() {
@@ -248,7 +252,8 @@ class StationFragment : Fragment(), AMapLocationListener {
     private fun initSwipeRefreshLayout() {
         binding!!.swipeRefreshLayout.setOnRefreshListener {
             binding!!.stationRecyclerView.adapter!!.notifyDataSetChanged()
-            GlobalScope.launch { binding!!.swipeRefreshLayout.isRefreshing = false
+            GlobalScope.launch {
+                binding!!.swipeRefreshLayout.isRefreshing = false
             }
             utils.haptic(binding!!.swipeRefreshLayout)
         }
@@ -269,16 +274,16 @@ class StationFragment : Fragment(), AMapLocationListener {
         //初始化AMapLocationClientOption对象
         mLocationOption = AMapLocationClientOption()
         //设置定位模式为AMapLocationMode.Hight_Accuracy，高精度模式。
-        mLocationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy)
+        mLocationOption.locationMode = AMapLocationClientOption.AMapLocationMode.Hight_Accuracy
         //获取最近3s内精度最高的一次定位结果：
         //设置setOnceLocationLatest(boolean b)接口为true，启动定位时SDK会返回最近3s内精度最高的一次定位结果。如果设置其为true，setOnceLocation(boolean b)接口也会被设置为true，反之不会，默认为false。
-        mLocationOption.setOnceLocationLatest(true)
+        mLocationOption.isOnceLocationLatest = true
         //设置是否返回地址信息（默认返回地址信息）
-        mLocationOption.setNeedAddress(true)
+        mLocationOption.isNeedAddress = true
         //设置定位请求超时时间，单位是毫秒，默认30000毫秒，建议超时时间不要低于8000毫秒。
-        mLocationOption.setHttpTimeOut(30000)
+        mLocationOption.httpTimeOut = 30000
         //关闭缓存机制，高精度定位会产生缓存。
-        mLocationOption.setLocationCacheEnable(false)
+        mLocationOption.isLocationCacheEnable = false
         //给定位客户端对象设置定位参数
         mLocationClient.setLocationOption(mLocationOption)
     }

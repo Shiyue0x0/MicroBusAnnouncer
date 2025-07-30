@@ -4,7 +4,9 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import android.location.Location
 import android.util.Log
+import com.amap.api.maps.model.LatLng
 import com.microbus.announcer.bean.Station
 
 class StationDatabaseHelper(
@@ -49,7 +51,7 @@ class StationDatabaseHelper(
         writableDatabase.execSQL(sql)
     }
 
-    fun quertById(id: Int): List<Station> {
+    fun queryById(id: Int): List<Station> {
         val list: MutableList<Station> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =

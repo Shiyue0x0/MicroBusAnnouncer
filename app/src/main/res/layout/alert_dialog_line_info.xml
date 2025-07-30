@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center"
@@ -20,7 +19,7 @@
             android:layout_height="wrap_content"
             android:autofillHints=""
             android:ems="10"
-            android:hint="路线名称"
+            android:hint="@string/line_name"
             android:inputType="text"
             android:text="" />
     </com.google.android.material.textfield.TextInputLayout>
@@ -39,9 +38,10 @@
             android:layout_height="wrap_content"
             android:autofillHints=""
             android:ems="10"
-            android:hint="上行站点"
+            android:hint="@string/up_stations"
             android:inputType="text"
             android:text="" />
+
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
@@ -57,7 +57,7 @@
             android:layout_height="wrap_content"
             android:autofillHints=""
             android:ems="10"
-            android:hint="下行站点"
+            android:hint="@string/down_stations"
             android:inputType="text"
             android:text="" />
     </com.google.android.material.textfield.TextInputLayout>

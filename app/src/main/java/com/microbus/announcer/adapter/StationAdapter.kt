@@ -3,6 +3,7 @@ package com.microbus.announcer.adapter
 import android.annotation.SuppressLint
 import android.content.Context
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -14,18 +15,25 @@ import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.AlertDialogStationInfoBinding
 import com.microbus.announcer.databinding.ItemStationBinding
-
+import java.util.Locale
 
 internal class StationAdapter(
     private val context: Context,
     private val stationList: List<Station>,
     private val stationDatabaseHelper: StationDatabaseHelper,
-    private val lineDatabaseHelper: LineDatabaseHelper
+    private val lineDatabaseHelper: LineDatabaseHelper,
 ) :
     RecyclerView.Adapter<StationAdapter.StationViewHolder>() {
 
-    internal class StationViewHolder(binding: ItemStationBinding) :
-        ViewHolder(binding.root) {
+    private lateinit var mClickListener: OnItemClickListener
+
+    internal class StationViewHolder(
+        binding: ItemStationBinding,
+        clickListener: OnItemClickListener
+    ) :
+        ViewHolder(binding.root), View.OnClickListener {
+        private var mListener: OnItemClickListener? = null // 声明自定义监听接口
+        var station = Station()
         var stationCard = binding.stationCard
         var stationId = binding.stationId
         var stationCnName = binding.stationCnName
@@ -33,12 +41,21 @@ internal class StationAdapter(
         var stationLongitude = binding.stationLongitude
         var stationLatitude = binding.stationLatitude
         var stationLineList = binding.stationLineList
+
+        init {
+            mListener = clickListener
+            stationCard.setOnClickListener(this)
+        }
+
+        override fun onClick(v: View?) {
+            mListener!!.onItemClick(station)
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StationViewHolder {
         val binding = ItemStationBinding
             .inflate(LayoutInflater.from(parent.context), parent, false)
-        return StationViewHolder(binding)
+        return StationViewHolder(binding, mClickListener)
 
     }
 
@@ -48,7 +65,8 @@ internal class StationAdapter(
 
         val station = stationList[position]
 
-        holder.stationId.text = String.format("%03d", station.id)
+        holder.station = station
+        holder.stationId.text = String.format(Locale.ROOT, "%03d", station.id)
         holder.stationCnName.text = station.cnName
         holder.stationEnName.text = station.enName
         holder.stationLongitude.text = "${station.longitude}"
@@ -119,11 +137,23 @@ internal class StationAdapter(
             utils.haptic(holder.stationCard)
             return@setOnLongClickListener true
         }
-
     }
 
     override fun getItemCount(): Int {
         return stationList.size
     }
 
+    override fun getItemId(position: Int): Long {
+        return position.toLong()
+    }
+
+    interface OnItemClickListener {
+        fun onItemClick(station: Station)
+    }
+
+    fun setOnItemClickListener(listener: OnItemClickListener?) {
+        if (listener != null) {
+            this.mClickListener = listener
+        }
+    }
 }

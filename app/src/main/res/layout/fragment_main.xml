@@ -1,590 +1,594 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fillViewport="true"
-    tools:context=".fragment.MainFragment">
 
-
-    <!--  状态栏填充  -->
-    <LinearLayout
-        android:id="@+id/bar"
+    <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/main"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:orientation="horizontal"
-        tools:ignore="MissingConstraints" />
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        tools:context=".fragment.MainFragment">
 
-    <!-- 头牌  -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/line_card"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="4dp"
-        android:clickable="true"
-        android:focusable="true"
 
-        app:cardBackgroundColor="?attr/cardBackgroundColor"
-        app:cardCornerRadius="24dp"
-        app:layout_constraintTop_toBottomOf="@+id/bar"
-        tools:layout_editor_absoluteX="16dp">
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_margin="12dp">
-
-            <com.microbus.announcer.ScrollingTextView
-                android:id="@+id/lineCard_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:ellipsize="marquee"
-                android:gravity="center"
-                android:marqueeRepeatLimit="marquee_forever"
-                android:maxWidth="80dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:singleLine="true"
-                android:text="Line 0"
-                android:textColor="@color/textColor1"
-                android:textSize="@dimen/largeFontSize"
-
-                android:textStyle="bold"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <com.microbus.announcer.ScrollingTextView
-                android:id="@+id/lineCardStartingStation"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:ellipsize="marquee"
-                android:gravity="center"
-                android:marqueeRepeatLimit="marquee_forever"
-                android:singleLine="true"
-                android:text="起点未知"
-                android:textColor="@color/textColor2"
-                android:textSize="@dimen/largeFontSize"
-                android:textStyle="bold"
-                app:layout_constraintBottom_toBottomOf="@+id/lineCard_name"
-                app:layout_constraintEnd_toStartOf="@+id/lineCard_name"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <com.microbus.announcer.ScrollingTextView
-                android:id="@+id/lineCardTerminal"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:ellipsize="marquee"
-                android:gravity="center"
-                android:marqueeRepeatLimit="marquee_forever"
-                android:singleLine="true"
-                android:text="终点未知"
-                android:textColor="@color/textColor2"
-                android:textSize="@dimen/largeFontSize"
-                android:textStyle="bold"
-                app:layout_constraintBottom_toBottomOf="@+id/lineCard_name"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toEndOf="@+id/lineCard_name"
-                app:layout_constraintTop_toTopOf="parent" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-    </androidx.cardview.widget.CardView>
-
-    <!--  路线站点卡  -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/line_station_card"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:foreground="?attr/selectableItemBackground"
-        app:cardBackgroundColor="?attr/cardBackgroundColor"
-
-        android:paddingBottom="12dp"
-        android:visibility="invisible"
-        app:cardCornerRadius="24dp"
-        app:layout_constraintTop_toBottomOf="@+id/line_card">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/lineStationList"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:layout_margin="12dp" />
-
-    </androidx.cardview.widget.CardView>
-
-    <!--  地图  -->
-    <com.microbus.announcer.MapContainer
-        android:id="@+id/mapContainer"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <com.amap.api.maps.MapView
-            android:id="@+id/map"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-    </com.microbus.announcer.MapContainer>
-
-    <!--  控制栏与日志  -->
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/nestedScrollView2"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
-        app:layout_constraintBottom_toBottomOf="parent">
-
+        <!--  状态栏填充  -->
         <LinearLayout
+            android:id="@+id/bar"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:layout_height="0dp"
+            android:orientation="horizontal"
+            tools:ignore="MissingConstraints" />
+
+        <!-- 头牌  -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="4dp"
+            android:clickable="true"
+            android:focusable="true"
+
+            app:cardBackgroundColor="?attr/cardBackgroundColor"
+            app:cardCornerRadius="24dp"
+            app:layout_constraintTop_toBottomOf="@+id/bar"
+            tools:layout_editor_absoluteX="16dp">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="12dp">
+
+                <com.microbus.announcer.ScrollingTextView
+                    android:id="@+id/header_middle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="marquee"
+                    android:gravity="center"
+                    android:marqueeRepeatLimit="marquee_forever"
+                    android:maxWidth="80dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:singleLine="true"
+                    android:text="@string/main_line_0"
+                    android:textColor="@color/textColor1"
+                    android:textSize="@dimen/largeFontSize"
+
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <com.microbus.announcer.ScrollingTextView
+                    android:id="@+id/header_left"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="marquee"
+                    android:gravity="center"
+                    android:marqueeRepeatLimit="marquee_forever"
+                    android:singleLine="true"
+                    android:text="@string/main_staring_station_name"
+                    android:textColor="@color/textColor2"
+                    android:textSize="@dimen/largeFontSize"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="@+id/header_middle"
+                    app:layout_constraintEnd_toStartOf="@+id/header_middle"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <com.microbus.announcer.ScrollingTextView
+                    android:id="@+id/header_right"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="marquee"
+                    android:gravity="center"
+                    android:marqueeRepeatLimit="marquee_forever"
+                    android:singleLine="true"
+                    android:text="@string/main_terminal_name"
+                    android:textColor="@color/textColor2"
+                    android:textSize="@dimen/largeFontSize"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="@+id/header_middle"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    app:layout_constraintStart_toEndOf="@+id/header_middle"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!--  路线站点卡  -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/line_station_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:paddingBottom="12dp"
+
+            android:visibility="invisible"
+            app:cardBackgroundColor="?attr/cardBackgroundColor"
+            app:cardCornerRadius="24dp"
+            app:layout_constraintTop_toBottomOf="@+id/header">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/lineStationList"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:layout_margin="12dp" />
+
+        </androidx.cardview.widget.CardView>
+
+        <!--  地图  -->
+        <com.microbus.announcer.MapContainer
+            android:id="@+id/mapContainer"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.amap.api.maps.MapView
+                android:id="@+id/map"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+            </com.amap.api.maps.MapView>
+
+        </com.microbus.announcer.MapContainer>
+
+        <!--  控制栏与日志  -->
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/nestedScrollView2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            app:layout_constraintBottom_toBottomOf="parent">
 
             <LinearLayout
-                android:id="@+id/cardLinearLayout"
                 android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
 
-                android:layout_height="wrap_content"
-                android:gravity="center"
-
-                android:orientation="horizontal">
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="12dp"
-
-                    android:layout_weight="1"
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:cardBackgroundColor="?attr/cardBackgroundColor"
-                    app:cardCornerRadius="24dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-
-                            android:text="开往" />
-
-                        <com.microbus.announcer.ScrollingTextView
-                            android:id="@+id/terminalName"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:ellipsize="marquee"
-                            android:gravity="center"
-                            android:marqueeRepeatLimit="marquee_forever"
-                            android:paddingLeft="8dp"
-                            android:paddingRight="8dp"
-                            android:singleLine="true"
-                            android:text="未知站点"
-                            android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize"
-                            android:textStyle="bold" />
-
-
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginEnd="8dp"
-
-                    android:layout_marginBottom="12dp"
-                    android:layout_weight="1"
-
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:cardBackgroundColor="?attr/cardBackgroundColor"
-                    app:cardCornerRadius="24dp">
-
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/currentStationState"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-
-                            android:text="下一站" />
-
-                        <com.microbus.announcer.ScrollingTextView
-                            android:id="@+id/currentStationName"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:ellipsize="marquee"
-
-                            android:gravity="center"
-                            android:marqueeRepeatLimit="marquee_forever"
-                            android:paddingLeft="8dp"
-                            android:paddingRight="8dp"
-                            android:singleLine="true"
-                            android:text="未知站点"
-                            android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize"
-                            android:textStyle="bold" />
-
-
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="12dp"
-
-                    android:layout_weight="1"
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:cardBackgroundColor="?attr/cardBackgroundColor"
-                    app:cardCornerRadius="24dp">
-
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="距离" />
-
-                            <TextView
-                                android:id="@+id/currentDistanceToCurrentStationUnit"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="(m)"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <com.microbus.announcer.ScrollingTextView
-                            android:id="@+id/currentDistanceToCurrentStationValue"
-                            android:layout_width="match_parent"
-
-                            android:layout_height="wrap_content"
-                            android:ellipsize="marquee"
-                            android:gravity="center"
-                            android:marqueeRepeatLimit="marquee_forever"
-                            android:paddingLeft="8dp"
-                            android:paddingRight="8dp"
-                            android:singleLine="true"
-                            android:text="0.0"
-                            android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize"
-                            android:textStyle="bold" />
-
-
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginEnd="16dp"
-                    android:layout_marginBottom="12dp"
-
-                    android:layout_weight="1"
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:cardBackgroundColor="?attr/cardBackgroundColor"
-                    app:cardCornerRadius="24dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-
-                        android:layout_height="match_parent"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="速度" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="(km/h)"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <com.microbus.announcer.ScrollingTextView
-                            android:id="@+id/speedValue"
-                            android:layout_width="match_parent"
-
-                            android:layout_height="wrap_content"
-                            android:ellipsize="marquee"
-                            android:gravity="center"
-                            android:marqueeRepeatLimit="marquee_forever"
-                            android:paddingLeft="8dp"
-                            android:paddingRight="8dp"
-                            android:singleLine="true"
-                            android:text="0.0"
-                            android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize"
-                            android:textStyle="bold" />
-
-
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-            </LinearLayout>
-
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="?attr/cardBackgroundColor"
-                app:cardCornerRadius="24dp">
-
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:id="@+id/switchLinearLayout"
-
+                <LinearLayout
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
-                    android:layout_marginLeft="12dp"
-                    android:layout_marginRight="12dp"
                     android:gravity="center"
 
                     android:orientation="horizontal">
 
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switchNavigation"
-                        android:layout_width="wrap_content"
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="启用定位"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
+                        android:layout_marginStart="16dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_marginBottom="12dp"
 
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switchFollowNavigation"
+                        android:layout_weight="1"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardBackgroundColor="?attr/cardBackgroundColor"
+                        app:cardCornerRadius="24dp">
 
-                        android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/main_to_title" />
+
+                            <com.microbus.announcer.ScrollingTextView
+                                android:id="@+id/terminalName"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="marquee"
+                                android:gravity="center"
+                                android:marqueeRepeatLimit="marquee_forever"
+                                android:paddingLeft="8dp"
+                                android:paddingRight="8dp"
+                                android:singleLine="true"
+                                android:text="@string/main_to_station_name"
+                                android:textColor="@color/textColor1"
+                                android:textSize="@dimen/middleFontSize"
+                                android:textStyle="bold" />
+
+
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+
+                    <androidx.cardview.widget.CardView
+
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:checked="true"
-                        android:text="跟随定位"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toStartOf="@+id/switchLineUpOrDown"
-                        app:layout_constraintStart_toEndOf="@+id/switchNavigation"
-                        app:layout_constraintTop_toTopOf="parent" />
+                        android:layout_marginTop="12dp"
+                        android:layout_marginEnd="8dp"
 
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switchLineUpOrDown"
+                        android:layout_marginBottom="12dp"
+                        android:layout_weight="1"
 
-                        android:layout_width="wrap_content"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardBackgroundColor="?attr/cardBackgroundColor"
+                        app:cardCornerRadius="24dp">
+
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/currentStationState"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+
+                                android:text="@string/main_next_station_title" />
+
+                            <com.microbus.announcer.ScrollingTextView
+                                android:id="@+id/currentStationName"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="marquee"
+
+                                android:gravity="center"
+                                android:marqueeRepeatLimit="marquee_forever"
+                                android:paddingLeft="8dp"
+                                android:paddingRight="8dp"
+                                android:singleLine="true"
+                                android:text="@string/main_next_station_name"
+                                android:textColor="@color/textColor1"
+                                android:textSize="@dimen/middleFontSize"
+                                android:textStyle="bold" />
+
+
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+
+                    <androidx.cardview.widget.CardView
+
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:checked="true"
-                        android:text="路线上行"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
+                        android:layout_marginTop="12dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_marginBottom="12dp"
 
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </androidx.cardview.widget.CardView>
+                        android:layout_weight="1"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardBackgroundColor="?attr/cardBackgroundColor"
+                        app:cardCornerRadius="24dp">
 
-            <LinearLayout
-                android:id="@+id/buttonLinearLayout"
 
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:gravity="center"
+                            android:orientation="vertical">
 
-                android:gravity="center"
-                android:orientation="horizontal">
 
-                <ImageButton
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:orientation="horizontal">
 
-                    android:id="@+id/startingStation"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/rounded_rectangle_button"
-                    android:contentDescription="起点站"
-                    android:src="@drawable/baseline_start_24" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/main_distance_title" />
 
-                <ImageButton
-                    android:id="@+id/lastStation"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/rounded_rectangle_button"
-                    android:contentDescription="上一站"
-                    android:padding="8dp"
-                    android:src="@drawable/baseline_keyboard_arrow_left_24" />
+                                <TextView
+                                    android:id="@+id/currentDistanceToCurrentStationUnit"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/main_distance_unit"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
 
-                <ImageButton
-                    android:id="@+id/voiceAnnouncement"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/rounded_rectangle_button"
-                    android:contentDescription="报本站"
-                    android:padding="8dp"
-                    android:src="@drawable/baseline_notifications_24" />
+                            <com.microbus.announcer.ScrollingTextView
+                                android:id="@+id/currentDistanceToCurrentStationValue"
+                                android:layout_width="match_parent"
 
-                <ImageButton
-                    android:id="@+id/nextStation"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/rounded_rectangle_button"
-                    android:contentDescription="下一站"
-                    android:padding="8dp"
-                    android:src="@drawable/baseline_keyboard_arrow_right_24" />
+                                android:layout_height="wrap_content"
+                                android:ellipsize="marquee"
+                                android:gravity="center"
+                                android:marqueeRepeatLimit="marquee_forever"
+                                android:paddingLeft="8dp"
+                                android:paddingRight="8dp"
+                                android:singleLine="true"
+                                android:text="@string/main_distance_value"
+                                android:textColor="@color/textColor1"
+                                android:textSize="@dimen/middleFontSize"
+                                android:textStyle="bold" />
 
-                <ImageButton
-                    android:id="@+id/terminal"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/rounded_rectangle_button"
-                    android:contentDescription="终点站"
-                    android:src="@drawable/baseline_start_24" />
+
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginEnd="16dp"
+                        android:layout_marginBottom="12dp"
+
+                        android:layout_weight="1"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardBackgroundColor="?attr/cardBackgroundColor"
+                        app:cardCornerRadius="24dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+
+                            android:layout_height="match_parent"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/main_speed_title" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/main_speed_unit"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+
+                            <com.microbus.announcer.ScrollingTextView
+                                android:id="@+id/speedValue"
+                                android:layout_width="match_parent"
+
+                                android:layout_height="wrap_content"
+                                android:ellipsize="marquee"
+                                android:gravity="center"
+                                android:marqueeRepeatLimit="marquee_forever"
+                                android:paddingLeft="8dp"
+                                android:paddingRight="8dp"
+                                android:singleLine="true"
+                                android:text="@string/main_speed_value"
+                                android:textColor="@color/textColor1"
+                                android:textSize="@dimen/middleFontSize"
+                                android:textStyle="bold" />
+
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+
+                </LinearLayout>
+
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="?attr/cardBackgroundColor"
+                    app:cardCornerRadius="24dp">
+
+                    <androidx.constraintlayout.widget.ConstraintLayout
+
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="12dp"
+                        android:layout_marginRight="12dp"
+                        android:gravity="center"
+
+                        android:orientation="horizontal">
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/locationSwitch"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="@string/switch_location"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent" />
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/switchFollowLocation"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="@string/switch_follow_location"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toStartOf="@+id/lineDirectionSwitch"
+                            app:layout_constraintStart_toEndOf="@+id/locationSwitch"
+                            app:layout_constraintTop_toTopOf="parent" />
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/lineDirectionSwitch"
+
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="路线上行"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="parent" />
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+                </androidx.cardview.widget.CardView>
+
+                <LinearLayout
+
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/startingStation"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/rounded_rectangle_button"
+                        android:contentDescription="起点站"
+                        android:src="@drawable/baseline_start_24" />
+
+                    <ImageButton
+                        android:id="@+id/lastStation"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/rounded_rectangle_button"
+                        android:contentDescription="上一站"
+                        android:padding="8dp"
+                        android:src="@drawable/baseline_keyboard_arrow_left_24" />
+
+                    <ImageButton
+                        android:id="@+id/voiceAnnouncement"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/rounded_rectangle_button"
+                        android:contentDescription="报本站"
+                        android:padding="8dp"
+                        android:src="@drawable/baseline_notifications_24" />
+
+                    <ImageButton
+                        android:id="@+id/nextStation"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/rounded_rectangle_button"
+                        android:contentDescription="下一站"
+                        android:padding="8dp"
+                        android:src="@drawable/baseline_keyboard_arrow_right_24" />
+
+                    <ImageButton
+                        android:id="@+id/terminal"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/rounded_rectangle_button"
+                        android:contentDescription="终点站"
+                        android:src="@drawable/baseline_start_24" />
+
+                </LinearLayout>
+
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+
+                    android:layout_marginBottom="12dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone"
+                    app:cardBackgroundColor="?attr/cardBackgroundColor"
+                    app:cardCornerRadius="24dp">
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginEnd="12dp" />
+
+                        <TextView
+                            android:id="@+id/lineStationChangeInfo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginEnd="12dp"
+                            android:layout_marginBottom="12dp" />
+
+                    </LinearLayout>
+
+                </androidx.cardview.widget.CardView>
+
+                <!--            <TextView-->
+                <!--                android:layout_width="match_parent"-->
+                <!--                android:layout_height="0dp"-->
+                <!--                app:layout_constraintTop_toBottomOf="@id/location_info_card" />-->
 
             </LinearLayout>
 
 
-            <androidx.cardview.widget.CardView
-                android:id="@+id/location_info_card"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
+        </androidx.core.widget.NestedScrollView>
 
-                android:layout_marginBottom="12dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:visibility="gone"
-                app:cardBackgroundColor="?attr/cardBackgroundColor"
-                app:cardCornerRadius="24dp">
+        <ImageView
+            android:id="@+id/mapLocation"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_margin="12dp"
+            android:contentDescription="当前位置"
+            android:padding="8dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/map_location_button"
+            app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
+            app:layout_constraintStart_toStartOf="@id/mapContainer" />
 
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/location_info"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginEnd="12dp" />
-
-                    <TextView
-                        android:id="@+id/lineStationChangeInfo"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_marginEnd="12dp"
-                        android:layout_marginBottom="12dp" />
-
-                </LinearLayout>
-
-            </androidx.cardview.widget.CardView>
-
-            <!--            <TextView-->
-            <!--                android:layout_width="match_parent"-->
-            <!--                android:layout_height="0dp"-->
-            <!--                app:layout_constraintTop_toBottomOf="@id/location_info_card" />-->
-
-        </LinearLayout>
+        <ImageView
+            android:id="@+id/runningInfo"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_margin="12dp"
+            android:contentDescription="运行信息"
+            android:padding="8dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/list"
+            app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
+            app:layout_constraintEnd_toEndOf="parent" />
 
 
-    </androidx.core.widget.NestedScrollView>
-
-    <ImageView
-        android:id="@+id/mapLocation"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_margin="12dp"
-        android:contentDescription="当前位置"
-        android:padding="8dp"
-        android:scaleType="centerCrop"
-        android:src="@drawable/map_location_button"
-        app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
-        app:layout_constraintStart_toStartOf="@id/mapContainer" />
-
-    <ImageView
-        android:id="@+id/runningInfo"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_margin="12dp"
-        android:contentDescription="运行信息"
-        android:padding="8dp"
-        android:scaleType="centerCrop"
-        android:src="@drawable/list"
-        app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <!--    <SeekBar-->
+        <!--        android:id="@+id/seekBar2"-->
+        <!--        android:layout_width="200dp"-->
+        <!--        android:layout_height="wrap_content"-->
+        <!--        android:rotation="270"-->
+        <!--        app:layout_constraintBottom_toBottomOf="parent"-->
+        <!--        app:layout_constraintStart_toStartOf="parent"-->
+        <!--        app:layout_constraintTop_toTopOf="parent" />-->
 
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>

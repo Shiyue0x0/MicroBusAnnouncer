@@ -39,41 +39,9 @@ class LineDatabaseHelper(
         return result
     }
 
-    fun delAll() {
-        val sql = "delete from $tableName"
-        writableDatabase.execSQL(sql)
-    }
-
     fun delById(id: Int) {
         val sql = "delete from $tableName where id = $id"
         writableDatabase.execSQL(sql)
-    }
-
-    fun quertById(id: Int): List<Line> {
-        val list: MutableList<Line> = ArrayList()
-        // 执行记录查询动作，该语句返回结果集的游标
-        val cursor: Cursor =
-            readableDatabase.query(
-                tableName,
-                null,
-                "id=?",
-                arrayOf(id.toString()),
-                null,
-                null,
-                null
-            )
-        // 循环取出游标指向的每条记录
-        while (cursor.moveToNext()) {
-            val line = Line()
-            line.id = cursor.getInt(0)
-            line.name = cursor.getString(1)
-            line.upLineStation = cursor.getString(2)
-            line.downLineStation = cursor.getString(3)
-            line.isUpAndDownInvert = cursor.getString(4) == "true"
-            list.add(line)
-        }
-        cursor.close()
-        return list
     }
 
     fun quertByName(name: String): List<Line> {

@@ -10,8 +10,6 @@ open class FragAdapter(
     private val list: MutableList<Fragment>
 ) : FragmentStateAdapter(fa) {
 
-    private var tag = javaClass.simpleName
-
     override fun getItemCount(): Int {
         return list.size
     }

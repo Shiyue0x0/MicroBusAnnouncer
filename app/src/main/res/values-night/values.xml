@@ -3,5 +3,4 @@
     <color name="textColor1">@color/md_theme_light_inversePrimary</color>
     <color name="textColor2">@color/md_theme_light_primaryContainer</color>
     <color name="textColor3">@color/md_theme_light_outlineVariant</color>
-    <color name="mainCardBackground">#801D282E</color>
 </resources>

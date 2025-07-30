@@ -6,7 +6,6 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.microbus.announcer.R
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.ItemStationOfLineBinding
-import java.util.Collections
 import java.util.Locale
 import kotlin.math.ceil
 
@@ -29,35 +27,47 @@ internal class StationOfLineAdapter(
     RecyclerView.Adapter<StationOfLineAdapter.StationOfLineViewHolder>() {
 
     private lateinit var mClickListener: OnItemClickListener
+//    private lateinit var mLongClickListener: OnItemLongClickListener
+
     val mHandler = Handler(Looper.getMainLooper())
 
     internal class StationOfLineViewHolder(
         binding: ItemStationOfLineBinding,
         clickListener: OnItemClickListener
+//        longClickListener: OnItemLongClickListener
     ) :
         ViewHolder(binding.root), View.OnClickListener {
-        private var mListener: OnItemClickListener? = null // 声明自定义监听接口
+        private var mClickListener: OnItemClickListener? = null // 声明自定义监听接口
+//        private var mLongClickListener: OnItemLongClickListener? = null // 声明自定义监听接口
         var id = 0
-        var main = binding.main
         var stationIndex = binding.stationIndex
         var stationNameNestedScrollView = binding.stationNameNestedScrollView
         var stationName = binding.stationName
 
         init {
-            mListener = clickListener
+            mClickListener = clickListener
+//            mLongClickListener = longClickListener
             stationNameNestedScrollView.setOnClickListener(this)
             stationName.setOnClickListener(this)
         }
 
         override fun onClick(v: View?) {
-            mListener!!.onItemClick(v, layoutPosition)
+            mClickListener!!.onItemClick(v, layoutPosition)
         }
+
+//        override fun onLongClick(v: View?): Boolean {
+//            mLongClickListener!!.onItemLongClick(v, layoutPosition)
+//            return true
+//        }
+
+
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StationOfLineViewHolder {
         val binding = ItemStationOfLineBinding
             .inflate(LayoutInflater.from(parent.context), parent, false)
         val holder = StationOfLineViewHolder(binding, mClickListener)
+//        val holder = StationOfLineViewHolder(binding, mClickListener, mLongClickListener)
         //设置站点名称竖直滚动
         val runnable = object : Runnable {
             var timeCount = 0
@@ -93,14 +103,13 @@ internal class StationOfLineAdapter(
 
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: StationOfLineViewHolder, position: Int) {
-        Log.d("1", "position $position")
         when (position) {
             0 -> holder.stationIndex.text = "始发"
             stationIndexList.size - 1 -> holder.stationIndex.text = "终到"
             else -> holder.stationIndex.text = String.format(Locale.CHINA, "%02d", position + 1)
         }
 
-        val station = stationDatabaseHelper.quertById(stationIndexList[position])
+        val station = stationDatabaseHelper.queryById(stationIndexList[position])
         holder.stationName.text = if (station.isNotEmpty())
             station.first().cnName
         else
@@ -164,4 +173,19 @@ internal class StationOfLineAdapter(
             this.mClickListener = listener
         }
     }
+
+//    interface OnItemLongClickListener{
+//        fun onItemLongClick(view: View?, position: Int)
+//    }
+//
+//    fun setOnItemLongClickListener(listener: OnItemLongClickListener?) {
+//        if (listener != null) {
+//            this.mLongClickListener = listener
+//        }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+    }
+//    }
+
 }
