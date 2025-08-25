@@ -48,7 +48,7 @@
             android:paddingStart="8dp"
             android:paddingEnd="4dp"
             android:singleLine="true"
-            android:text="起点未知"
+            android:text="MicroBus"
             android:textColor="@color/textColor2"
             android:textSize="@dimen/largeFontSize"
             android:textStyle="bold"
@@ -67,7 +67,7 @@
             android:paddingStart="8dp"
             android:paddingEnd="4dp"
             android:singleLine="true"
-            android:text="终点未知"
+            android:text="欢迎您"
             android:textColor="@color/textColor2"
             android:textSize="@dimen/largeFontSize"
 

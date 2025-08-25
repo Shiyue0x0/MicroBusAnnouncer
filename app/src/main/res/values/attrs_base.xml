@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <attr name="toolbarPopupTheme" format="reference" />
+    <declare-styleable name="HeaderTextView">
+        <attr name="android:text"/>
+        <attr name="android:textSize"/>
+        <attr name="android:textColor"/>
+        <attr name="android:maxWidth"/>
+        <attr name="android:textStyle"/>
+        <attr name="android:background"/>
+    </declare-styleable>
 </resources>
+

@@ -65,46 +65,47 @@ internal class LineAdapter(
     }
 
     @SuppressLint("SetTextI18n")
-    override fun onBindViewHolder(holder: LineViewHolder, @SuppressLint("RecyclerView") position: Int) {
+    override fun onBindViewHolder(
+        holder: LineViewHolder,
+        @SuppressLint("RecyclerView") position: Int
+    ) {
         val utils = Utils(context)
 
         val line = lineDatabaseHelper.quertByCount(position + 1).first()
 
         //获取路线起点站、终点站下标
         val stationStrIndexList = line.upLineStation.split(" ").toMutableList()
-        val stationIndexList = ArrayList<Int>()
-        for (i in stationStrIndexList.indices)
-            stationIndexList.add(stationStrIndexList[i].toInt())
-        val startingStationIndex = stationIndexList.first()
-        val terminalIndex = stationIndexList[stationIndexList.size - 1]
+        val stationList = ArrayList<Station>()
+        for (i in stationStrIndexList.indices) {
+            val stationRes = stationDatabaseHelper.queryById(stationStrIndexList[i].toInt())
+            if (stationRes.isNotEmpty())
+                stationList.add(stationRes[0])
+        }
 
         holder.line = line
         holder.lineId = line.id!!
         holder.lineName.text = line.name
 
-        val startingStation = stationDatabaseHelper.queryById(startingStationIndex)
-        if (startingStation.isNotEmpty())
-            holder.lineStartingStation.text = startingStation.first().cnName
-        else
-            holder.lineStartingStation.text = "未知"
-
-        val terminal = stationDatabaseHelper.queryById(terminalIndex)
-        if (terminal.isNotEmpty())
-            holder.lineTerminal.text = terminal.first().cnName
-        else
-            holder.lineTerminal.text = "未知"
+        if (stationList.isNotEmpty()){
+            holder.lineStartingStation.text = stationList.first().cnName
+            holder.lineTerminal.text = stationList.last().cnName
+        }
+        else{
+            holder.lineStartingStation.text = "-"
+            holder.lineTerminal.text = "-"
+        }
 
         val linearLayoutManager =
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         holder.lineStationList.layoutManager = linearLayoutManager
-        val adapter = StationOfLineAdapter(context, stationIndexList, stationDatabaseHelper, -1)
+        val adapter = StationOfLineAdapter(context, stationList, -1)
         holder.lineStationList.adapter = adapter
 
         //点击站点显示信息
         adapter.setOnItemClickListener(object :
             StationOfLineAdapter.OnItemClickListener {
             override fun onItemClick(view: View?, position: Int) {
-                val station = stationDatabaseHelper.queryById(stationIndexList[position]).first()
+                val station = stationList[position]
                 utils.showMsg("${station.id} ${station.cnName}\n${station.enName}")
                 utils.haptic(holder.lineStationList)
             }

@@ -12,8 +12,8 @@ android {
         applicationId = "com.microbus.announcer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 104
-        versionName = "1.0.4"
+        versionCode = 201
+        versionName = "2.0.1"
 
     }
 

@@ -12,7 +12,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.microbus.announcer.R
-import com.microbus.announcer.database.StationDatabaseHelper
+import com.microbus.announcer.bean.Station
 import com.microbus.announcer.databinding.ItemStationOfLineBinding
 import java.util.Locale
 import kotlin.math.ceil
@@ -20,8 +20,7 @@ import kotlin.math.ceil
 
 internal class StationOfLineAdapter(
     private val context: Context,
-    private val stationIndexList: ArrayList<Int>,
-    private val stationDatabaseHelper: StationDatabaseHelper,
+    private val stationList: ArrayList<Station>,
     private val currentLineStationCount: Int
 ) :
     RecyclerView.Adapter<StationOfLineAdapter.StationOfLineViewHolder>() {
@@ -105,15 +104,11 @@ internal class StationOfLineAdapter(
     override fun onBindViewHolder(holder: StationOfLineViewHolder, position: Int) {
         when (position) {
             0 -> holder.stationIndex.text = "始发"
-            stationIndexList.size - 1 -> holder.stationIndex.text = "终到"
+            stationList.size - 1 -> holder.stationIndex.text = "终到"
             else -> holder.stationIndex.text = String.format(Locale.CHINA, "%02d", position + 1)
         }
 
-        val station = stationDatabaseHelper.queryById(stationIndexList[position])
-        holder.stationName.text = if (station.isNotEmpty())
-            station.first().cnName
-        else
-            "未知"
+        holder.stationName.text = stationList[position].cnName
 
         val paint = Paint()
         paint.textSize = holder.stationIndex.textSize
@@ -161,7 +156,7 @@ internal class StationOfLineAdapter(
     }
 
     override fun getItemCount(): Int {
-        return stationIndexList.size
+        return stationList.size
     }
 
     interface OnItemClickListener {

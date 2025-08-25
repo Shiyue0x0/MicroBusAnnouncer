@@ -5,12 +5,14 @@
     <string name="up_stations">Up Stations</string>
     <string name="down_stations">Down Stations</string>
 
-    <string name="main_line_0">Line 0</string>
+    <string name="main_line_0">-</string>
     <string name="main_staring_station_name">Unknown</string>
     <string name="main_terminal_name">Unknown</string>
-    <string name="main_to_title">To</string>
+    <string name="to">To</string>
     <string name="main_to_station_name">Unknown</string>
-    <string name="main_next_station_title">Next</string>
+    <string name="next">Next</string>
+    <string name="will_arrive">Will Arrive</string>
+    <string name="arrive">Arrive at</string>
     <string name="main_next_station_name">Unknown</string>
     <string name="main_distance_title">Distance</string>
     <string name="main_distance_unit">(m)</string>
@@ -20,4 +22,42 @@
     <string name="main_speed_value">0.0</string>
     <string name="switch_location">Location</string>
     <string name="switch_follow_location">Follow</string>
+    <string name="switch_map">Map</string>
+    <string name="up_line">Up Dir.</string>
+    <string name="down_line">Down Dir.</string>
+    <string name="starting_station">Starting Station</string>
+    <string name="last_station">Last Station</string>
+    <string name="announce_current_station">Announce Current Station</string>
+    <string name="next_station">Next Station</string>
+    <string name="terminal">Terminal</string>
+    <string name="now_location">Now Location</string>
+    <string name="running_info">Running Info</string>
+    <string name="header_wel_left">Welcome aboard</string>
+    <string name="header_wel_right">MicroBus</string>
+    <string name="header_speed">Speed</string>
+    <string name="switch_line">Switch Line</string>
+    <string name="plan_line_too_short_tip">The path is too short, it is recommended to re plan</string>
+    <string name="search_by_category">Search by category</string>
+    <string name="station_not_enough_tip">Please add at least 2 stations first</string>
+
+    <string name="submit">Submit</string>
+
+    <string name="operation_lock_on_tip">Operation Lock On \nplease long press the positioning button to unlock</string>
+    <string name="operation_lock_switch_to_on_tip">Operation Lock Now ON</string>
+    <string name="operation_lock_switch_to_off_tip">Operation Lock Now OFF</string>
+
+    <string name="request_manage_files_access_permission_title">Allow Announcer to access files on the device?</string>
+    <string name="request_manage_files_access_permission_text">The application requires this permission to read the announcement voice resources</string>
+    <string name="request_manage_files_access_permission_to_grant">To Grant</string>
+
+    <string name="line_normal_bus">Normal Bus</string>
+    <string name="line_comm_bus">Community Bus</string>
+    <string name="line_metro">Metro Line</string>
+    <string name="line_train">Train Line</string>
+    <string name="line_other">Other Line</string>
+    <string name="line_all">Line ALL</string>
+
+    <string name="km">(km)</string>
+    <string name="m">(m)</string>
+
 </resources>

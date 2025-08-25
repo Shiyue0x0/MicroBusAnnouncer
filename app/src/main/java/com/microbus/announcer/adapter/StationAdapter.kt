@@ -36,6 +36,7 @@ internal class StationAdapter(
         var station = Station()
         var stationCard = binding.stationCard
         var stationId = binding.stationId
+        var stationType = binding.stationType
         var stationCnName = binding.stationCnName
         var stationEnName = binding.stationEnName
         var stationLongitude = binding.stationLongitude
@@ -67,6 +68,7 @@ internal class StationAdapter(
 
         holder.station = station
         holder.stationId.text = String.format(Locale.ROOT, "%03d", station.id)
+        holder.stationType.text = station.type
         holder.stationCnName.text = station.cnName
         holder.stationEnName.text = station.enName
         holder.stationLongitude.text = "${station.longitude}"
@@ -79,63 +81,70 @@ internal class StationAdapter(
             station.id?.let { LineOfStationAdapter(context, it, lineDatabaseHelper) }
 
         holder.stationCard.setOnLongClickListener {
-            val binding = AlertDialogStationInfoBinding.inflate(LayoutInflater.from(context))
 
-            binding.editTextCnName.setText(station.cnName)
-            binding.editTextCnName.setText(station.cnName)
-            binding.editTextEnName.setText(station.enName)
-            binding.editTextLongitude.setText(station.longitude.toString())
-            binding.editTextLatitude.setText(station.latitude.toString())
+            utils.showStationDialog("update", station)
+            notifyDataSetChanged()
 
-            val alertDialog: AlertDialog? = context.let { it1 ->
-                AlertDialog.Builder(it1).setView(binding.root)
-                    ?.setTitle("编辑站点")
-                    ?.setPositiveButton("更新", null)
-                    ?.setNeutralButton("删除") { _, _ ->
-                        stationDatabaseHelper.delById(station.id!!)
-                        notifyItemRemoved(position)
-                    }
-                    ?.setNegativeButton("取消") { _, _ ->
-
-                    }
-                    ?.show()
-            }
-
-            alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
-                val cnName = binding.editTextCnName.text.toString()
-                val enName = binding.editTextEnName.text.toString()
-
-                if (cnName == "") {
-                    utils.showMsg("请填写中文名称")
-                    return@setOnClickListener
-                }
-
-                if (enName == "") {
-                    utils.showMsg("请填写英文名称")
-                    return@setOnClickListener
-                }
-
-                if (binding.editTextLongitude.text.toString() == "") {
-                    utils.showMsg("请填写经度")
-                    return@setOnClickListener
-                }
-
-                if (binding.editTextLatitude.text.toString() == "") {
-                    val latLng = binding.editTextLongitude.text.toString().split(' ')
-                    binding.editTextLongitude.setText(latLng[0])
-                    binding.editTextLatitude.setText(latLng[1])
-                }
-
-                val longitude: Double = binding.editTextLongitude.text.toString().toDouble()
-                val latitude: Double = binding.editTextLatitude.text.toString().toDouble()
-
-                val stationUpdated = Station(null, cnName, enName, longitude, latitude)
-                stationDatabaseHelper.updateById(station.id!!, stationUpdated)
-                notifyItemChanged(position)
-                alertDialog.cancel()
-            }
-            utils.haptic(holder.stationCard)
             return@setOnLongClickListener true
+
+//            val binding = AlertDialogStationInfoBinding.inflate(LayoutInflater.from(context))
+//
+//            binding.editTextCnName.setText(station.cnName)
+//            binding.editTextEnName.setText(station.enName)
+//            binding.editTextType.setText(station.type)
+//            binding.editTextLongitude.setText(station.longitude.toString())
+//            binding.editTextLatitude.setText(station.latitude.toString())
+//
+//            val alertDialog =
+//                AlertDialog.Builder(context).setView(binding.root)!!
+//                    .setTitle("编辑站点")
+//                    .setPositiveButton("更新", null)
+//                    .setNeutralButton("删除") { _, _ ->
+//                        stationDatabaseHelper.delById(station.id!!)
+//                        notifyItemRemoved(position)
+//                    }
+//                    .setNegativeButton("取消") { _, _ ->
+//
+//                    }
+//                    .show()
+//
+//
+//            alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
+//                val cnName = binding.editTextCnName.text.toString()
+//                val enName = binding.editTextEnName.text.toString()
+//                val type = binding.editTextType.text.toString()
+//
+//                if (cnName == "") {
+//                    utils.showMsg("请填写中文名称")
+//                    return@setOnClickListener
+//                }
+//
+//                if (enName == "") {
+//                    utils.showMsg("请填写英文名称")
+//                    return@setOnClickListener
+//                }
+//
+//                if (binding.editTextLongitude.text.toString() == "") {
+//                    utils.showMsg("请填写经度")
+//                    return@setOnClickListener
+//                }
+//
+//                if (binding.editTextLatitude.text.toString() == "") {
+//                    val latLng = binding.editTextLongitude.text.toString().split(' ')
+//                    binding.editTextLongitude.setText(latLng[0])
+//                    binding.editTextLatitude.setText(latLng[1])
+//                }
+//
+//                val longitude: Double = binding.editTextLongitude.text.toString().toDouble()
+//                val latitude: Double = binding.editTextLatitude.text.toString().toDouble()
+//
+//                val stationUpdated = Station(null, cnName, enName, longitude, latitude, type)
+//                stationDatabaseHelper.updateById(station.id!!, stationUpdated)
+//                notifyItemChanged(position)
+//                alertDialog.cancel()
+//            }
+//            utils.haptic(holder.stationCard)
+//            return@setOnLongClickListener true
         }
     }
 

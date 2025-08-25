@@ -13,6 +13,13 @@
             app:key="showBottomBar"
             app:title="显示底部导航栏"
             app:useSimpleSummaryProvider="true" />
+        <DropDownPreference
+            android:entries="@array/lang_entries"
+            android:entryValues="@array/lang_values"
+            app:defaultValue="auto"
+            app:key="lang"
+            app:summary="%s"
+            app:title="界面语言" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="地图">
@@ -48,6 +55,13 @@
             app:key="autoFollowNavigationWhenAboveSecond"
             app:title="超过秒数自动跟随定位"
             app:useSimpleSummaryProvider="true" />
+        <DropDownPreference
+            android:entries="@array/mapType_entries"
+            android:entryValues="@array/mapType_values"
+            app:defaultValue="0"
+            app:key="mapType"
+            app:summary="%s"
+            app:title="地图模式（重启生效）" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="定位">
@@ -104,7 +118,7 @@
             app:title="头牌显示信息" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="提示">
+    <PreferenceCategory app:title="播报">
         <SwitchPreferenceCompat
             app:defaultValue="true"
             app:key="stationChangeVibrator"
@@ -126,6 +140,11 @@
             app:title="进站时间播报"
             app:useSimpleSummaryProvider="true" />
         <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:key="speedAnnouncements"
+            app:title="时速播报"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
             app:defaultValue="true"
             app:key="useTTS"
             app:title="使用TTS"
@@ -139,22 +158,25 @@
             app:summary="路径：Documents/Announcer/Backups" />
         <Preference
             android:key="restoreStation"
-            android:title="还原站点"
-            app:summary="重启后生效" />
+            android:title="还原站点" />
         <Preference
             android:key="restoreLine"
-            android:title="还原路线"
-            app:summary="重启后生效" />
+            android:title="还原路线" />
         <Preference
-            android:key="loadPresetData"
-            android:title="加载预设数据"
-            app:summary="重启后生效" />
+            android:key="loadPresetStationData"
+            android:title="加载预设站点数据" />
+        <Preference
+            android:key="loadPresetLineData"
+            android:title="加载预设路线数据" />
+        <Preference
+            android:key="searchStationNotHaveVoice"
+            android:title="搜索暂无报站音频的站点" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="关于">
         <Preference
             android:key="about"
-            android:summary="1.0"
+            android:summary=""
             android:title="@string/app_name" />
     </PreferenceCategory>
 

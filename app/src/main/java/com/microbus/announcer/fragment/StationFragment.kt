@@ -42,7 +42,7 @@ class StationFragment : Fragment(), AMapLocationListener {
     private lateinit var stationDatabaseHelper: StationDatabaseHelper
     private lateinit var lineDatabaseHelper: LineDatabaseHelper
 
-    private lateinit var mLocationClient: AMapLocationClient
+    lateinit var mLocationClient: AMapLocationClient
     private lateinit var mLocationOption: AMapLocationClientOption
 
     private lateinit var alertBinding: AlertDialogStationInfoBinding
@@ -168,81 +168,86 @@ class StationFragment : Fragment(), AMapLocationListener {
     }
 
     private fun addStation() {
-        alertBinding = AlertDialogStationInfoBinding.inflate(LayoutInflater.from(context))
 
-        val alertDialog: AlertDialog? =
-            AlertDialog.Builder(requireContext()).setView(alertBinding.root)
-                ?.setTitle("添加站点")
-                ?.setNeutralButton("获取当前位置", null)?.setPositiveButton("提交", null)
-                ?.setNegativeButton("取消") { _, _ ->
-
-                }?.show()
-
-        alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
-            val cnName = alertBinding.editTextCnName.text.toString()
-            var enName = alertBinding.editTextEnName.text.toString()
-
-            if (cnName == "") {
-                utils.showMsg("请填写中文名称")
-                return@setOnClickListener
-            }
-
-            if (enName == "") {
-                enName = cnName
-            }
-
-            if (alertBinding.editTextLongitude.text.toString() == "") {
-                utils.showMsg("请填写经度")
-                return@setOnClickListener
-            }
-
-            val longitudeRegex = Regex("(\\d+(\\.\\d+)?) ([0-9]+(\\.\\d+)?)?")
-            if (!alertBinding.editTextLongitude.text.matches(longitudeRegex)) {
-                utils.showMsg("经度格式错误")
-                return@setOnClickListener
-            }
-
-
-            if (alertBinding.editTextLatitude.text.toString() == "") {
-                if (!alertBinding.editTextLongitude.text.matches(longitudeRegex)) {
-                    utils.showMsg("请填写经度")
-                    return@setOnClickListener
-                }
-                val latLng = alertBinding.editTextLongitude.text.toString().split(' ')
-                alertBinding.editTextLongitude.setText(latLng[0])
-                alertBinding.editTextLatitude.setText(latLng[1])
-            }
-
-            val latitudeRegex = Regex("\\d+(\\.\\d+)?")
-            if (!alertBinding.editTextLatitude.text.matches(latitudeRegex)) {
-                utils.showMsg("纬度格式错误")
-                return@setOnClickListener
-            }
-
-            val longitude: Double = alertBinding.editTextLongitude.text.toString().toDouble()
-            val latitude: Double = alertBinding.editTextLatitude.text.toString().toDouble()
-
-            val station = Station(null, cnName, enName, longitude, latitude)
-            stationDatabaseHelper.insert(station)
-
-            val stationList = stationDatabaseHelper.quertAll()
-            refreshStationList(stationList)
-
-            alertDialog.cancel()
-        }
-
-        alertDialog?.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener {
-            initLocation()
-            mLocationClient.startLocation()
-            object : CountDownTimer(4 * 1000, 10000) {
-                override fun onTick(millisUntilFinished: Long) {
-                }
-
-                override fun onFinish() {
-                    mLocationClient.stopLocation()
-                }
-            }.start()
-        }
+        utils.showStationDialog("new", stationFragment = this, isOrderGetCurLatLng = true)
+        binding!!.stationRecyclerView.adapter!!.notifyDataSetChanged()
+//
+//        alertBinding = AlertDialogStationInfoBinding.inflate(LayoutInflater.from(context))
+//
+//        val alertDialog: AlertDialog? =
+//            AlertDialog.Builder(requireContext()).setView(alertBinding.root)
+//                ?.setTitle("添加站点")
+//                ?.setNeutralButton("获取当前位置", null)?.setPositiveButton("提交", null)
+//                ?.setNegativeButton("取消") { _, _ ->
+//
+//                }?.show()
+//
+//        alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
+//            val cnName = alertBinding.editTextCnName.text.toString()
+//            var enName = alertBinding.editTextEnName.text.toString()
+//            val type = alertBinding.editTextType.text.toString()
+//
+//            if (cnName == "") {
+//                utils.showMsg("请填写中文名称")
+//                return@setOnClickListener
+//            }
+//
+//            if (enName == "") {
+//                enName = cnName
+//            }
+//
+//            if (alertBinding.editTextLongitude.text.toString() == "") {
+//                utils.showMsg("请填写经度")
+//                return@setOnClickListener
+//            }
+//
+//            val longitudeRegex = Regex("(\\d+(\\.\\d+)?) ([0-9]+(\\.\\d+)?)?")
+//            if (!alertBinding.editTextLongitude.text.matches(longitudeRegex)) {
+//                utils.showMsg("经度格式错误")
+//                return@setOnClickListener
+//            }
+//
+//
+//            if (alertBinding.editTextLatitude.text.toString() == "") {
+//                if (!alertBinding.editTextLongitude.text.matches(longitudeRegex)) {
+//                    utils.showMsg("请填写经度")
+//                    return@setOnClickListener
+//                }
+//                val latLng = alertBinding.editTextLongitude.text.toString().split(' ')
+//                alertBinding.editTextLongitude.setText(latLng[0])
+//                alertBinding.editTextLatitude.setText(latLng[1])
+//            }
+//
+//            val latitudeRegex = Regex("\\d+(\\.\\d+)?")
+//            if (!alertBinding.editTextLatitude.text.matches(latitudeRegex)) {
+//                utils.showMsg("纬度格式错误")
+//                return@setOnClickListener
+//            }
+//
+//            val longitude: Double = alertBinding.editTextLongitude.text.toString().toDouble()
+//            val latitude: Double = alertBinding.editTextLatitude.text.toString().toDouble()
+//
+//            val station = Station(null, cnName, enName, longitude, latitude, type)
+//            stationDatabaseHelper.insert(station)
+//
+//            val stationList = stationDatabaseHelper.quertAll()
+//            refreshStationList(stationList)
+//
+//            alertDialog.cancel()
+//        }
+//
+//        alertDialog?.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener {
+//            initLocation()
+//            mLocationClient.startLocation()
+//            object : CountDownTimer(4 * 1000, 10000) {
+//                override fun onTick(millisUntilFinished: Long) {
+//                }
+//
+//                override fun onFinish() {
+//                    mLocationClient.stopLocation()
+//                }
+//            }.start()
+//        }
     }
 
 
@@ -262,7 +267,7 @@ class StationFragment : Fragment(), AMapLocationListener {
     /**
      * 初始化定位
      */
-    private fun initLocation() {
+    fun initLocation() {
         //初始化定位
         try {
             mLocationClient = AMapLocationClient(context)

@@ -1,6 +1,7 @@
 package com.microbus.announcer
 
 import android.annotation.SuppressLint
+import android.content.res.Configuration
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
@@ -10,6 +11,7 @@ import android.view.View
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.get
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.widget.ViewPager2
 import com.microbus.announcer.adapter.FragAdapter
@@ -18,7 +20,7 @@ import com.microbus.announcer.fragment.LineFragment
 import com.microbus.announcer.fragment.MainFragment
 import com.microbus.announcer.fragment.SettingFragment
 import com.microbus.announcer.fragment.StationFragment
-import androidx.core.view.get
+import java.util.Locale
 
 
 class MainActivity : AppCompatActivity() {
@@ -40,11 +42,19 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("ClickableViewAccessibility")
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
 
         utils = Utils(this)
+
+        // 设置语言
+        val config = resources.configuration
+        config.locale = Locale(utils.getUILang())
+        resources.updateConfiguration(config, null)
+
+
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         //设置低亮度1h屏幕唤醒锁
         powerManager = this.getSystemService(POWER_SERVICE) as PowerManager
@@ -83,7 +93,7 @@ class MainActivity : AppCompatActivity() {
             ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 val mainFragment = fragmentList[0] as MainFragment
-                if (mainFragment.isOperationLock){
+                if (mainFragment.isOperationLock) {
                     utils.showMsg("操作锁定已开启\n请长按定位按钮解锁")
                     binding.viewPager.currentItem = 0
                     return
@@ -93,7 +103,7 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        if(utils.getIsShowBottomBar())
+        if (utils.getIsShowBottomBar())
             binding.bottomNavigationView.visibility = View.VISIBLE
         else
             binding.bottomNavigationView.visibility = View.GONE

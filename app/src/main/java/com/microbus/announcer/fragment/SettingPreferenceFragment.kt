@@ -10,6 +10,8 @@ import android.provider.DocumentsContract
 import android.text.InputType
 import android.util.Log
 import android.view.View
+import androidx.core.net.toUri
+import androidx.preference.DropDownPreference
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -19,19 +21,19 @@ import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.database.LineDatabaseHelper
+import com.microbus.announcer.database.StationDatabaseHelper
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStreamReader
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.min
-import androidx.core.net.toUri
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
 
 
 open class SettingPreferenceFragment : PreferenceFragmentCompat() {
@@ -117,6 +119,28 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
             editText.setSelection(editText.text.length)
         }
 
+        //更改地图模式
+        val mapTypePreference: DropDownPreference =
+            findPreference("mapType")!!
+        mapTypePreference.onPreferenceChangeListener =
+            Preference.OnPreferenceChangeListener { preference, newValue ->
+                val activity = requireActivity() as MainActivity
+                val mainFragment = activity.fragmentList[0] as MainFragment
+                mainFragment.setMapMode(newValue.toString().toInt())
+                return@OnPreferenceChangeListener true
+            }
+
+        //更改界面语言
+        val langPreference: DropDownPreference =
+            findPreference("lang")!!
+        langPreference.onPreferenceChangeListener =
+            Preference.OnPreferenceChangeListener { preference, newValue ->
+                if (newValue.toString() != "auto") {
+
+                }
+                return@OnPreferenceChangeListener true
+            }
+
         //备份站点与路线
         findPreference<Preference>("backupStationAndLine")?.setOnPreferenceClickListener {
 
@@ -176,51 +200,43 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
-        //  加载预设数据
-        findPreference<Preference>("loadPresetData")?.setOnPreferenceClickListener {
+        //  加载预设站点
+        findPreference<Preference>("loadPresetStationData")?.setOnPreferenceClickListener {
+            loadPresetData(R.raw.station)
+            true
+        }
 
-            val fileList = ArrayList<Int>()
-            fileList.add(R.raw.station)
-            fileList.add(R.raw.line)
-
-            fileList.forEach {
-
-                val fileName = when(it){
-                    R.raw.station -> "station.db"
-                    R.raw.line -> "line.db"
-                    else -> ""
-                }
-
-                //  备份原数据
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
-                val dataTime = dateFormat.format(Date(System.currentTimeMillis()))
-                backupFile(fileName, "$dataTime-auto")
-
-                //  读取预设数据
-                Files.copy(
-                    resources.openRawResource(it),
-                    Paths.get(
-                        context?.getExternalFilesDir("")?.path + "/database/$fileName",
-                    ),
-                    StandardCopyOption.REPLACE_EXISTING
-                )
-            }
-
-            utils.showMsg("站点和路线已备份至\nDocuments/Announcer/Backups")
-            utils.showMsg("已加载预设数据，重启生效")
-            requireActivity().finish()
-
+        //  加载预设路线
+        findPreference<Preference>("loadPresetLineData")?.setOnPreferenceClickListener {
+            loadPresetData(R.raw.line)
             true
         }
 
 
+        //  搜索暂无报站音频的站点
+        findPreference<Preference>("searchStationNotHaveVoice")?.setOnPreferenceClickListener {
+
+            val stationDatabaseHelper = StationDatabaseHelper(requireContext())
+
+            val stationList = stationDatabaseHelper.quertAll()
+
+            stationList.forEach { station ->
+
+            }
+
+            true
+        }
+
         //关于
-        findPreference<Preference>("about")?.setOnPreferenceClickListener {
+        val aboutPref = findPreference<Preference>("about")!!
+        aboutPref.setOnPreferenceClickListener {
             utils.showMsg("MicroBus 欢迎您")
             utils.showMsg("鸣谢 yukonga Updater")
 
             true
         }
+        val info = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+        aboutPref.summary = info.versionName
 
     }
 
@@ -346,4 +362,37 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
         fileOutputStream.close()
     }
 
+
+    private fun loadPresetData(resId: Int) {
+        val fileList = ArrayList<Int>()
+
+        fileList.add(resId)
+
+        fileList.forEach {
+
+            val fileName = when (it) {
+                R.raw.station -> "station.db"
+                R.raw.line -> "line.db"
+                else -> ""
+            }
+
+            //  备份原数据
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
+            val dataTime = dateFormat.format(Date(System.currentTimeMillis()))
+            backupFile(fileName, "$dataTime-auto")
+
+            //  读取预设数据
+            Files.copy(
+                resources.openRawResource(it),
+                Paths.get(
+                    context?.getExternalFilesDir("")?.path + "/database/$fileName",
+                ),
+                StandardCopyOption.REPLACE_EXISTING
+            )
+        }
+
+        utils.showMsg("站点和路线已备份至\nDocuments/Announcer/Backups")
+        utils.showMsg("已加载预设数据，重启生效")
+        requireActivity().finish()
+    }
 }

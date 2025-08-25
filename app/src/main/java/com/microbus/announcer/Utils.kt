@@ -1,20 +1,29 @@
 package com.microbus.announcer
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.CountDownTimer
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
 import android.view.HapticFeedbackConstants
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.preference.PreferenceManager
+import com.amap.api.maps.model.LatLng
+import com.microbus.announcer.bean.Station
+import com.microbus.announcer.database.StationDatabaseHelper
+import com.microbus.announcer.databinding.AlertDialogStationInfoBinding
+import com.microbus.announcer.fragment.StationFragment
 import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.time.LocalTime
+import java.util.Locale
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -95,6 +104,19 @@ class Utils(private val context: Context) {
      */
     fun getIsShowBottomBar(): Boolean {
         return prefs.getBoolean("showBottomBar", true)
+    }
+
+    /**
+     * 从设置中获取界面语言
+     * @return zh中文，en英文
+     */
+    fun getUILang(): String {
+        val prefStr = prefs.getString("lang", "auto")
+        return if (prefStr == "auto")
+            Locale.getDefault().language
+        else
+            prefStr!!
+
     }
 
     /**
@@ -181,12 +203,22 @@ class Utils(private val context: Context) {
      * 从设置中获取地图站点显示方式
      */
     fun getMapStationShowType(): Int {
-        return prefs.getString("mapStationShowType", "1")!!.toInt()
+        return prefs.getString("mapStationShowType", "0")!!.toInt()
+    }
+
+    /**
+     * 从设置中获取超过秒数自动跟随定位
+     */
+    fun getAutoFollowNavigationWhenAboveSecond(): Long {
+        return prefs.getString("autoFollowNavigationWhenAboveSecond", "10")!!.toLong()
     }
 
 
-    fun getAutoFollowNavigationWhenAboveSecond(): Long {
-        return prefs.getString("autoFollowNavigationWhenAboveSecond", "10")!!.toLong()
+    /**
+     * 从设置中获取地图模式
+     */
+    fun getMapType(): Int {
+        return prefs.getString("mapType", "1")!!.toInt()
     }
 
     /**
@@ -209,6 +241,13 @@ class Utils(private val context: Context) {
      */
     fun getIsArriveTimeAnnouncements(): Boolean {
         return prefs.getBoolean("arriveTimeAnnouncements", true)
+    }
+
+    /**
+     * 从设置中获取是否进站时间播报
+     */
+    fun getIsSpeedAnnouncements(): Boolean {
+        return prefs.getBoolean("speedAnnouncements", false)
     }
 
     /**
@@ -236,6 +275,9 @@ class Utils(private val context: Context) {
      * 长振动
      */
     fun longHaptic() {
+
+        return
+
         val vibrator = context.getSystemService(Vibrator::class.java)
 
         val timings: LongArray = longArrayOf(100, 100, 100, 100, 100)
@@ -264,35 +306,59 @@ class Utils(private val context: Context) {
     }
 
     /**
-     * 将2位及以下整数转换为中文读法字符串列表
+     * 将3位及以下整数转换为中文读法字符串列表
      * 输入 0,1,...,10,为[0],[1],...,[10]；20,30...,90为[20],[30],...,[90]；其他例如21为[20,1]
-     * @param num 要转换的2位及以下整数
+     * @param str 要转换的2位及以下整数
      * @param before 列表中每项需要添加的后缀
      * @param isAddZeros 个位数是否补零。如输入1为[0, 1]
      */
-    fun intToCnReading(
-        num: Int,
+    fun intOrLetterToCnReading(
+        str: String,
         before: String = "",
         isAddZeros: Boolean = false
     ): ArrayList<String> {
         val list = ArrayList<String>()
-        if (num !in 0..99) {
-            return list
+        // 英文
+        if ("[a-zA-z]+".toRegex().matches(str)) {
+            list.add(list.size, "$before$str")
         }
-        if (num in 0..10) {    // 0 - 10
-            if (isAddZeros && num != 10)
-                list.add(list.size, "${before}0")
-            list.add(list.size, "$before$num")
-        } else {// 11 - 99
-            // 十位
-            if (num >= 20) {
-                list.add(list.size, "$before${num / 10}")
+        // 数字
+        else if ("[0-9]+".toRegex().matches(str)) {
+            Log.d(tag, str)
+            val num = str.toInt()
+
+            if (num !in 0..999) {
+                return list
             }
-//            十
-            list.add(list.size, "${before}10")
-            // 个位
-            if (num % 10 != 0) {
-                list.add(list.size, "$before${num % 10}")
+
+            if (num in 100..999) {
+                //百位
+                list.add(list.size, "$before${num / 100}")
+                // 百
+                list.add(list.size, "${before}100")
+                //一
+                if (num % 100 in 10..19) {
+                    list.add(list.size, "${before}1")
+                }
+                // 十位及个位
+                if (num != 100)
+                    list.addAll(intOrLetterToCnReading((num % 100).toString(), "/cn/time/", true))
+            } else if (num in 11..99) {
+                // 十位
+                if (num >= 20) {
+                    list.add(list.size, "$before${num / 10}")
+                }
+                // 十
+                list.add(list.size, "${before}10")
+                // 个位
+                if (num % 10 != 0) {
+                    list.addAll(intOrLetterToCnReading((num % 10).toString(), "/cn/time/", false))
+                }
+            } else if (num in 0..10) {
+                // 零(0-9)
+                if (isAddZeros && num != 10)
+                    list.add(list.size, "${before}0")
+                list.add(list.size, "$before$num")
             }
         }
         return list
@@ -302,16 +368,155 @@ class Utils(private val context: Context) {
         val currentTime = LocalTime.now()
         val voiceList = ArrayList<String>()
 
-        voiceList.addAll(intToCnReading(currentTime.hour, "/cn/time/"))
+        voiceList.addAll(intOrLetterToCnReading(currentTime.hour.toString(), "/cn/time/"))
         voiceList.add(voiceList.size, "/cn/time/hour")
-        voiceList.addAll(intToCnReading(currentTime.minute, "/cn/time/", true))
+        voiceList.addAll(intOrLetterToCnReading(currentTime.minute.toString(), "/cn/time/", true))
         voiceList.add(voiceList.size, "/cn/time/minute")
 
-        voiceList.forEach {
-            Log.d("TIME11", it)
+        return voiceList
+    }
+
+    fun getNumOrLetterVoiceList(str: String): ArrayList<String> {
+
+        //拆分数字和字母
+        val strList = "([a-zA-Z]+|\\d+)".toRegex().findAll(str).toList()
+        val voiceList = ArrayList<String>()
+
+        strList.forEach { result ->
+            voiceList.addAll(intOrLetterToCnReading(result.value, "/cn/time/"))
         }
 
         return voiceList
+    }
+
+    fun showStationDialog(
+        type: String,
+        oldStation: Station = Station(),
+        latLng: LatLng = LatLng(0.0, 0.0),
+        isOrderLatLng: Boolean = false,
+        stationFragment: StationFragment = StationFragment(),
+        isOrderGetCurLatLng: Boolean = false,
+
+        ) {
+
+        val stationDatabaseHelper = StationDatabaseHelper(context)
+
+        val binding =
+            AlertDialogStationInfoBinding.inflate(LayoutInflater.from(context))
+
+        val alertDialog =
+            AlertDialog.Builder(context).setView(binding.root)!!
+                .setNegativeButton(
+                    context.resources.getString(android.R.string.cancel), null
+                )
+                .setPositiveButton(if (type == "new") "更新" else "编辑", null)
+                .setTitle(if (type == "new") "添加站点" else "编辑站点")
+                .show()
+
+
+        if (type == "new") {
+            if (isOrderGetCurLatLng) {
+                alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).text =
+                    "获取当前位置"
+                alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+                    .setOnClickListener {
+                        stationFragment.initLocation()
+                        stationFragment.mLocationClient.startLocation()
+                        object : CountDownTimer(4 * 1000, 10000) {
+                            override fun onTick(millisUntilFinished: Long) {
+                            }
+
+                            override fun onFinish() {
+                                stationFragment.mLocationClient.stopLocation()
+                            }
+                        }.start()
+                    }
+            }
+
+            if (isOrderLatLng) {
+                binding.editTextLongitude.setText(latLng.longitude.toString())
+                binding.editTextLatitude.setText(latLng.latitude.toString())
+            }
+        } else if (type == "update") {
+            alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).text = "删除"
+            alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+                .setOnClickListener {
+                    stationDatabaseHelper.delById(oldStation.id!!)
+                }
+
+            binding.editTextCnName.setText(oldStation.cnName)
+            binding.editTextEnName.setText(oldStation.enName)
+            binding.editTextType.setText(oldStation.type)
+            binding.editTextLongitude.setText(oldStation.longitude.toString())
+            binding.editTextLatitude.setText(oldStation.latitude.toString())
+        }
+
+        alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+            .setOnClickListener {
+                val cnName = binding.editTextCnName.text.toString()
+                val enName = binding.editTextEnName.text.toString()
+                val type = binding.editTextType.text.toString()
+
+                if (cnName == "") {
+                    this.showMsg("请填写中文名称")
+                    return@setOnClickListener
+                }
+
+                if (enName == "") {
+                    this.showMsg("请填写英文名称")
+                    return@setOnClickListener
+                }
+
+                if (binding.editTextLongitude.text.toString() == "") {
+                    this.showMsg("请填写经度")
+                    return@setOnClickListener
+                }
+
+                val longitudeRegex = Regex("(\\d+(\\.\\d+)?)( \\d+(\\.\\d+)?)?")
+                if (!binding.editTextLongitude.text.matches(longitudeRegex)) {
+                    this.showMsg("经度格式错误")
+                    return@setOnClickListener
+                }
+
+                if (binding.editTextLatitude.text.toString() == "") {
+                    if (!binding.editTextLongitude.text.matches(longitudeRegex)) {
+                        this.showMsg("请填写经度")
+                        return@setOnClickListener
+                    }
+                    val latLng = binding.editTextLongitude.text.toString().split(' ')
+                    binding.editTextLongitude.setText(latLng[0])
+                    binding.editTextLatitude.setText(latLng[1])
+                }
+
+                val latitudeRegex = Regex("\\d+(\\.\\d+)?")
+                if (!binding.editTextLatitude.text.matches(latitudeRegex)) {
+                    this.showMsg("纬度格式错误")
+                    return@setOnClickListener
+                }
+
+                if (binding.editTextLatitude.text.toString() == "") {
+                    val latLng = binding.editTextLongitude.text.toString().split(' ')
+                    binding.editTextLongitude.setText(latLng[0])
+                    binding.editTextLatitude.setText(latLng[1])
+                }
+
+                val longitude: Double = binding.editTextLongitude.text.toString().toDouble()
+                val latitude: Double = binding.editTextLatitude.text.toString().toDouble()
+
+                val stationNew = Station(null, cnName, enName, longitude, latitude, type)
+
+                if (type == "new") {
+                    stationDatabaseHelper.insert(stationNew)
+                } else if (type == "update") {
+                    stationDatabaseHelper.updateById(oldStation.id!!, stationNew)
+                }
+
+                alertDialog.cancel()
+
+
+            }
+
+
     }
 
 }

@@ -23,7 +23,8 @@ class StationDatabaseHelper(
                 "cnName VARCHAR NOT NULL," +
                 "enName VARCHAR NOT NULL," +
                 "longitude DOUBLE NOT NULL," +
-                "latitude DOUBLE NOT NULL);"
+                "latitude DOUBLE NOT NULL," +
+                "type VARCHAR DEFAULT '');"
         db!!.execSQL(sql)
         Log.d(tag, "已创建表 $tableName")
     }
@@ -34,6 +35,7 @@ class StationDatabaseHelper(
         values.put("enName", station.enName)
         values.put("longitude", station.longitude)
         values.put("latitude", station.latitude)
+        values.put("type", station.type)
 
         val result = readableDatabase.insert(tableName, null, values)
         if (result > 0)
@@ -72,6 +74,7 @@ class StationDatabaseHelper(
             station.enName = cursor.getString(2)
             station.longitude = cursor.getDouble(3)
             station.latitude = cursor.getDouble(4)
+            station.type = cursor.getString(5)
             list.add(station)
         }
         cursor.close()
@@ -99,6 +102,7 @@ class StationDatabaseHelper(
             station.enName = cursor.getString(2)
             station.longitude = cursor.getDouble(3)
             station.latitude = cursor.getDouble(4)
+            station.type = cursor.getString(5)
             list.add(station)
         }
         cursor.close()
@@ -127,6 +131,7 @@ class StationDatabaseHelper(
             station.enName = cursor.getString(2)
             station.longitude = cursor.getDouble(3)
             station.latitude = cursor.getDouble(4)
+            station.type = cursor.getString(5)
             list.add(station)
         }
         cursor.close()
@@ -155,6 +160,7 @@ class StationDatabaseHelper(
             station.enName = cursor.getString(2)
             station.longitude = cursor.getDouble(3)
             station.latitude = cursor.getDouble(4)
+            station.type = cursor.getString(5)
             list.add(station)
         }
         cursor.close()
@@ -171,6 +177,7 @@ class StationDatabaseHelper(
             station.enName = cursor.getString(2)
             station.longitude = cursor.getDouble(3)
             station.latitude = cursor.getDouble(4)
+            station.type = cursor.getString(5)
             list.add(station)
         }
         cursor.close()
@@ -180,7 +187,7 @@ class StationDatabaseHelper(
     fun updateById(id: Int, station: Station) {
         val sql =
             "update $tableName set cnName = '${station.cnName}', enName = '${station.enName}', " +
-                    "longitude = ${station.longitude}, latitude = ${station.latitude} " +
+                    "longitude = ${station.longitude}, latitude = ${station.latitude}, type = ${station.type}" +
                     "where id = $id;"
         writableDatabase.execSQL(sql)
     }

@@ -1,23 +1,64 @@
+
 <resources>
     <string name="app_name">Announcer</string>
     <string name="line_name">路线名称</string>
     <string name="up_stations">上行站点</string>
     <string name="down_stations">下行站点</string>
 
-    <string name="main_line_0">Line 0</string>
-    <string name="main_staring_station_name">起点未知</string>
-    <string name="main_terminal_name">终点未知</string>
-    <string name="main_to_title">开往</string>
-    <string name="main_to_station_name">未知站点</string>
-    <string name="main_next_station_title">下一站</string>
-    <string name="main_next_station_name">未知站点</string>
+    <string name="main_line_0">-</string>
+    <string name="main_staring_station_name">MicroBus</string>
+    <string name="main_terminal_name">欢迎您</string>
+    <string name="to">开往</string>
+    <string name="main_to_station_name">-</string>
+    <string name="next">下一站</string>
+    <string name="will_arrive">即将到站</string>
+    <string name="arrive">到达</string>
+    <string name="main_next_station_name">-</string>
     <string name="main_distance_title">距离</string>
     <string name="main_distance_unit">(m)</string>
     <string name="main_distance_value">0.0</string>
     <string name="main_speed_title">速度</string>
     <string name="main_speed_unit">(km/h)</string>
     <string name="main_speed_value">0.0</string>
-    <string name="switch_location">启用定位</string>
-    <string name="switch_follow_location">跟随定位</string>
+    <string name="switch_location">定位</string>
+    <string name="switch_follow_location">跟随</string>
+    <string name="switch_map">地图</string>
+    <string name="up_line">上行</string>
+    <string name="down_line">下行</string>
+    <string name="starting_station">起点站</string>
+    <string name="last_station">上一站</string>
+    <string name="announce_current_station">报本站</string>
+    <string name="next_station">下一站</string>
+    <string name="terminal">终点站</string>
+    <string name="now_location">当前位置</string>
+    <string name="running_info">运行信息</string>
+    <string name="header_wel_left">MicroBus</string>
+    <string name="header_wel_right">欢迎您</string>
+    <string name="header_speed">速度 Speed</string>
+    <string name="switch_line">切换路线</string>
+    <string name="plan_line_too_short_tip">路径过短，建议重新规划</string>
+    <string name="search_by_category">按类别查找</string>
+    <string name="station_not_enough_tip">请先添加至少2个站点</string>
+
+    <string name="submit">提交</string>
+
+    <string name="operation_lock_on_tip">操作锁定已开启\n请长按定位按钮解锁</string>
+    <string name="operation_lock_switch_to_on_tip">已开启操作锁定</string>
+    <string name="operation_lock_switch_to_off_tip">已开启解除锁定</string>
+
+    <string name="request_manage_files_access_permission_title">允许 Announcer 访问设备上的文件吗？</string>
+    <string name="request_manage_files_access_permission_text">应用需要该权限来读取报站语音资源</string>
+    <string name="request_manage_files_access_permission_to_grant">前往授予</string>
+
+    <string name="line_normal_bus">普通公交</string>
+    <string name="line_comm_bus">社区公交</string>
+    <string name="line_metro">轨道交通</string>
+    <string name="line_train">火车车次</string>
+    <string name="line_other">其他路线</string>
+    <string name="line_all">全站点路线</string>
+
+    <string name="km">(km)</string>
+    <string name="m">(m)</string>
+
 
 </resources>
