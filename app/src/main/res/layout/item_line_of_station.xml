@@ -1,12 +1,12 @@
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/lineName"
-    android:padding="4dp"
     android:layout_width="wrap_content"
-    android:background="@drawable/item_line_of_station_button"
     android:layout_height="wrap_content"
     android:layout_margin="4dp"
-    android:textColor="@color/white"
-    android:text="U101" />
+    android:background="@drawable/item_line_of_station_button"
+    android:padding="4dp"
+    android:text="@string/main_line_0"
+    android:textColor="@color/white" />
 
 
 

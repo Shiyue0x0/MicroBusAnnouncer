@@ -2,7 +2,7 @@
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
 
-    android:id="@+id/line_card"
+    android:id="@+id/lineCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginStart="12dp"
@@ -29,7 +29,7 @@
             android:gravity="center"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
-            android:text="U000"
+            android:text="@string/main_line_0"
             android:textColor="@color/textColor1"
             android:textSize="@dimen/largeFontSize"
 
@@ -48,7 +48,7 @@
             android:paddingStart="8dp"
             android:paddingEnd="4dp"
             android:singleLine="true"
-            android:text="MicroBus"
+            android:text="@string/main_staring_station_name"
             android:textColor="@color/textColor2"
             android:textSize="@dimen/largeFontSize"
             android:textStyle="bold"
@@ -67,7 +67,7 @@
             android:paddingStart="8dp"
             android:paddingEnd="4dp"
             android:singleLine="true"
-            android:text="欢迎您"
+            android:text="@string/main_terminal_name"
             android:textColor="@color/textColor2"
             android:textSize="@dimen/largeFontSize"
 

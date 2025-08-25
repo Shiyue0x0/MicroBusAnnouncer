@@ -130,17 +130,6 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
                 return@OnPreferenceChangeListener true
             }
 
-        //更改界面语言
-        val langPreference: DropDownPreference =
-            findPreference("lang")!!
-        langPreference.onPreferenceChangeListener =
-            Preference.OnPreferenceChangeListener { preference, newValue ->
-                if (newValue.toString() != "auto") {
-
-                }
-                return@OnPreferenceChangeListener true
-            }
-
         //备份站点与路线
         findPreference<Preference>("backupStationAndLine")?.setOnPreferenceClickListener {
 

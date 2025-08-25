@@ -1,7 +1,6 @@
 package com.microbus.announcer
 
 import android.annotation.SuppressLint
-import android.content.res.Configuration
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
@@ -51,7 +50,6 @@ class MainActivity : AppCompatActivity() {
         val config = resources.configuration
         config.locale = Locale(utils.getUILang())
         resources.updateConfiguration(config, null)
-
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)

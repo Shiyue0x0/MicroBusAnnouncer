@@ -122,7 +122,7 @@
 
     <!--  路线站点卡  -->
     <androidx.cardview.widget.CardView
-        android:id="@+id/line_station_card"
+        android:id="@+id/lineStationCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
@@ -170,7 +170,7 @@
             android:orientation="horizontal">
 
             <com.microbus.announcer.HeaderTextView
-                android:id="@+id/header_left_new"
+                android:id="@+id/headerLeftNew"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_weight="1"
@@ -181,7 +181,7 @@
                 android:textStyle="bold" />
 
             <com.microbus.announcer.HeaderTextView
-                android:id="@+id/header_middle_new"
+                android:id="@+id/headerMiddleNew"
                 android:layout_width="wrap_content"
                 android:layout_height="0dp"
                 android:layout_marginStart="12dp"
@@ -194,7 +194,7 @@
                 android:textStyle="bold" />
 
             <com.microbus.announcer.HeaderTextView
-                android:id="@+id/header_right_new"
+                android:id="@+id/headerRightNew"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_weight="1"
@@ -649,7 +649,7 @@
         android:contentDescription="@string/running_info"
         android:padding="8dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/list"
+        android:src="@mipmap/list"
         app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
         app:layout_constraintEnd_toEndOf="parent" />
 

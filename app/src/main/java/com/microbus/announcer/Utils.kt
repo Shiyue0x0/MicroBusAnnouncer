@@ -17,11 +17,9 @@ import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.AlertDialogStationInfoBinding
 import com.microbus.announcer.fragment.StationFragment
-import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
-import java.io.InputStreamReader
 import java.time.LocalTime
 import java.util.Locale
 import kotlin.math.atan2
@@ -36,27 +34,6 @@ class Utils(private val context: Context) {
 
     private var prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
 
-
-    fun getSystemProperty(propName: String): String {
-        val line: String
-        var input: BufferedReader? = null
-        try {
-            val p = Runtime.getRuntime().exec("getprop $propName")
-            input = BufferedReader(InputStreamReader(p.inputStream), 1024)
-            line = input.readLine()
-            input.close()
-        } catch (ex: IOException) {
-            return ""
-        } finally {
-            if (input != null) {
-                try {
-                    input.close()
-                } catch (_: IOException) {
-                }
-            }
-        }
-        return line
-    }
 
     /**
      * Toast提示
@@ -147,13 +124,6 @@ class Utils(private val context: Context) {
         return prefs.getBoolean("clickLocationButtonToCopyLngLat", false)
     }
 
-
-    /**
-     * 从设置中获取是否寻访路线中所有站点
-     */
-    fun getIsFindAllLineStation(): Boolean {
-        return prefs.getBoolean("findAllLineStation", true)
-    }
 
     /**
      * 从设置中获取是否自动切换路线方向
@@ -276,8 +246,6 @@ class Utils(private val context: Context) {
      */
     fun longHaptic() {
 
-        return
-
         val vibrator = context.getSystemService(Vibrator::class.java)
 
         val timings: LongArray = longArrayOf(100, 100, 100, 100, 100)
@@ -354,7 +322,7 @@ class Utils(private val context: Context) {
                 if (num % 10 != 0) {
                     list.addAll(intOrLetterToCnReading((num % 10).toString(), "/cn/time/", false))
                 }
-            } else if (num in 0..10) {
+            } else {
                 // 零(0-9)
                 if (isAddZeros && num != 10)
                     list.add(list.size, "${before}0")

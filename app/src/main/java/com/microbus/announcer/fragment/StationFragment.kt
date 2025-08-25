@@ -2,7 +2,6 @@ package com.microbus.announcer.fragment
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.os.CountDownTimer
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
@@ -12,7 +11,6 @@ import android.view.View
 import android.view.View.FOCUSABLE
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuHost
@@ -31,7 +29,8 @@ import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.AlertDialogStationInfoBinding
 import com.microbus.announcer.databinding.FragmentStationBinding
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 
@@ -49,7 +48,7 @@ class StationFragment : Fragment(), AMapLocationListener {
 
     private lateinit var utils: Utils
 
-    @SuppressLint("InflateParams")
+    @SuppressLint("InflateParams", "DiscouragedApi", "InternalInsetResource")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -152,11 +151,10 @@ class StationFragment : Fragment(), AMapLocationListener {
         val adapter = StationAdapter(
             requireContext(),
             stationList,
-            stationDatabaseHelper,
             lineDatabaseHelper
         )
         binding!!.stationRecyclerView.setAdapter(adapter)
-        adapter.setOnItemClickListener(object: StationAdapter.OnItemClickListener{
+        adapter.setOnItemClickListener(object : StationAdapter.OnItemClickListener {
             override fun onItemClick(station: Station) {
                 val activity = requireActivity() as MainActivity
                 val mainFragment = activity.fragmentList[0] as MainFragment
@@ -168,86 +166,8 @@ class StationFragment : Fragment(), AMapLocationListener {
     }
 
     private fun addStation() {
-
         utils.showStationDialog("new", stationFragment = this, isOrderGetCurLatLng = true)
         binding!!.stationRecyclerView.adapter!!.notifyDataSetChanged()
-//
-//        alertBinding = AlertDialogStationInfoBinding.inflate(LayoutInflater.from(context))
-//
-//        val alertDialog: AlertDialog? =
-//            AlertDialog.Builder(requireContext()).setView(alertBinding.root)
-//                ?.setTitle("添加站点")
-//                ?.setNeutralButton("获取当前位置", null)?.setPositiveButton("提交", null)
-//                ?.setNegativeButton("取消") { _, _ ->
-//
-//                }?.show()
-//
-//        alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
-//            val cnName = alertBinding.editTextCnName.text.toString()
-//            var enName = alertBinding.editTextEnName.text.toString()
-//            val type = alertBinding.editTextType.text.toString()
-//
-//            if (cnName == "") {
-//                utils.showMsg("请填写中文名称")
-//                return@setOnClickListener
-//            }
-//
-//            if (enName == "") {
-//                enName = cnName
-//            }
-//
-//            if (alertBinding.editTextLongitude.text.toString() == "") {
-//                utils.showMsg("请填写经度")
-//                return@setOnClickListener
-//            }
-//
-//            val longitudeRegex = Regex("(\\d+(\\.\\d+)?) ([0-9]+(\\.\\d+)?)?")
-//            if (!alertBinding.editTextLongitude.text.matches(longitudeRegex)) {
-//                utils.showMsg("经度格式错误")
-//                return@setOnClickListener
-//            }
-//
-//
-//            if (alertBinding.editTextLatitude.text.toString() == "") {
-//                if (!alertBinding.editTextLongitude.text.matches(longitudeRegex)) {
-//                    utils.showMsg("请填写经度")
-//                    return@setOnClickListener
-//                }
-//                val latLng = alertBinding.editTextLongitude.text.toString().split(' ')
-//                alertBinding.editTextLongitude.setText(latLng[0])
-//                alertBinding.editTextLatitude.setText(latLng[1])
-//            }
-//
-//            val latitudeRegex = Regex("\\d+(\\.\\d+)?")
-//            if (!alertBinding.editTextLatitude.text.matches(latitudeRegex)) {
-//                utils.showMsg("纬度格式错误")
-//                return@setOnClickListener
-//            }
-//
-//            val longitude: Double = alertBinding.editTextLongitude.text.toString().toDouble()
-//            val latitude: Double = alertBinding.editTextLatitude.text.toString().toDouble()
-//
-//            val station = Station(null, cnName, enName, longitude, latitude, type)
-//            stationDatabaseHelper.insert(station)
-//
-//            val stationList = stationDatabaseHelper.quertAll()
-//            refreshStationList(stationList)
-//
-//            alertDialog.cancel()
-//        }
-//
-//        alertDialog?.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener {
-//            initLocation()
-//            mLocationClient.startLocation()
-//            object : CountDownTimer(4 * 1000, 10000) {
-//                override fun onTick(millisUntilFinished: Long) {
-//                }
-//
-//                override fun onFinish() {
-//                    mLocationClient.stopLocation()
-//                }
-//            }.start()
-//        }
     }
 
 
@@ -257,7 +177,7 @@ class StationFragment : Fragment(), AMapLocationListener {
     private fun initSwipeRefreshLayout() {
         binding!!.swipeRefreshLayout.setOnRefreshListener {
             binding!!.stationRecyclerView.adapter!!.notifyDataSetChanged()
-            GlobalScope.launch {
+            CoroutineScope(Dispatchers.Main).launch {
                 binding!!.swipeRefreshLayout.isRefreshing = false
             }
             utils.haptic(binding!!.swipeRefreshLayout)

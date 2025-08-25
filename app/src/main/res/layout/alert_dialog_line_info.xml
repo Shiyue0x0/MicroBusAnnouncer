@@ -69,7 +69,7 @@
         android:layout_height="wrap_content"
         android:checked="true"
         android:enabled="true"
-        android:text="上下行站点对称"
+        android:text="@string/up_and_down_invert"
         android:textOff=""
         android:textOn=""
         app:showText="true" />
@@ -78,6 +78,6 @@
         android:id="@+id/setDefaultLine"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="设为默认路线"/>
+        android:text="@string/set_default_line"/>
 
 </LinearLayout>

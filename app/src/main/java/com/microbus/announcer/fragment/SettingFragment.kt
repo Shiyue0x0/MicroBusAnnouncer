@@ -1,5 +1,6 @@
 package com.microbus.announcer.fragment
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -19,6 +20,7 @@ class SettingFragment : Fragment() {
     private val tag = javaClass.simpleName
     private lateinit var utils: Utils
 
+    @SuppressLint("DiscouragedApi", "InternalInsetResource")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?

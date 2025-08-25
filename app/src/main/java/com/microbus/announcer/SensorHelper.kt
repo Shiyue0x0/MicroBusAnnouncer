@@ -5,11 +5,9 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.util.Log
 
 class SensorHelper(context: Context) : SensorEventListener {
     private var sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val lastRotateDegree = 0f
 
     init {
 
@@ -46,10 +44,10 @@ class SensorHelper(context: Context) : SensorEventListener {
             //赋值调用clone方法
             magneticValues = event.values.clone()
         }
-        val R = FloatArray(9)
+        val r = FloatArray(9)
         values = FloatArray(3)
-        SensorManager.getRotationMatrix(R, null, accelerometerValues, magneticValues)
-        SensorManager.getOrientation(R, values)
+        SensorManager.getRotationMatrix(r, null, accelerometerValues, magneticValues)
+        SensorManager.getOrientation(r, values)
 //        Log.d("Main", "values[0] :" + Math.toDegrees(values[0].toDouble()))
 
         //values[0]的取值范围是-180到180度。

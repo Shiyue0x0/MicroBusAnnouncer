@@ -1,7 +1,6 @@
 package com.microbus.announcer.adapter
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -11,7 +10,6 @@ import com.microbus.announcer.databinding.ItemLineOfStationBinding
 
 
 internal class LineOfStationAdapter(
-    context: Context,
     private val stationIndex: Int,
     private val lineDatabaseHelper: LineDatabaseHelper,
 ) :

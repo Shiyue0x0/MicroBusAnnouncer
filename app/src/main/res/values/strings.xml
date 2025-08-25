@@ -40,8 +40,6 @@
     <string name="search_by_category">按类别查找</string>
     <string name="station_not_enough_tip">请先添加至少2个站点</string>
 
-    <string name="submit">提交</string>
-
     <string name="operation_lock_on_tip">操作锁定已开启\n请长按定位按钮解锁</string>
     <string name="operation_lock_switch_to_on_tip">已开启操作锁定</string>
     <string name="operation_lock_switch_to_off_tip">已开启解除锁定</string>
@@ -60,5 +58,28 @@
     <string name="km">(km)</string>
     <string name="m">(m)</string>
 
+    <string name="up_and_down_invert">上下行站点对称</string>
+    <string name="set_default_line">设为默认路线</string>
+    <string name="input_line_name">输入路线名称搜索</string>
+    <string name="cn_name">中文名称</string>
+    <string name="en_name">英文名称</string>
+    <string name="line_type">站点类型（B公交站 T火车站 C社区站 U地铁站）</string>
+    <string name="station_longitude">站点经度</string>
+    <string name="station_latitude">站点纬度</string>
+    <string name="nav_main">主控</string>
+    <string name="nav_line">路线</string>
+    <string name="nav_station">站点</string>
+    <string name="nav_setting">设置</string>
+    <string name="add_line">添加路线</string>
+    <string name="add_station">添加站点</string>
+    <string name="station_id_value">000</string>
+    <string name="station_type_value">B</string>
+    <string name="station_cn_name_value">站点</string>
+    <string name="station_en_name_value">Station</string>
+    <string name="station_longitude_value">0.0</string>
+    <string name="station_latitude_value">0.0</string>
+    <string name="station_index_value">0</string>
+    <string name="station_name">站点</string>
+    <string name="search">搜索</string>
 
 </resources>

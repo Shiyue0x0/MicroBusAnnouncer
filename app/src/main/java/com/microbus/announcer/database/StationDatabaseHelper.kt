@@ -4,9 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
-import android.location.Location
 import android.util.Log
-import com.amap.api.maps.model.LatLng
 import com.microbus.announcer.bean.Station
 
 class StationDatabaseHelper(
@@ -41,11 +39,6 @@ class StationDatabaseHelper(
         if (result > 0)
             Log.d(tag, "已添加站点 ${station.cnName}")
         return result
-    }
-
-    fun delAll() {
-        val sql = "delete from $tableName"
-        writableDatabase.execSQL(sql)
     }
 
     fun delById(id: Int) {
@@ -93,35 +86,6 @@ class StationDatabaseHelper(
                 null,
                 null,
                 null
-            )
-        // 循环取出游标指向的每条记录
-        while (cursor.moveToNext()) {
-            val station = Station()
-            station.id = cursor.getInt(0)
-            station.cnName = cursor.getString(1)
-            station.enName = cursor.getString(2)
-            station.longitude = cursor.getDouble(3)
-            station.latitude = cursor.getDouble(4)
-            station.type = cursor.getString(5)
-            list.add(station)
-        }
-        cursor.close()
-        return list
-    }
-
-    fun quertByCount(count: Int): List<Station> {
-        val list: MutableList<Station> = ArrayList()
-        // 执行记录查询动作，该语句返回结果集的游标
-        val cursor: Cursor =
-            readableDatabase.query(
-                tableName,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                "1 OFFSET ${count}-1"
             )
         // 循环取出游标指向的每条记录
         while (cursor.moveToNext()) {

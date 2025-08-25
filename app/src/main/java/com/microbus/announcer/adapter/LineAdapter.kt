@@ -26,7 +26,6 @@ internal class LineAdapter(
     RecyclerView.Adapter<LineAdapter.LineViewHolder>() {
 
     private lateinit var mClickListener: OnItemClickListener
-    private var tag = javaClass.simpleName
     private lateinit var stationDatabaseHelper: StationDatabaseHelper
 
     init {

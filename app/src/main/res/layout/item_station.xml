@@ -24,7 +24,6 @@
         android:columnCount="3"
         android:rowCount="2">
 
-
         <TextView
             android:id="@+id/station_id"
             android:layout_width="wrap_content"
@@ -32,7 +31,7 @@
             android:gravity="start"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
-            android:text="000"
+            android:text="@string/station_id_value"
             android:textColor="@color/textColor2"
 
             android:textSize="32sp"
@@ -47,7 +46,7 @@
             android:layout_margin="4dp"
             android:background="@drawable/item_line_of_station_button"
             android:padding="4dp"
-            android:text="B"
+            android:text="@string/station_type_value"
             android:textColor="@color/white"
             app:layout_constraintStart_toEndOf="@+id/station_id"
             app:layout_constraintTop_toTopOf="parent" />
@@ -58,7 +57,7 @@
             android:layout_height="wrap_content"
             android:paddingStart="8dp"
             android:paddingEnd="4dp"
-            android:text="站点0"
+            android:text="@string/station_cn_name_value"
             android:textColor="@color/textColor2"
             android:textSize="@dimen/largeFontSize"
             android:textStyle="bold"
@@ -78,7 +77,7 @@
 
             android:paddingEnd="8dp"
             android:singleLine="true"
-            android:text="Station 0"
+            android:text="@string/station_en_name_value"
 
             android:textColor="@color/textColor2"
 
@@ -98,7 +97,7 @@
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
 
-            android:text="0.0"
+            android:text="@string/station_longitude_value"
             app:layout_constraintStart_toEndOf="@+id/station_id"
             app:layout_constraintTop_toBottomOf="@+id/station_type" />
 
@@ -110,7 +109,7 @@
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
 
-            android:text="0.0"
+            android:text="@string/station_latitude_value"
             app:layout_constraintStart_toEndOf="@+id/station_id"
             app:layout_constraintTop_toBottomOf="@+id/station_longitude" />
 

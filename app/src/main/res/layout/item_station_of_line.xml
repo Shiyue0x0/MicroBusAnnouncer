@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
 
-        android:text="00"
+        android:text="@string/station_index_value"
 
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -37,7 +37,7 @@
             android:gravity="center"
             android:includeFontPadding="false"
             android:scrollbars="none"
-            android:text="路线站点" />
+            android:text="@string/station_name" />
 
     </androidx.core.widget.NestedScrollView>
 

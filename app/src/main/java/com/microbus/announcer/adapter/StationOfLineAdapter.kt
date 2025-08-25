@@ -169,18 +169,4 @@ internal class StationOfLineAdapter(
         }
     }
 
-//    interface OnItemLongClickListener{
-//        fun onItemLongClick(view: View?, position: Int)
-//    }
-//
-//    fun setOnItemLongClickListener(listener: OnItemLongClickListener?) {
-//        if (listener != null) {
-//            this.mLongClickListener = listener
-//        }
-
-    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
-        super.onDetachedFromRecyclerView(recyclerView)
-    }
-//    }
-
 }

@@ -17,7 +17,7 @@
             android:layout_height="wrap_content"
             android:autofillHints=""
             android:ems="10"
-            android:hint="中文名称"
+            android:hint="@string/cn_name"
             android:inputType="text"
             android:text="" />
     </com.google.android.material.textfield.TextInputLayout>
@@ -33,7 +33,7 @@
             android:layout_height="wrap_content"
             android:autofillHints=""
             android:ems="10"
-            android:hint="英文名称"
+            android:hint="@string/en_name"
             android:inputType="text"
             android:text="" />
     </com.google.android.material.textfield.TextInputLayout>
@@ -49,7 +49,7 @@
             android:layout_height="wrap_content"
             android:autofillHints=""
             android:ems="10"
-            android:hint="站点类型（B公交站 T火车站 C社区站 U地铁站）"
+            android:hint="@string/line_type"
             android:inputType="text"
             android:text="" />
     </com.google.android.material.textfield.TextInputLayout>
@@ -65,7 +65,7 @@
             android:layout_height="wrap_content"
             android:autofillHints=""
             android:ems="10"
-            android:hint="站点经度"
+            android:hint="@string/station_longitude"
             android:inputType="text"
             android:text="" />
     </com.google.android.material.textfield.TextInputLayout>
@@ -81,7 +81,7 @@
             android:layout_height="wrap_content"
             android:autofillHints=""
             android:ems="10"
-            android:hint="站点纬度"
+            android:hint="@string/station_latitude"
             android:inputType="numberDecimal"
             android:text="" />
 

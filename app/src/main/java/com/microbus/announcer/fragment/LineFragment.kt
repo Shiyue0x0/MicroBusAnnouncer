@@ -39,7 +39,7 @@ class LineFragment : Fragment() {
         Log.d(tag, "onCreate")
     }
 
-    @SuppressLint("InflateParams")
+    @SuppressLint("InflateParams", "InternalInsetResource", "DiscouragedApi")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {

@@ -40,8 +40,6 @@
     <string name="search_by_category">Search by category</string>
     <string name="station_not_enough_tip">Please add at least 2 stations first</string>
 
-    <string name="submit">Submit</string>
-
     <string name="operation_lock_on_tip">Operation Lock On \nplease long press the positioning button to unlock</string>
     <string name="operation_lock_switch_to_on_tip">Operation Lock Now ON</string>
     <string name="operation_lock_switch_to_off_tip">Operation Lock Now OFF</string>
@@ -59,5 +57,30 @@
 
     <string name="km">(km)</string>
     <string name="m">(m)</string>
+
+    <string name="up_and_down_invert">Direction Symmetry</string>
+    <string name="set_default_line">Set As Default Line</string>
+    <string name="input_line_name">Enter line name to search</string>
+    <string name="cn_name">Chinese Name</string>
+    <string name="en_name">English Name</string>
+    <string name="line_type">Line Type (Bus|Train|Community|Underground)</string>
+    <string name="station_longitude">Longitude</string>
+    <string name="station_latitude">Latitude</string>
+    <string name="nav_main">Main</string>
+    <string name="nav_line">Lines</string>
+    <string name="nav_station">Stations</string>
+    <string name="nav_setting">Settings</string>
+    <string name="add_line">Add Line</string>
+    <string name="add_station">Add Station</string>
+    <string name="station_id_value">000</string>
+    <string name="station_type_value">B</string>
+    <string name="station_cn_name_value">站点</string>
+    <string name="station_en_name_value">Station</string>
+    <string name="station_longitude_value">0.0</string>
+    <string name="station_latitude_value">0.0</string>
+    <string name="station_index_value">0</string>
+    <string name="station_name">Station</string>
+    <string name="search">Search</string>
+
 
 </resources>

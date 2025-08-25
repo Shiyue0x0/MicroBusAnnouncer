@@ -1,6 +1,7 @@
 package com.microbus.announcer
 
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -12,7 +13,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
-import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -20,9 +20,9 @@ import androidx.core.content.withStyledAttributes
 import kotlin.properties.Delegates
 
 
+@Suppress("DEPRECATION")
 class HeaderTextView : View {
 
-    private var tag = javaClass.simpleName
     private lateinit var paint: Paint
     private lateinit var shaderPaint: Paint
     private lateinit var text: String
@@ -80,6 +80,7 @@ class HeaderTextView : View {
     lateinit var leftLinearGradient: LinearGradient
     lateinit var rightLinearGradient: LinearGradient
 
+    @SuppressLint("DrawAllocation")
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
 

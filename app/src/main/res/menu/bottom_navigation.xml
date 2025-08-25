@@ -3,17 +3,17 @@
     <item
         android:id="@+id/item0"
         android:icon="@drawable/baseline_keyboard_command_key_24"
-        android:title="主控" />
+        android:title="@string/nav_main" />
     <item
         android:id="@+id/item1"
         android:icon="@drawable/baseline_view_headline_24"
-        android:title="路线" />
+        android:title="@string/nav_line" />
     <item
         android:id="@+id/item2"
         android:icon="@drawable/baseline_location_on_24"
-        android:title="站点" />
+        android:title="@string/nav_station" />
     <item
         android:id="@+id/item3"
         android:icon="@drawable/baseline_settings_24"
-        android:title="设置" />
+        android:title="@string/nav_setting" />
 </menu>

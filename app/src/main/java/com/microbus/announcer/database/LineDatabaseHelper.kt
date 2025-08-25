@@ -6,7 +6,6 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import com.microbus.announcer.bean.Line
-import com.microbus.announcer.bean.Station
 
 class LineDatabaseHelper(
     context: Context?,

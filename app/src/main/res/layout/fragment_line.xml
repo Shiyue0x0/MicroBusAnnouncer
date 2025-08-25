@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:orientation="horizontal"
-        tools:ignore="MissingConstraints" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
@@ -48,7 +48,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center"
         android:layout_marginBottom="16dp"
-        android:contentDescription="添加路线"
+        android:contentDescription="@string/add_line"
         android:src="@drawable/baseline_add_24"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
