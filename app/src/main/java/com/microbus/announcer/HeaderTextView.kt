@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.os.Build
@@ -25,12 +26,18 @@ class HeaderTextView : View {
 
     private lateinit var paint: Paint
     private lateinit var shaderPaint: Paint
+    private lateinit var backgroundPaint: Paint
     private lateinit var text: String
     private var textSize by Delegates.notNull<Float>()
     private var maxWidth by Delegates.notNull<Float>()
     private var textColor by Delegates.notNull<Int>()
     private var textStyle by Delegates.notNull<Int>()
     private var background by Delegates.notNull<Int>()
+    private var paddingStart by Delegates.notNull<Float>()
+    private var paddingTop by Delegates.notNull<Float>()
+    private var paddingEnd by Delegates.notNull<Float>()
+    private var paddingBottom by Delegates.notNull<Float>()
+    private var cornerRadius by Delegates.notNull<Float>()
 
     constructor(context: Context, attrs: AttributeSet) : super(
         context, attrs
@@ -57,7 +64,12 @@ class HeaderTextView : View {
             maxWidth = getDimension(R.styleable.HeaderTextView_android_maxWidth, Float.MAX_VALUE)
             textColor = getColor(R.styleable.HeaderTextView_android_textColor, 0xffffff)
             textStyle = getInt(R.styleable.HeaderTextView_android_textStyle, 0)
-            background = getColor(R.styleable.HeaderTextView_android_background, 0)
+            background = getColor(R.styleable.HeaderTextView_background, 0)
+            paddingStart = getDimension(R.styleable.HeaderTextView_android_paddingStart, 0F)
+            paddingTop = getDimension(R.styleable.HeaderTextView_android_paddingTop, 0F)
+            paddingEnd = getDimension(R.styleable.HeaderTextView_android_paddingEnd, 0F)
+            paddingBottom = getDimension(R.styleable.HeaderTextView_android_paddingBottom, 0F)
+            cornerRadius = getDimension(R.styleable.HeaderTextView_cornerRadius, 0F)
         }
 //        Log.d(tag, "onDraw: $text")
 //        Log.d(tag, "onDraw: $textSize")
@@ -74,59 +86,71 @@ class HeaderTextView : View {
         shaderPaint = Paint()
         shaderPaint.isAntiAlias = true
 
+        backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        backgroundPaint.style = Paint.Style.FILL
+        backgroundPaint.setColor(background)
 
     }
 
     lateinit var leftLinearGradient: LinearGradient
     lateinit var rightLinearGradient: LinearGradient
+    val fillRect = RectF()
 
     @SuppressLint("DrawAllocation")
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
 
 //        Log.d(tag, "onMeasure")
-        var myMeasuredWidth = measuredWidth
+        var myMeasuredWidth = (measuredWidth + paddingStart + paddingEnd).toInt()
 
         if (layoutParams.width > maxWidth)
-            myMeasuredWidth = MeasureSpec.makeMeasureSpec(maxWidth.toInt(), MeasureSpec.EXACTLY)
+            myMeasuredWidth = MeasureSpec.makeMeasureSpec(
+                (maxWidth + paddingStart + paddingEnd).toInt(),
+                MeasureSpec.EXACTLY
+            )
 
         if (layoutParams.width == ViewGroup.LayoutParams.WRAP_CONTENT)
             myMeasuredWidth =
                 MeasureSpec.makeMeasureSpec(
-                    paint.measureText(text).toInt(),
+                    (paint.measureText(text) + paddingStart + paddingEnd).toInt(),
                     MeasureSpec.EXACTLY
                 )
 
         if (paint.measureText(text).toInt() > maxWidth.toInt())
-            myMeasuredWidth = MeasureSpec.makeMeasureSpec(maxWidth.toInt(), MeasureSpec.EXACTLY)
+            myMeasuredWidth = MeasureSpec.makeMeasureSpec(
+                (maxWidth + paddingStart + paddingEnd).toInt(),
+                MeasureSpec.EXACTLY
+            )
 
         val myMeasuredHeight =
             MeasureSpec.makeMeasureSpec(
-                (paint.getFontMetrics().bottom - paint.getFontMetrics().top).toInt(),
+                (paint.getFontMetrics().bottom - paint.getFontMetrics().top + paddingTop + paddingBottom).toInt(),
                 MeasureSpec.EXACTLY
             )
 
         setMeasuredDimension(myMeasuredWidth, myMeasuredHeight)
 
         leftLinearGradient = LinearGradient(
-            shaderWidth,
+            paddingLeft.toFloat(),
             0f,
+            shaderWidth + paddingLeft.toFloat(),
             0f,
+            background,
+            Color.TRANSPARENT,
+            Shader.TileMode.CLAMP
+        )
+
+        rightLinearGradient = LinearGradient(
+            measuredWidth - shaderWidth - paddingEnd,
+            0f,
+            measuredWidth.toFloat() - paddingEnd,
             0f,
             Color.TRANSPARENT,
             background,
             Shader.TileMode.CLAMP
         )
 
-        rightLinearGradient = LinearGradient(
-            measuredWidth - shaderWidth,
-            0f,
-            measuredWidth.toFloat(),
-            0f,
-            Color.TRANSPARENT,
-            background,
-            Shader.TileMode.CLAMP
-        )
+
     }
 
 
@@ -147,21 +171,102 @@ class HeaderTextView : View {
     //    val repeat = 0 //重复轮播时两端文本的水平间隔，为文本框宽度的比例。0表示无间隔，1表示间隔为文本框宽度
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+
+        fillRect.top = 0F
+        fillRect.bottom = height.toFloat()
+        fillRect.left = 0F
+        fillRect.right = width.toFloat()
+        canvas.drawRoundRect(fillRect, cornerRadius, cornerRadius, backgroundPaint)
+
         // View宽度足够容纳文本，居中显示
         if (paint.measureText(text) <= width) {
             val padding = (width - paint.measureText(text)) / 2
-            canvas.drawText(text, padding, textSize, paint)
+            canvas.drawText(text, padding, textSize + paddingTop, paint)
         }
         // View宽度不足够容纳文本，轮播显示，羽化水平边缘
         else {
-            scrollX = width - (frameCount * speedPixelPerSecond / fps)
-            canvas.drawText(text, scrollX, textSize, paint)
+            scrollX = width - (frameCount * speedPixelPerSecond / fps) - paddingEnd
+            canvas.drawText(text, scrollX, textSize + paddingTop, paint)
 
+            // 左渐隐层
             shaderPaint.setShader(leftLinearGradient)
-            canvas.drawRect(0F, 0F, shaderWidth, height.toFloat(), shaderPaint)
+            canvas.drawRect(
+                paddingStart,
+                0F,
+                shaderWidth + paddingStart,
+                height.toFloat(),
+                shaderPaint
+            )
 
+            // 右渐隐层
             shaderPaint.setShader(rightLinearGradient)
-            canvas.drawRect(width - shaderWidth, 0F, width.toFloat(), height.toFloat(), shaderPaint)
+            canvas.drawRect(
+                width - shaderWidth - paddingEnd,
+                0F,
+                width.toFloat() - paddingEnd,
+                height.toFloat(),
+                shaderPaint
+            )
+
+            canvas.drawRect(
+                0F,
+                cornerRadius,
+                paddingStart,
+                height.toFloat() - cornerRadius,
+                backgroundPaint
+            )
+
+            canvas.drawArc(
+                0F,
+                0F,
+                cornerRadius * 2,
+                cornerRadius * 2,
+                180F,
+                90F,
+                true,
+                backgroundPaint
+            )
+
+            canvas.drawArc(
+                0F,
+                height - cornerRadius * 2,
+                cornerRadius * 2,
+                height.toFloat(),
+                90F,
+                90F,
+                true,
+                backgroundPaint
+            )
+
+            canvas.drawRect(
+                width - paddingEnd,
+                cornerRadius,
+                width.toFloat(),
+                height.toFloat() - cornerRadius,
+                backgroundPaint
+            )
+
+            canvas.drawArc(
+                width - cornerRadius * 2,
+                0F,
+                width.toFloat(),
+                cornerRadius * 2,
+                0F,
+                -90F,
+                true,
+                backgroundPaint
+            )
+
+            canvas.drawArc(
+                width - cornerRadius * 2,
+                height - cornerRadius * 2,
+                width.toFloat(),
+                height.toFloat(),
+                0F,
+                90F,
+                true,
+                backgroundPaint
+            )
 
         }
 
@@ -174,23 +279,27 @@ class HeaderTextView : View {
             if (paint.measureText(text) > width)
                 invalidate()
 
-            if (!isShowFinish) {
-                if (paint.measureText(text) <= width) {
-                    if (frameCount / fps * 1000 > showTimeMs) {
+//            if (!isShowFinish) {
+            if (paint.measureText(text) <= width) {
+                if (frameCount / fps * 1000 > showTimeMs) {
 //                    Log.d(tag, "showFinish $text")
-                        isShowFinish = true
-                        if (this@HeaderTextView::scrollFinishCallback.isInitialized)
-                            scrollFinishCallback.onScrollFinish()
-                    }
-                } else {
-                    if (scrollX < -paint.measureText(text) + width / 2) {
-//                        Log.d(tag, "showFinish $text")
-                        isShowFinish = true
-                        if (this@HeaderTextView::scrollFinishCallback.isInitialized)
-                            scrollFinishCallback.onScrollFinish()
-                    }
+                    isShowFinish = true
+                    if (this@HeaderTextView::scrollFinishCallback.isInitialized)
+                        scrollFinishCallback.onScrollFinish()
                 }
+            } else {
+                if (scrollX < -paint.measureText(text) + width / 2) {
+//                        Log.d(tag, "showFinish $text")
+                    isShowFinish = true
+                    if (this@HeaderTextView::scrollFinishCallback.isInitialized)
+                        scrollFinishCallback.onScrollFinish()
+                }
+                if (scrollX < -paint.measureText(text) + width / 3) {
+                    frameCount = 0
+                }
+
             }
+//            }
 
             frameCount = (frameCount + 1) % Int.MAX_VALUE
 

@@ -49,7 +49,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        app:helperText="填入站点id，以空格分隔">
+        app:helperText="@string/down_stations_helper">
 
         <EditText
             android:id="@+id/editTextDownLineStation"

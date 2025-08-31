@@ -1,6 +1,13 @@
 package com.microbus.announcer
 
 import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
@@ -38,7 +45,7 @@ class MainActivity : AppCompatActivity() {
 
     private var exitTime: Long = 0
 
-    @SuppressLint("ClickableViewAccessibility")
+    @SuppressLint("ClickableViewAccessibility", "UnspecifiedRegisterReceiverFlag")
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -47,9 +54,7 @@ class MainActivity : AppCompatActivity() {
         utils = Utils(this)
 
         // 设置语言
-        val config = resources.configuration
-        config.locale = Locale(utils.getUILang())
-        resources.updateConfiguration(config, null)
+        setLang()
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -92,7 +97,7 @@ class MainActivity : AppCompatActivity() {
             override fun onPageSelected(position: Int) {
                 val mainFragment = fragmentList[0] as MainFragment
                 if (mainFragment.isOperationLock) {
-                    utils.showMsg("操作锁定已开启\n请长按定位按钮解锁")
+                    utils.showMsg(getString(R.string.operation_lock_on_tip))
                     binding.viewPager.currentItem = 0
                     return
                 }
@@ -106,15 +111,14 @@ class MainActivity : AppCompatActivity() {
         else
             binding.bottomNavigationView.visibility = View.GONE
 
-
     }
 
     override fun onRestart() {
-        Log.d(tag, "onRestart")
         wakeLock.release()
         wakeLock.acquire(60 * 60 * 1000L)
         super.onRestart()
     }
+
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (event != null) {
@@ -125,11 +129,10 @@ class MainActivity : AppCompatActivity() {
 
                 //再按一次退出应用
                 if ((System.currentTimeMillis() - exitTime) > 2000) {
-                    utils.showMsg("再按一次退出应用")
+                    utils.showMsg(getString(R.string.press_again_exit_app))
                     exitTime = System.currentTimeMillis()
                 } else {
                     finish()
-//                    exitProcess(0)
                 }
                 return true
             }
@@ -137,27 +140,11 @@ class MainActivity : AppCompatActivity() {
         return super.onKeyDown(keyCode, event)
     }
 
-//    override fun onNewIntent(intent: Intent?) {
-//        super.onNewIntent(intent)
-//        val messageType = intent?.getIntExtra("message", -1)
-//        if (messageType != null) {
-//            binding.viewPager.currentItem = messageType
-//        }
-//    }
+    fun setLang() {
+        val config = resources.configuration
+        config.locale = Locale(utils.getUILang())
+        resources.updateConfiguration(config, null)
+    }
 
-//    override fun onPause() {
-//        super.onPause()
-//        val mainFrag = binding.viewPager.findFragment<MainFragment>()
-//        mainFrag.locationClient.stopLocation()
-//    }
-//
-//    override fun onResume() {
-//        super.onResume()
-//        if(binding.viewPager.isActivated){
-//            val mainFrag = binding.viewPager.findFragment<MainFragment>()
-//            mainFrag.locationClient.startLocation()
-//        }
-//
-//    }
 
 }

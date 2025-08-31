@@ -61,7 +61,7 @@ class StationDatabaseHelper(
             )
         // 循环取出游标指向的每条记录
         while (cursor.moveToNext()) {
-            val station = Station()
+            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
             station.id = cursor.getInt(0)
             station.cnName = cursor.getString(1)
             station.enName = cursor.getString(2)
@@ -89,7 +89,7 @@ class StationDatabaseHelper(
             )
         // 循环取出游标指向的每条记录
         while (cursor.moveToNext()) {
-            val station = Station()
+            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
             station.id = cursor.getInt(0)
             station.cnName = cursor.getString(1)
             station.enName = cursor.getString(2)
@@ -118,7 +118,7 @@ class StationDatabaseHelper(
             )
         // 循环取出游标指向的每条记录
         while (cursor.moveToNext()) {
-            val station = Station()
+            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
             station.id = cursor.getInt(0)
             station.cnName = cursor.getString(1)
             station.enName = cursor.getString(2)
@@ -135,7 +135,7 @@ class StationDatabaseHelper(
         val list: MutableList<Station> = ArrayList()
         val cursor: Cursor = readableDatabase.query(tableName, null, null, null, null, null, null)
         while (cursor.moveToNext()) {
-            val station = Station()
+            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
             station.id = cursor.getInt(0)
             station.cnName = cursor.getString(1)
             station.enName = cursor.getString(2)

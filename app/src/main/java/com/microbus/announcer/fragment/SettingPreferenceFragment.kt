@@ -2,6 +2,9 @@ package com.microbus.announcer.fragment
 
 import android.app.Activity.RESULT_OK
 import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -203,15 +206,49 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
 
 
         //  搜索暂无报站音频的站点
+        val appRootPath =
+            Environment.getExternalStorageDirectory().absolutePath + "/Documents/Announcer"
         findPreference<Preference>("searchStationNotHaveVoice")?.setOnPreferenceClickListener {
 
-            val stationDatabaseHelper = StationDatabaseHelper(requireContext())
+            //如果没有管理外部存储的权限，请求授予
+            if (!requestManageFilesAccessPermission())
+                return@setOnPreferenceClickListener true
 
+            val stationDatabaseHelper = StationDatabaseHelper(requireContext())
             val stationList = stationDatabaseHelper.quertAll()
 
-            stationList.forEach { station ->
+            val stationVoiceCnLostList = ArrayList<String>()
+            val stationVoiceEnLostList = ArrayList<String>()
 
+            stationList.forEach { station ->
+                // 搜索中文音频
+                if (!File("$appRootPath/Media/cn/station/${station.cnName}.wav").exists()) {
+                    if (!stationVoiceCnLostList.contains(station.cnName))
+                        stationVoiceCnLostList.add(station.cnName)
+                }
+                // 搜索英文音频
+                if (!File("$appRootPath/Media/en/station/${station.enName}.wav").exists()) {
+                    if (!stationVoiceEnLostList.contains(station.enName))
+                        stationVoiceEnLostList.add(station.enName)
+                }
             }
+
+            var text = "中文：\n"
+            stationVoiceCnLostList.forEach { name ->
+                text += "$name\n"
+            }
+             text += "English: \n"
+            stationVoiceEnLostList.forEach { name ->
+                text += "$name\n"
+            }
+
+            Log.d(tag, text)
+
+            AlertDialog.Builder(requireContext())
+                .setTitle("")
+                .setMessage(text)
+                .create()
+                .show()
 
             true
         }
@@ -384,4 +421,23 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
         utils.showMsg("已加载预设数据，重启生效")
         requireActivity().finish()
     }
+
+    fun requestManageFilesAccessPermission(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+            AlertDialog.Builder(requireContext())
+                .setTitle(requireContext().resources.getString(R.string.request_manage_files_access_permission_title))
+                .setMessage(requireContext().resources.getString(R.string.request_manage_files_access_permission_text))
+                .setPositiveButton(requireContext().resources.getString(R.string.request_manage_files_access_permission_to_grant)) { _, _ ->
+                    PermissionManager(requireContext(), this).requestManageFilesAccessPermission()
+                }.setNegativeButton(
+                    requireContext().resources.getString(android.R.string.cancel),
+                    null
+                ).create()
+                .show()
+            return false
+        } else {
+            return true
+        }
+    }
+
 }

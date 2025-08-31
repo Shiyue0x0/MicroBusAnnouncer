@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         app:layout_constraintTop_toBottomOf="@+id/bar"
-        app:title="设置" />
+        app:title="@string/nav_setting" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/fragment_container"

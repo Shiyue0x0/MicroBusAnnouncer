@@ -10,6 +10,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Context.LOCATION_SERVICE
 import android.content.Context.MODE_PRIVATE
+import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Context.UI_MODE_SERVICE
 import android.content.DialogInterface
 import android.content.SharedPreferences
@@ -21,9 +22,6 @@ import android.media.AudioFocusRequest
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
-import android.media.MediaMetadataRetriever
-import android.media.MediaPlayer
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -155,7 +153,6 @@ class MainFragment : Fragment() {
     val currentDistanceToStationList = ArrayList<Double>()
 
     val reverseLastDistanceToStationList = ArrayList<Double>()
-
     val reverseCurrentDistanceToStationList = ArrayList<Double>()
 
     private lateinit var utils: Utils
@@ -204,7 +201,7 @@ class MainFragment : Fragment() {
 
     var originLine = Line()
 
-    private var currentLine = Line()
+    private lateinit var currentLine: Line
 
     /**当前方向路线站点下标序列*/
 //    private var currentLineStationIdList = ArrayList<Int>()
@@ -264,7 +261,6 @@ class MainFragment : Fragment() {
 
     private lateinit var lineStationCardLayoutManager: LinearLayoutManager
 
-    private var mediaPlayer: MediaPlayer? = null
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
 
@@ -308,6 +304,7 @@ class MainFragment : Fragment() {
 
     private val cloudStationList = ArrayList<Station>()
 
+
     var matchCount = 0
 
     @SuppressLint("InternalInsetResource", "DiscouragedApi")
@@ -338,7 +335,7 @@ class MainFragment : Fragment() {
 
         //初始化通知管理
         notificationManager =
-            requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            requireContext().getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         /**设置屏幕唤醒锁*/
         powerManager =
@@ -369,6 +366,11 @@ class MainFragment : Fragment() {
 
         // 初始化路线规划
         initLinePlan()
+
+        // 初始化路线运行服务
+//        initLineRunningService()
+
+        currentLine = Line(name = getString(R.string.main_line_0))
 
         //切换为默认路线
         val defaultLineName = utils.getDefaultLineName()
@@ -406,9 +408,6 @@ class MainFragment : Fragment() {
             putFloat("latitude", currentLngLat.latitude.toFloat())
             putFloat("longitude", currentLngLat.longitude.toFloat())
         }
-
-//        Log.d(tag, "onPause ${currentLngLat.longitude}")
-
     }
 
     override fun onStart() {
@@ -470,7 +469,6 @@ class MainFragment : Fragment() {
                 Log.d(tag, "strIndex: ${strIndex.toInt()}")
                 currentLineStationList.add(cloudStationList.find { it.id == strIndex.toInt() }!!)
             }
-
         }
 
         //获取当前反向路线站点列表
@@ -509,11 +507,58 @@ class MainFragment : Fragment() {
 
 
         //加载终点站卡片
-        binding.terminalName.text = if (utils.getUILang() == "zh")
-            currentLineStationList.last().cnName
-        else
-            currentLineStationList.last().enName
+        if (currentLineStationList.isNotEmpty()) {
+            binding.terminalName.text = if (utils.getUILang() == "zh")
+                currentLineStationList.last().cnName
+            else
+                currentLineStationList.last().enName
 
+            binding.headerLeftNew.setText(
+                if (utils.getUILang() == "zh") currentLineStationList.first().cnName
+                else currentLineStationList.first().enName
+            )
+
+            binding.headerRightNew.setText(
+                if (utils.getUILang() == "zh") currentLineStationList.last().cnName
+                else
+                    currentLineStationList.last().enName
+            )
+
+            //加载路线站点变更卡片
+
+            if (currentLine.name == resources.getString(R.string.line_all))
+                binding.lineStationChangeInfo.text =
+                    binding.lineStationChangeInfo.text as String + "--"
+            else
+                binding.lineStationChangeInfo.text =
+                    binding.lineStationChangeInfo.text as String +
+                            if (utils.getUILang() == "zh")
+                                " 开往 " + currentLineStationList.last().cnName + "--"
+                            else
+                                " To " + currentLineStationList.last().enName + "--"
+            //更新通知
+            if (binding.locationSwitch.isChecked && notification != null && notificationManager != null) {
+                notification!!.setContentText(
+                    if (utils.getUILang() == "zh")
+                        "${currentLine.name} 开往 ${currentLineStationList.last().cnName}"
+                    else
+                        "${currentLine.name} To ${currentLineStationList.last().enName}"
+                )
+                notification!!.setWhen(System.currentTimeMillis())
+                notificationManager!!.notify(0, notification!!.build())
+            }
+        } else {
+            binding.terminalName.text = getString(R.string.main_to_station_name)
+            binding.headerLeftNew.setText(getString(R.string.main_staring_station_name))
+            binding.headerRightNew.setText(getString(R.string.main_terminal_name))
+            binding.lineStationChangeInfo.text = binding.lineStationChangeInfo.text as String + "--"
+//            binding.currentStationState.text = getString(R.string.next)
+//            binding.currentStationName.text = getString(R.string.main_next_station_name)
+//            binding.currentDistanceToCurrentStationUnit.text = getString(R.string.main_distance_unit)
+//            binding.currentDistanceToCurrentStationValue.text = getString(R.string.main_distance_value)
+
+
+        }
 
 //        binding.headerLeft.text =
 //            if (utils.getUILang() == "zh") currentLineStationList.first().cnName
@@ -524,39 +569,6 @@ class MainFragment : Fragment() {
 //            else
 //                currentLineStationList.last().enName
 
-        binding.headerLeftNew.setText(
-            if (utils.getUILang() == "zh") currentLineStationList.first().cnName
-            else currentLineStationList.first().enName
-        )
-
-        binding.headerRightNew.setText(
-            if (utils.getUILang() == "zh") currentLineStationList.last().cnName
-            else
-                currentLineStationList.last().enName
-        )
-
-        //加载路线站点变更卡片
-        if (currentLine.name == resources.getString(R.string.line_all))
-            binding.lineStationChangeInfo.text =
-                binding.lineStationChangeInfo.text as String + "--"
-        else
-            binding.lineStationChangeInfo.text =
-                binding.lineStationChangeInfo.text as String +
-                        if (utils.getUILang() == "zh")
-                            " 开往 " + currentLineStationList.last().cnName + "--"
-                        else
-                            " To " + currentLineStationList.last().enName + "--"
-        //更新通知
-        if (binding.locationSwitch.isChecked && notification != null && notificationManager != null) {
-            notification!!.setContentText(
-                if (utils.getUILang() == "zh")
-                    "${currentLine.name} 开往 ${currentLineStationList.last().cnName}"
-                else
-                    "${currentLine.name} To ${currentLineStationList.last().enName}"
-            )
-            notification!!.setWhen(System.currentTimeMillis())
-            notificationManager!!.notify(0, notification!!.build())
-        }
 
         lineArriveStationIdList.clear()
 
@@ -571,7 +583,11 @@ class MainFragment : Fragment() {
         viewList.add(binding.terminal)
         viewList.add(binding.terminalCard)
         //显示|隐藏路线站点框和全站点路线按钮（渐出动画）
-        if (currentLine.name != resources.getString(R.string.line_all)) {
+        if (currentLine.name != resources.getString(R.string.line_all) && currentLine.name != resources.getString(
+                R.string.main_line_0
+            )
+        ) {
+            Log.d(tag, "出现")
             val fadeIn = AnimationUtils.loadAnimation(requireContext(), R.anim.fade_in)
             fadeIn.setAnimationListener(object : Animation.AnimationListener {
                 override fun onAnimationStart(animation: Animation?) {
@@ -589,14 +605,16 @@ class MainFragment : Fragment() {
             viewList.forEach { view ->
                 view.visibility = VISIBLE
             }
-        } else if (currentLine.name == resources.getString(R.string.line_all)) {
+        } else {
+            Log.d(tag, "隐藏")
             val fadeOut = AnimationUtils.loadAnimation(requireContext(), R.anim.fade_out)
             fadeOut.setAnimationListener(object : Animation.AnimationListener {
                 override fun onAnimationStart(animation: Animation?) {
                 }
 
                 override fun onAnimationEnd(animation: Animation?) {
-                    binding.lineStationCard.visibility = INVISIBLE
+                    if (binding.lineStationCard.visibility == VISIBLE)
+                        binding.lineStationCard.visibility = INVISIBLE
                 }
 
                 override fun onAnimationRepeat(animation: Animation?) {
@@ -644,6 +662,16 @@ class MainFragment : Fragment() {
 
         //刷新站点标点
         refreshStationMarker()
+
+//        val intent = Intent(LineRunningService().actionLineLoad)
+//            .putExtra("line", currentLine.name)
+//            .putExtra("lineId", currentLine.id)
+//            .putExtra("currentLineStationList", currentLineStationList)
+//            .putExtra("currentReverseLineStationList", currentReverseLineStationList)
+//            .putExtra("lastDistanceToStationList", lastDistanceToStationList)
+//            .putExtra("currentDistanceToStationList", currentDistanceToStationList)
+//            .putExtra("lineArriveStationIdList", lineArriveStationIdList)
+//        LocalBroadcastManager.getInstance(requireContext()).sendBroadcast(intent)
 
     }
 
@@ -700,7 +728,16 @@ class MainFragment : Fragment() {
                     .setNeutralButton(resources.getString(R.string.line_all)) { dialog, which ->
                         loadLineAll()
                     }
-                    .setPositiveButton(resources.getString(android.R.string.cancel), null)
+                    .setPositiveButton(
+                        resources.getString(R.string.out_line_running)
+                    ) { dialog, which ->
+                        val line = Line(name = getString(R.string.main_line_0))
+                        originLine = line
+                        initLineInterval()
+                        loadLine(line)
+                        currentLineStationState = onNext
+                        utils.haptic(binding.headerMiddleNew)
+                    }
                     .setNegativeButton(
                         getString(R.string.search_by_category)
                     ) { dialog, which ->
@@ -1421,75 +1458,7 @@ class MainFragment : Fragment() {
 
             //单击地图，添加站点
             if (utils.getIsClickMapToAddStation()) {
-
                 utils.showStationDialog("new", latLng = it, isOrderLatLng = true)
-
-//                val alertBinding =
-//                    AlertDialogStationInfoBinding.inflate(LayoutInflater.from(context))
-//
-//                val alertDialog =
-//                    AlertDialog.Builder(requireContext()).setView(alertBinding.root)!!
-//                        .setTitle("添加站点")
-//                        .setNegativeButton(
-//                            resources.getString(android.R.string.cancel)
-//                        ) { _, _ -> }
-//                        .setPositiveButton(resources.getString(R.string.submit), null)?.show()
-//
-//
-//                alertBinding.editTextLongitude.setText(it.longitude.toString())
-//                alertBinding.editTextLatitude.setText(it.latitude.toString())
-//
-//                alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
-//                    val cnName = alertBinding.editTextCnName.text.toString()
-//                    var enName = alertBinding.editTextEnName.text.toString()
-//
-//                    if (cnName == "") {
-//                        utils.showMsg("请填写中文名称")
-//                        return@setOnClickListener
-//                    }
-//
-//                    if (enName == "") {
-//                        enName = cnName
-//                    }
-//
-//                    if (alertBinding.editTextLongitude.text.toString() == "") {
-//                        utils.showMsg("请填写经度")
-//                        return@setOnClickListener
-//                    }
-//
-//
-//                    val longitudeRegex = Regex("(\\d+(\\.\\d+)?)( \\d+(\\.\\d+)?)?")
-//                    if (!alertBinding.editTextLongitude.text.matches(longitudeRegex)) {
-//                        utils.showMsg("经度格式错误")
-//                        return@setOnClickListener
-//                    }
-//
-//                    if (alertBinding.editTextLatitude.text.toString() == "") {
-//                        if (!alertBinding.editTextLongitude.text.matches(longitudeRegex)) {
-//                            utils.showMsg("请填写经度")
-//                            return@setOnClickListener
-//                        }
-//                        val latLng = alertBinding.editTextLongitude.text.toString().split(' ')
-//                        alertBinding.editTextLongitude.setText(latLng[0])
-//                        alertBinding.editTextLatitude.setText(latLng[1])
-//                    }
-//
-//                    val latitudeRegex = Regex("\\d+(\\.\\d+)?")
-//                    if (!alertBinding.editTextLatitude.text.matches(latitudeRegex)) {
-//                        utils.showMsg("纬度格式错误")
-//                        return@setOnClickListener
-//                    }
-//
-//                    val longitude: Double =
-//                        alertBinding.editTextLongitude.text.toString().toDouble()
-//                    val latitude: Double =
-//                        alertBinding.editTextLatitude.text.toString().toDouble()
-//
-//                    val station = Station(null, cnName, enName, longitude, latitude)
-//                    stationDatabaseHelper.insert(station)
-//
-//                    alertDialog.cancel()
-//                }
             }
 
             // 单击地图，设置路线规划起点/终点（关闭“单击地图添加站点”时可用）
@@ -2074,22 +2043,7 @@ class MainFragment : Fragment() {
 
         }
 
-        //仅显示当前路线站点时，刷新地图标记
-        if (utils.getMapStationShowType() == 2) {
-            showCurrentStation()
-        }
-
-        //更新路线站点显示、小卡片和通知
-        refreshLineStationList()
-
-        //刷新路线头屏
-        refreshLineHeadDisplay()
-
-        //更新路线站点更新信息
-        refreshLineStationChangeInfo()
-
-        //刷新站点标点
-        refreshStationMarker()
+        refreshUI()
     }
 
     /**
@@ -2106,22 +2060,7 @@ class MainFragment : Fragment() {
             currentLineStationState = onNext
         }
 
-        //仅显示当前路线站点时，刷新地图标记
-        if (utils.getMapStationShowType() == 2) {
-            showCurrentStation()
-        }
-
-        //更新路线站点显示、小卡片和通知
-        refreshLineStationList()
-
-        //刷新路线头屏
-        refreshLineHeadDisplay()
-
-        //更新路线站点更新信息
-        refreshLineStationChangeInfo()
-
-        //刷新站点标点
-        refreshStationMarker()
+        refreshUI()
     }
 
     /**
@@ -2138,30 +2077,7 @@ class MainFragment : Fragment() {
         currentLineStation = currentLineStationList[stationCount]
         currentLineStationCount = stationCount
 
-        //仅显示当前路线站点时，刷新地图标记
-        if (utils.getMapStationShowType() == 2) {
-
-//            //移除所有地图标点，清空标点列表
-//            for (marker in markerList) marker.destroy()
-//            markerList.clear()
-
-            //刷新地图标记
-            showCurrentStation()
-
-        }
-
-
-        //更新路线站点显示、小卡片和通知
-        refreshLineStationList()
-
-        //刷新路线头屏
-        refreshLineHeadDisplay()
-
-        //更新路线站点更新信息和系统通知
-        refreshLineStationChangeInfo()
-
-        //刷新站点标点
-        refreshStationMarker()
+        refreshUI()
 
         //设置高亮度15s屏幕唤醒锁
         wakeLock.acquire(15 * 1000L)
@@ -2171,21 +2087,27 @@ class MainFragment : Fragment() {
      * 切换为最近站点（不报站）
      */
     private fun switchToNearestStation() {
-        var minDistance = Double.MAX_VALUE
-        var distance: Double
-        for (i in currentLineStationList.indices) {
-            distance = utils.calculateDistance(
-                currentLngLat.longitude,
-                currentLngLat.latitude,
-                currentLineStationList[i].longitude,
-                currentLineStationList[i].latitude
-            )
-            if (distance < minDistance) {
-                minDistance = distance
-                currentLineStationCount = i
-                currentLineStation = currentLineStationList[i]
+        if (currentLineStationList.isNotEmpty()) {
+            var minDistance = Double.MAX_VALUE
+            var distance: Double
+            for (i in currentLineStationList.indices) {
+                distance = utils.calculateDistance(
+                    currentLngLat.longitude,
+                    currentLngLat.latitude,
+                    currentLineStationList[i].longitude,
+                    currentLineStationList[i].latitude
+                )
+                if (distance < minDistance) {
+                    minDistance = distance
+                    currentLineStationCount = i
+                    currentLineStation = currentLineStationList[i]
+                }
             }
+        } else {
+            currentLineStationCount = 0
+            currentLineStation = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
         }
+
 
     }
 
@@ -2198,11 +2120,13 @@ class MainFragment : Fragment() {
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
 
         //更新路线站点卡片
+        binding.lineStationList.setHasFixedSize(true)
         binding.lineStationList.layoutManager = lineStationCardLayoutManager
         val adapter = StationOfLineAdapter(
             requireContext(),
             currentLineStationList,
-            currentLineStationCount
+            currentLineStationCount,
+            currentLine.name
         )
         binding.lineStationList.adapter = adapter
 
@@ -2344,8 +2268,15 @@ class MainFragment : Fragment() {
             binding.currentStationName.text = currentLineStation.enName
 
         //路线卡片滚动到当前站点
-        if (currentLineStationCount >= 7) lineStationCardLayoutManager.scrollToPosition(
-            currentLineStationCount - 7 + 1
+        // todo
+        var midIndex = 7
+//        if (binding.lineStationList.adapter!!.itemCount > 0){
+//            val itemWidth = (binding.lineStationList.layoutManager as LinearLayoutManager).findFirstVisibleItemPosition()
+//            val maxShowItems = binding.lineStationList.width / itemWidth
+//            midIndex = maxShowItems/ 2
+//        }
+        if (currentLineStationCount >= midIndex) lineStationCardLayoutManager.scrollToPosition(
+            currentLineStationCount - midIndex + 1
         )
     }
 
@@ -2396,7 +2327,15 @@ class MainFragment : Fragment() {
      * @param station type为2时要播报站点
      * @param lang type为2时要播报的语种，cn，en，或者all（先报中文，再报英文）
      */
-    fun announce(type: Int = 0, station: Station = Station(), lang: String = "") {
+    fun announce(
+        type: Int = 0, station: Station = Station(
+            null,
+            "MicroBus 欢迎您",
+            "MicroBus",
+            0.0,
+            0.0
+        ), lang: String = ""
+    ) {
 
         if (currentLineStationList.isEmpty())
             return
@@ -2406,10 +2345,6 @@ class MainFragment : Fragment() {
         //如果没有管理外部存储的权限，请求授予
         if (!requestManageFilesAccessPermission())
             return
-
-        if (mediaPlayer != null) {
-            mediaPlayer!!.release()
-        }
 
         audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
 
@@ -2569,7 +2504,10 @@ class MainFragment : Fragment() {
 
 //            val id = UUID.randomUUID().toString().substring(4)
 
-            if (!this.isActive) return@launch
+            if (!this.isActive) {
+                audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+                return@launch
+            }
 
             //新建缓存文件目录
             File(tempFilePath!!).mkdirs()
@@ -2623,7 +2561,10 @@ class MainFragment : Fragment() {
                 }
             }
 
-            if (!isHasVoice) return@launch
+            if (!isHasVoice) {
+                audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+                return@launch
+            }
 
             //启动报站
             if (::audioTrack.isInitialized && audioTrack.state == AudioTrack.STATE_INITIALIZED) {
@@ -2665,6 +2606,7 @@ class MainFragment : Fragment() {
             //读取pcm，tts转码，加入播放流
             for (file in filePathList) {
                 if (!isActive) {
+                    audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
                     return@launch
                 }
                 val fis: FileInputStream
@@ -2676,7 +2618,10 @@ class MainFragment : Fragment() {
                     val ttsFile = File("$tempFilePath/tts/", ttsFileName!!)
 
                     while (true) {
-                        if (!isActive) return@launch
+                        if (!isActive) {
+                            audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+                            return@launch
+                        }
                         Thread.sleep(100)
 //                    Log.d(tag, "$id $ttsDoneNum/$ttsTotalNum")
                         if (doneUtteranceIdList.contains(ttsFileName)) break
@@ -2689,6 +2634,7 @@ class MainFragment : Fragment() {
                     FFmpeg.cancel()
                     FFmpeg.execute(command)
                     if (!File(ttsFilePath).exists()) {
+                        audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
                         return@launch
                     }
                     fisPath = ttsFilePath
@@ -2707,21 +2653,23 @@ class MainFragment : Fragment() {
                 audioTrack.write(audioData!!, 0, audioData.size)
 
 
-                // 播放完毕后，放弃音频焦点
-                try {
-                    val retriever = MediaMetadataRetriever()
-                    retriever.setDataSource(context, Uri.fromFile(File(fisPath)))
-                    val time =
-                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-                    }, time!!.toLong())
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+//                // 播放完毕后，放弃音频焦点
+//                try {
+//                    val retriever = MediaMetadataRetriever()
+//                    retriever.setDataSource(context, Uri.fromFile(File(fisPath)))
+//                    val time =
+//                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+//                    Handler(Looper.getMainLooper()).postDelayed({
+//                        audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+//                    }, time!!.toLong())
+//                } catch (e: Exception) {
+//                    e.printStackTrace()
+//                }
 
                 fis.close()
             }
+
+            audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
 
             // 合成WAV音频 结束
         }
@@ -3205,4 +3153,132 @@ class MainFragment : Fragment() {
             utils.showMsg(getString(R.string.station_not_enough_tip))
         }
     }
+
+//    fun initLineRunningService() {
+//
+//        val mChannel = NotificationChannel(
+//            "default_channel",
+//            "Default Channel",
+//            NotificationManager.IMPORTANCE_DEFAULT
+//        )
+//        val notificationManager =
+//            requireContext().getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+//        notificationManager.createNotificationChannel(mChannel)
+//
+//        val service = LineRunningService()
+//        val intent = Intent(requireContext(), service::class.java)
+//            .putExtra("locationInterval", utils.getLocationInterval())
+//        requireContext().startForegroundService(intent)
+//
+//        val receiver = object : BroadcastReceiver() {
+//            override fun onReceive(context: Context, intent: Intent) {
+//                when (intent.action) {
+//                    LineRunningService().actionNameLocationChange -> {
+//                        Log.d(tag, intent.getDoubleExtra("latitude", 0.0).toString())
+//                        onReceiveLocation(intent)
+//                    }
+//
+//                    LineRunningService().actionNameLineReverse -> {
+//                        binding.lineDirectionSwitch.isChecked =
+//                            !binding.lineDirectionSwitch.isChecked
+//
+//                    }
+//                }
+//            }
+//        }
+//        val intentFilter = IntentFilter(LineRunningService().actionNameLocationChange)
+//        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(receiver, intentFilter)
+//
+//    }
+//
+//    fun onReceiveLocation(intent: Intent) {
+//        val latitude = intent.getDoubleExtra("latitude", 0.0)
+//        val longitude = intent.getDoubleExtra("longitude", 0.0)
+//        val azimuth = intent.getDoubleExtra("azimuth", 0.0)
+//        val distanceToCurrentStation = intent.getDoubleExtra("distanceToCurrentStation", 0.0)
+//        val speedKmH = intent.getDoubleExtra("speedKmH", 0.0)
+//
+//        val lngLat = LatLng(latitude, longitude)
+//
+//        // 更新地图中心点和方位
+//        CoroutineScope(Dispatchers.IO).launch {
+//            if (binding.switchFollowLocation.isChecked) {
+//                CoroutineScope(Dispatchers.Main).launch {
+//                    aMap.stopAnimation()
+//                    aMap.animateCamera(CameraUpdateFactory.changeLatLng(lngLat))
+//                }
+//                Thread.sleep(250L)
+//                CoroutineScope(Dispatchers.Main).launch {
+//                    aMap.stopAnimation()
+//                    aMap.animateCamera(
+//                        CameraUpdateFactory.changeBearing(
+//                            azimuth.toFloat()
+//                        )
+//                    )
+//                }
+//            }
+//        }
+//
+//        //更新定位标点
+//        if (!this::locationMarker.isInitialized) {
+//            locationMarker = aMap.addMarker(
+//                MarkerOptions().position(lngLat).setFlat(true)
+//                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.location_marker))
+//            )
+//            locationMarker.setAnchor(0.5F, 0.57F)
+//        }
+//
+//        locationMarker.rotateAngle = -azimuth.toFloat()
+//
+//        val anim = TranslateAnimation(lngLat)
+//        anim.setDuration(100L)
+//        anim.setInterpolator(DecelerateInterpolator())
+//        locationMarker.setAnimation(anim)
+//        locationMarker.startAnimation()
+//
+//        // 更新距离当前到站距离，格式化距离
+//        if (currentLine.name == "") {
+//            binding.currentDistanceToCurrentStationValue.text = "-"
+//        } else if (distanceToCurrentStation >= 100000) {
+//            binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
+//            binding.currentDistanceToCurrentStationValue.text =
+//                String.format(Locale.CHINA, "%.1f", distanceToCurrentStation / 1000)
+//        } else if (distanceToCurrentStation >= 10000) {
+//            binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
+//            binding.currentDistanceToCurrentStationValue.text =
+//                String.format(Locale.CHINA, "%.2f", distanceToCurrentStation / 1000)
+//        } else if (distanceToCurrentStation >= 1000) {
+//            binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
+//            binding.currentDistanceToCurrentStationValue.text =
+//                String.format(Locale.CHINA, "%.3f", distanceToCurrentStation / 1000)
+//        } else {
+//            binding.currentDistanceToCurrentStationUnit.text = getString(R.string.m)
+//            binding.currentDistanceToCurrentStationValue.text =
+//                String.format(Locale.CHINA, "%.1f", distanceToCurrentStation)
+//        }
+//
+//        // 更新速度
+//        binding.speedValue.text = String.format(Locale.CHINA, "%.1f", speedKmH)
+//    }
+
+    fun refreshUI() {
+        //仅显示当前路线站点时，刷新地图标记
+        if (utils.getMapStationShowType() == 2) {
+            showCurrentStation()
+        }
+
+        //更新路线站点显示、小卡片和通知
+        refreshLineStationList()
+
+        //刷新路线头屏
+        refreshLineHeadDisplay()
+
+        //更新路线站点更新信息和系统通知
+        refreshLineStationChangeInfo()
+
+        //刷新站点标点
+        refreshStationMarker()
+    }
+
+
 }

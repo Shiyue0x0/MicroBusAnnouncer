@@ -3,7 +3,9 @@ package com.microbus.announcer
 import android.app.AlertDialog
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.CountDownTimer
+import android.os.Environment
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
@@ -359,7 +361,7 @@ class Utils(private val context: Context) {
 
     fun showStationDialog(
         type: String,
-        oldStation: Station = Station(),
+        oldStation: Station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0),
         latLng: LatLng = LatLng(0.0, 0.0),
         isOrderLatLng: Boolean = false,
         stationFragment: StationFragment = StationFragment(),

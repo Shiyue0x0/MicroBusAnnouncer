@@ -18,8 +18,9 @@ import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.AlertDialogLineInfoBinding
 import com.microbus.announcer.databinding.ItemLineBinding
 import androidx.core.content.edit
+import androidx.transition.ChangeScroll
 
-internal class LineAdapter(
+class LineAdapter(
     private val context: Context,
     private val lineDatabaseHelper: LineDatabaseHelper,
 ) :
@@ -32,7 +33,9 @@ internal class LineAdapter(
         setHasStableIds(true)
     }
 
-    internal class LineViewHolder(
+    private var stationOfLineAdapterList = ArrayList<StationOfLineAdapter>()
+
+    class LineViewHolder(
         binding: ItemLineBinding,
         clickListener: OnItemClickListener
     ) :
@@ -85,23 +88,25 @@ internal class LineAdapter(
         holder.lineId = line.id!!
         holder.lineName.text = line.name
 
-        if (stationList.isNotEmpty()){
+        if (stationList.isNotEmpty()) {
             holder.lineStartingStation.text = stationList.first().cnName
             holder.lineTerminal.text = stationList.last().cnName
-        }
-        else{
+        } else {
             holder.lineStartingStation.text = "-"
             holder.lineTerminal.text = "-"
         }
 
         val linearLayoutManager =
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        holder.lineStationList.setHasFixedSize(true)
         holder.lineStationList.layoutManager = linearLayoutManager
-        val adapter = StationOfLineAdapter(context, stationList, -1)
-        holder.lineStationList.adapter = adapter
+        val stationOfLineAdapter =
+            StationOfLineAdapter(context, stationList, -1, holder.lineName.text.toString())
+        holder.lineStationList.adapter = stationOfLineAdapter
+        stationOfLineAdapterList.add(stationOfLineAdapter)
 
         //点击站点显示信息
-        adapter.setOnItemClickListener(object :
+        stationOfLineAdapter.setOnItemClickListener(object :
             StationOfLineAdapter.OnItemClickListener {
             override fun onItemClick(view: View?, position: Int) {
                 val station = stationList[position]
@@ -218,4 +223,12 @@ internal class LineAdapter(
             this.mClickListener = listener
         }
     }
+
+    fun setStationItemsIsScroll(isScroll: Boolean) {
+        stationOfLineAdapterList.forEach { adapter ->
+            adapter.isScroll = isScroll
+        }
+    }
+
+
 }

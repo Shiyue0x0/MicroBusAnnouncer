@@ -76,26 +76,15 @@ class LineFragment : Fragment() {
         binding = null
     }
 
-//    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-//        super.onCreateOptionsMenu(menu, inflater)
-//        requireActivity().menuInflater.inflate(R.menu.line_toolbar, menu)
-//        Log.d(tag, "Line: onCreateOptionsMenu")
-//    }
-//
-//    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-//        val itemId = item.itemId
-//        if (itemId == R.id.addLine) {
-//            addLine()
-//        }
-//        return super.onOptionsItemSelected(item);
-//    }
+    lateinit var adapter: LineAdapter
 
     /**
      * 刷新路线列表
      */
     private fun refreshLineList() {
+        binding!!.lineRecyclerView.setHasFixedSize(true)
         //获取所有路线，加载到界面
-        val adapter = LineAdapter(
+        adapter = LineAdapter(
             requireContext(),
             lineDatabaseHelper
         )
@@ -201,4 +190,17 @@ class LineFragment : Fragment() {
             utils.haptic(binding!!.swipeRefreshLayout)
         }
     }
+
+    // 与用户交互时
+    override fun onResume() {
+        super.onResume()
+        adapter.setStationItemsIsScroll(true)
+    }
+
+    // 不再与用户交互时
+    override fun onPause() {
+        super.onPause()
+        adapter.setStationItemsIsScroll(false)
+    }
+
 }

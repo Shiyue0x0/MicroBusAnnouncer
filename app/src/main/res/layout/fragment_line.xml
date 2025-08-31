@@ -20,8 +20,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         app:layout_constraintTop_toBottomOf="@+id/bar"
-        app:title="路线" />
-
+        app:title="@string/nav_line" />
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefreshLayout"
@@ -40,6 +39,7 @@
             android:layout_height="wrap_content"
             android:scrollbars="vertical"
             app:layoutManager="LinearLayoutManager" />
+
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton

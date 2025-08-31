@@ -4,6 +4,7 @@
     <string name="line_name">Line</string>
     <string name="up_stations">Up Stations</string>
     <string name="down_stations">Down Stations</string>
+    <string name="down_stations_helper">Fill in the Station ID, separated by space</string>
 
     <string name="main_line_0">-</string>
     <string name="main_staring_station_name">Unknown</string>
@@ -20,11 +21,11 @@
     <string name="main_speed_title">Speed</string>
     <string name="main_speed_unit">(km/h)</string>
     <string name="main_speed_value">0.0</string>
-    <string name="switch_location">Location</string>
+    <string name="switch_location">LOC</string>
     <string name="switch_follow_location">Follow</string>
     <string name="switch_map">Map</string>
-    <string name="up_line">Up Dir.</string>
-    <string name="down_line">Down Dir.</string>
+    <string name="up_line">Up</string>
+    <string name="down_line">Down</string>
     <string name="starting_station">Starting Station</string>
     <string name="last_station">Last Station</string>
     <string name="announce_current_station">Announce Current Station</string>
@@ -37,7 +38,8 @@
     <string name="header_speed">Speed</string>
     <string name="switch_line">Switch Line</string>
     <string name="plan_line_too_short_tip">The path is too short, it is recommended to re plan</string>
-    <string name="search_by_category">Search by category</string>
+    <string name="search_by_category">Category Search</string>
+    <string name="out_line_running">Exit</string>
     <string name="station_not_enough_tip">Please add at least 2 stations first</string>
 
     <string name="operation_lock_on_tip">Operation Lock On \nplease long press the positioning button to unlock</string>
@@ -81,6 +83,10 @@
     <string name="station_index_value">0</string>
     <string name="station_name">Station</string>
     <string name="search">Search</string>
+
+    <string name="press_again_exit_app">Press again to exit the application</string>
+
+    <string name="search_station_not_have_voice_finish">The station with missing audio has been copied</string>
 
 
 </resources>

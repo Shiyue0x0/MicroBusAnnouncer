@@ -29,7 +29,7 @@ internal class StationAdapter(
     ) :
         ViewHolder(binding.root), View.OnClickListener {
         private var mListener: OnItemClickListener? = null // 声明自定义监听接口
-        var station = Station()
+        var station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
         var stationCard = binding.stationCard
         var stationId = binding.stationId
         var stationType = binding.stationType
@@ -72,6 +72,7 @@ internal class StationAdapter(
 
         val linearLayoutManager =
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        holder.stationLineList.setHasFixedSize(true)
         holder.stationLineList.layoutManager = linearLayoutManager
         holder.stationLineList.adapter =
             station.id?.let { LineOfStationAdapter(it, lineDatabaseHelper) }
