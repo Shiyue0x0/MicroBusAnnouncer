@@ -21,10 +21,12 @@ MicroBusAnnouncer是一款安卓公交报站器，集成了<b>语音播报</b>�
    
    [Github](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
    [蓝奏云](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
+
+3. 将其中的“Announcer”文件夹解压到手机的“Documents”文件夹。
 4. 启动应用，并授予所需的权限。
 5. 点击右下角的“设置”，划到“数据”，点击“加载预设<b>站点</b>数据”，此时应用会自动关闭。
 6. 再次打开应用，点击“设置”->“数据”->“加载预设<b>路线</b>数据”，自动关闭后再打开应用。
-7. 喜报！你已经完成了所有的初始设置。现在可以试着自行探索一下，或者是转到[开始运行](https://github.com/Shiyue0x0/MicroBusAnnouncer/tree/master?tab=readme-ov-file#开始运行)了解Announcer的完整功能。
+7. 喜报！你已经完成了所有的初始设置。现在可以试着自行探索一下，或者是转到[开始运行](https://github.com/Shiyue0x0/MicroBusAnnouncer/tree/master?tab=readme-ov-file#开始运行)跟随文档操作。
 
 ### 开始运行
 
@@ -32,4 +34,4 @@ MicroBusAnnouncer是一款安卓公交报站器，集成了<b>语音播报</b>�
 2. 点击最上方的模拟电显，然后选择要运行的路线。也可以点击“线路”页中的电显更换路线。
 3. 此时，你选择的路线已经开始运行。Announcer在前台运行时，会根据实时定位进行自动报站，这是一般报站器都会有的功能。
 4. 当然，你此刻大概率并不真正在这条路线上，无法触发自动报站。不过你也可以点击界面下方中央类似铃铛的按钮，来试听报站。
-5. 
+
