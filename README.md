@@ -13,4 +13,4 @@ MicroBusAnnouncer是一款安卓公交报站器，集成了<b>语音播报</b>�
 ### 快速体验
 
 无需过多配置，只需要一些步骤即可体验Announcer的基本功能。
-1. 准备一台Android 8.0+的手机，下载最新版本<a herf="https://github.com/Shiyue0x0/MicroBusAnnouncer/releases"></a>
+1. 准备一台Android 8.0+的手机，[点此下载最新版](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)。
