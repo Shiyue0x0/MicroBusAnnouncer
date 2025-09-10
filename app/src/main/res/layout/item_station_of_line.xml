@@ -12,10 +12,10 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/constraintLayout"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp">
 
         <TextView
             android:id="@+id/station_index"
@@ -46,7 +46,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:includeFontPadding="false"
                 android:scrollbars="none"
                 android:text="@string/station_name" />
 

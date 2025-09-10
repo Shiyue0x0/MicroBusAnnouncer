@@ -194,12 +194,14 @@ class LineFragment : Fragment() {
     // 与用户交互时
     override fun onResume() {
         super.onResume()
+        Log.d(tag, "onResume")
         adapter.setStationItemsIsScroll(true)
     }
 
     // 不再与用户交互时
     override fun onPause() {
         super.onPause()
+        Log.d(tag, "onPause")
         adapter.setStationItemsIsScroll(false)
     }
 

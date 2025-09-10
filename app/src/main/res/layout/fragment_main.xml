@@ -10,7 +10,7 @@
     tools:context=".fragment.MainFragment">
 
     <!--  地图  -->
-    <com.microbus.announcer.MapContainer
+    <com.microbus.announcer.Container
         android:id="@+id/mapContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -26,7 +26,7 @@
 
         </com.amap.api.maps.MapView>
 
-    </com.microbus.announcer.MapContainer>
+    </com.microbus.announcer.Container>
 
     <!--  状态栏填充  -->
     <LinearLayout
@@ -132,21 +132,27 @@
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
         android:paddingBottom="12dp"
-
         android:visibility="invisible"
         app:cardBackgroundColor="?attr/cardBackgroundColor"
         app:cardCornerRadius="24dp"
         app:layout_constraintTop_toBottomOf="@+id/headerNew">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/lineStationList"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:layout_marginLeft="12dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginRight="12dp"
-            android:layout_marginBottom="8dp" />
+            <com.microbus.announcer.Container
+                android:id="@+id/lineStationListContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/lineStationList"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="12dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginRight="12dp"
+                    android:layout_marginBottom="8dp" />
+
+            </com.microbus.announcer.Container>
 
     </androidx.cardview.widget.CardView>
 
@@ -190,6 +196,7 @@
                 android:layout_height="0dp"
                 android:layout_marginStart="12dp"
                 android:layout_marginEnd="12dp"
+
                 android:maxWidth="80dp"
                 android:paddingStart="8dp"
                 android:paddingTop="4dp"
@@ -245,10 +252,10 @@
                     android:layout_marginTop="12dp"
                     android:layout_marginEnd="8dp"
                     android:layout_marginBottom="12dp"
-
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     app:cardBackgroundColor="?attr/cardBackgroundColor"
                     app:cardCornerRadius="24dp">
 
@@ -261,6 +268,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/terminalTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/to" />
@@ -270,6 +278,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:ellipsize="marquee"
+
                             android:gravity="center"
                             android:marqueeRepeatLimit="marquee_forever"
                             android:paddingLeft="8dp"
@@ -277,28 +286,25 @@
                             android:singleLine="true"
                             android:text="@string/main_to_station_name"
                             android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize"
-                            android:textStyle="bold" />
+                            android:textSize="@dimen/middleFontSize" />
 
 
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
                 <androidx.cardview.widget.CardView
-
+                    android:id="@+id/currentStationCard"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:layout_marginEnd="8dp"
-
                     android:layout_marginBottom="12dp"
                     android:layout_weight="1"
-
                     android:clickable="true"
                     android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     app:cardBackgroundColor="?attr/cardBackgroundColor"
                     app:cardCornerRadius="24dp">
-
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -312,6 +318,7 @@
                             android:id="@+id/currentStationState"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+
                             android:text="@string/next" />
 
                         <com.microbus.announcer.ScrollingTextView
@@ -320,6 +327,7 @@
                             android:layout_height="wrap_content"
                             android:ellipsize="marquee"
 
+
                             android:gravity="center"
                             android:marqueeRepeatLimit="marquee_forever"
                             android:paddingLeft="8dp"
@@ -327,27 +335,25 @@
                             android:singleLine="true"
                             android:text="@string/main_next_station_name"
                             android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize"
-                            android:textStyle="bold" />
+                            android:textSize="@dimen/middleFontSize" />
 
 
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
                 <androidx.cardview.widget.CardView
-
+                    android:id="@+id/currentDistanceToCurrentStationCard"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:layout_marginEnd="8dp"
                     android:layout_marginBottom="12dp"
-
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     app:cardBackgroundColor="?attr/cardBackgroundColor"
                     app:cardCornerRadius="24dp">
-
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -367,12 +373,14 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
+
                                 android:text="@string/main_distance_title" />
 
                             <TextView
                                 android:id="@+id/currentDistanceToCurrentStationUnit"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
+
                                 android:text="@string/main_distance_unit"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -380,9 +388,9 @@
                         <com.microbus.announcer.ScrollingTextView
                             android:id="@+id/currentDistanceToCurrentStationValue"
                             android:layout_width="match_parent"
-
                             android:layout_height="wrap_content"
                             android:ellipsize="marquee"
+
                             android:gravity="center"
                             android:marqueeRepeatLimit="marquee_forever"
                             android:paddingLeft="8dp"
@@ -390,22 +398,22 @@
                             android:singleLine="true"
                             android:text="@string/main_distance_value"
                             android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize"
-                            android:textStyle="bold" />
+                            android:textSize="@dimen/middleFontSize" />
 
 
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
                 <androidx.cardview.widget.CardView
+                    android:id="@+id/speedCard"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:layout_marginBottom="12dp"
-
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     app:cardBackgroundColor="?attr/cardBackgroundColor"
                     app:cardCornerRadius="24dp">
 
@@ -426,11 +434,13 @@
                             android:orientation="horizontal">
 
                             <TextView
+                                android:id="@+id/speedTitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/main_speed_title" />
 
                             <TextView
+                                android:id="@+id/speedUnit"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/main_speed_unit"
@@ -440,9 +450,9 @@
                         <com.microbus.announcer.ScrollingTextView
                             android:id="@+id/speedValue"
                             android:layout_width="match_parent"
-
                             android:layout_height="wrap_content"
                             android:ellipsize="marquee"
+
                             android:gravity="center"
                             android:marqueeRepeatLimit="marquee_forever"
                             android:paddingLeft="8dp"
@@ -450,8 +460,7 @@
                             android:singleLine="true"
                             android:text="@string/main_speed_value"
                             android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize"
-                            android:textStyle="bold" />
+                            android:textSize="@dimen/middleFontSize" />
 
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>

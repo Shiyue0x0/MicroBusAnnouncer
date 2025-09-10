@@ -17,10 +17,10 @@
     <string name="main_next_station_name">-</string>
     <string name="main_distance_title">距离</string>
     <string name="main_distance_unit">(m)</string>
-    <string name="main_distance_value">0.0</string>
+    <string name="main_distance_value">-</string>
     <string name="main_speed_title">速度</string>
     <string name="main_speed_unit">(km/h)</string>
-    <string name="main_speed_value">0.0</string>
+    <string name="main_speed_value">-</string>
     <string name="switch_location">定位</string>
     <string name="switch_follow_location">跟随</string>
     <string name="switch_map">地图</string>

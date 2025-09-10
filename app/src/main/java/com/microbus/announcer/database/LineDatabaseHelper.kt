@@ -73,6 +73,7 @@ class LineDatabaseHelper(
 
     fun quertByCount(count: Int): List<Line> {
         val list: MutableList<Line> = ArrayList()
+        val limitStr = "1 offset " + (count - 1)
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
             readableDatabase.query(
@@ -83,7 +84,7 @@ class LineDatabaseHelper(
                 null,
                 null,
                 "name",
-                "1 OFFSET ${count}-1"
+                "1"
             )
         // 循环取出游标指向的每条记录
         while (cursor.moveToNext()) {

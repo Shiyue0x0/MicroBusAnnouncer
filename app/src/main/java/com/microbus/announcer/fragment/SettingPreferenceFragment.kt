@@ -82,6 +82,15 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
             return@setOnPreferenceChangeListener true
         }
 
+        //界面语言
+        val langPreference: DropDownPreference =
+            findPreference("lang")!!
+        langPreference.onPreferenceChangeListener =
+            Preference.OnPreferenceChangeListener { preference, newValue ->
+                utils.setUILang(newValue.toString())
+                return@OnPreferenceChangeListener true
+            }
+
         //站点判定距离
         val arriveStationDistancePreference: EditTextPreference? =
             findPreference("arriveStationDistance")

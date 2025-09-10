@@ -13,6 +13,7 @@
         <attr name="android:paddingEnd" />
         <attr name="android:paddingBottom" />
         <attr name="cornerRadius" />
+        <attr name="android:fontFamily" />
     </declare-styleable>
 </resources>
 

@@ -4,21 +4,25 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.util.AttributeSet
 import android.view.MotionEvent
+import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.RelativeLayout
-import androidx.constraintlayout.widget.ConstraintLayout
 
 
-class MapContainer : RelativeLayout {
-    private var nestedScrollView: ConstraintLayout? = null
+class Container : LinearLayout {
+    private var nestedScrollView: ViewGroup? = null
 
     constructor(context: Context?) : super(context)
     constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs)
 
-    fun setScrollView(nestedScrollView: ConstraintLayout?) {
+
+
+    fun setScrollView(nestedScrollView: ViewGroup?) {
         this.nestedScrollView = nestedScrollView
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        MotionEvent.ACTION_SCROLL
         if (ev.action == MotionEvent.ACTION_UP) {
             nestedScrollView!!.requestDisallowInterceptTouchEvent(false)
         } else {

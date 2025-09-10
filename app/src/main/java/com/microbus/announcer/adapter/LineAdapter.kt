@@ -63,6 +63,8 @@ class LineAdapter(
         val binding = ItemLineBinding
             .inflate(LayoutInflater.from(parent.context), parent, false)
         stationDatabaseHelper = StationDatabaseHelper(context)
+        binding.lineStationListContainer.setScrollView(binding.lineStationList)
+
         return LineViewHolder(binding, mClickListener)
     }
 
@@ -73,7 +75,7 @@ class LineAdapter(
     ) {
         val utils = Utils(context)
 
-        val line = lineDatabaseHelper.quertByCount(position + 1).first()
+        val line = lineDatabaseHelper.quertAll()[position]
 
         //获取路线起点站、终点站下标
         val stationStrIndexList = line.upLineStation.split(" ").toMutableList()

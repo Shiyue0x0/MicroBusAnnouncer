@@ -1,3 +1,6 @@
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
@@ -12,9 +15,9 @@ android {
         applicationId = "com.microbus.announcer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 211
-        versionName = "2.1.1"
-
+        versionCode = 230
+        versionName =
+            "2.3.0-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
     }
 
     buildTypes {
@@ -42,7 +45,7 @@ android {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a", "x86_64")
+            include("arm64-v8a")
         }
     }
 

@@ -9,7 +9,7 @@
             app:title="默认路线名称"
             app:useSimpleSummaryProvider="true" />
         <SwitchPreferenceCompat
-            app:defaultValue="false"
+            app:defaultValue="true"
             app:key="showBottomBar"
             app:title="显示底部导航栏"
             app:useSimpleSummaryProvider="true" />
@@ -61,7 +61,7 @@
             app:defaultValue="0"
             app:key="mapType"
             app:summary="%s"
-            app:title="地图模式（重启生效）" />
+            app:title="地图模式" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="定位">

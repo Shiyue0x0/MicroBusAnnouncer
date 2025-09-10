@@ -3,4 +3,5 @@
     <color name="textColor1">@color/md_theme_light_inversePrimary</color>
     <color name="textColor2">@color/md_theme_light_primaryContainer</color>
     <color name="textColor3">@color/md_theme_light_outlineVariant</color>
+    <color name="cardviewDarkBackground">@color/cardview_dark_background</color>
 </resources>

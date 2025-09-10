@@ -1,21 +1,20 @@
 package com.microbus.announcer
 
 import android.annotation.SuppressLint
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
+import android.util.AttributeSet
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.get
 import androidx.fragment.app.Fragment
@@ -54,7 +53,7 @@ class MainActivity : AppCompatActivity() {
         utils = Utils(this)
 
         // 设置语言
-        setLang()
+        utils.setUILang(utils.getUILang())
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -111,39 +110,37 @@ class MainActivity : AppCompatActivity() {
         else
             binding.bottomNavigationView.visibility = View.GONE
 
+        onBackPressedDispatcher.addCallback {
+            if(binding.viewPager.currentItem == 0){
+                moveTaskToBack(true)
+            }
+            else{
+                binding.viewPager.currentItem = 0
+            }
+        }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_DOWN) {
+            moveTaskToBack(true)
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onRestart() {
         wakeLock.release()
         wakeLock.acquire(60 * 60 * 1000L)
+        Log.d(tag, "onRestart" + intent.getBooleanExtra("switchToMainFrag", false))
+
         super.onRestart()
     }
 
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (event != null) {
-            if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_DOWN) {
-                //当前不在主控界面，跳转到主控界面
-                if (binding.viewPager.currentItem != 0)
-                    binding.viewPager.currentItem = 0
-
-                //再按一次退出应用
-                if ((System.currentTimeMillis() - exitTime) > 2000) {
-                    utils.showMsg(getString(R.string.press_again_exit_app))
-                    exitTime = System.currentTimeMillis()
-                } else {
-                    finish()
-                }
-                return true
-            }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if(intent.getBooleanExtra("switchToMainFrag", false)){
+            binding.viewPager.currentItem = 0
         }
-        return super.onKeyDown(keyCode, event)
-    }
-
-    fun setLang() {
-        val config = resources.configuration
-        config.locale = Locale(utils.getUILang())
-        resources.updateConfiguration(config, null)
     }
 
 

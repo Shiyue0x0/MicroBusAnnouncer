@@ -32,6 +32,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <queries>
         <intent>
@@ -42,26 +43,29 @@
     <application
         android:name=".MapApplication"
         android:allowBackup="true"
+        android:hardwareAccelerated="true"
         android:icon="@mipmap/an"
         android:label="@string/app_name"
         android:requestLegacyExternalStorage="true"
+        android:resizeableActivity="true"
         android:roundIcon="@mipmap/an"
         android:supportsRtl="true"
         android:theme="@style/Theme.MicroBusAnnouncer"
         tools:targetApi="31">
 
-<!--        <service-->
-<!--            android:name=".service.LineRunningService"-->
-<!--            android:enabled="false"-->
-<!--            android:exported="false"-->
-<!--            android:foregroundServiceType="location|mediaPlayback" />-->
+        <!--        <service-->
+        <!--            android:name=".service.LineRunningService"-->
+        <!--            android:enabled="false"-->
+        <!--            android:exported="false"-->
+        <!--            android:foregroundServiceType="location|mediaPlayback" />-->
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask"
+            android:hardwareAccelerated="true"
+            android:launchMode="standard"
             android:screenOrientation="portrait"
-            android:windowSoftInputMode="stateVisible|adjustResize"
+            android:windowSoftInputMode="adjustResize"
             tools:ignore="DiscouragedApi,LockedOrientationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

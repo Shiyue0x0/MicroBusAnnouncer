@@ -3,7 +3,6 @@ package com.microbus.announcer.adapter
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Resources
-import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
@@ -17,14 +16,13 @@ import com.microbus.announcer.R
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.databinding.ItemStationOfLineBinding
 import java.util.Locale
-import kotlin.math.ceil
 
 
 internal class StationOfLineAdapter(
     private val context: Context,
-    private val stationList: ArrayList<Station>,
-    private val currentLineStationCount: Int,
-    private val lineName: String
+    mStationList: ArrayList<Station>,
+    mStationCount: Int,
+   mLineName: String
 ) :
     RecyclerView.Adapter<StationOfLineAdapter.StationOfLineViewHolder>() {
 
@@ -32,7 +30,14 @@ internal class StationOfLineAdapter(
 
     val mHandler = Handler(Looper.getMainLooper())
 
-    var isScroll = true
+    var isScroll = false
+
+    var lineHeight = 0
+
+    var stationList = mStationList
+
+    var stationCount = mStationCount
+    var lineName = mLineName
 
     internal class StationOfLineViewHolder(
         binding: ItemStationOfLineBinding,
@@ -46,6 +51,7 @@ internal class StationOfLineAdapter(
         var main = binding.main
         var constraintLayout = binding.constraintLayout
 
+
         init {
             mClickListener = clickListener
             stationNameNestedScrollView.setOnClickListener(this)
@@ -58,78 +64,16 @@ internal class StationOfLineAdapter(
 
     }
 
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StationOfLineViewHolder {
         val binding = ItemStationOfLineBinding
             .inflate(LayoutInflater.from(parent.context), parent, false)
         val holder = StationOfLineViewHolder(binding, mClickListener)
-        return holder
-    }
 
-    @SuppressLint("SetTextI18n")
-    override fun onBindViewHolder(holder: StationOfLineViewHolder, position: Int) {
-        when (position) {
-            0 -> holder.stationIndex.text = "始发"
-            stationList.size - 1 -> holder.stationIndex.text = "终到"
-            else -> holder.stationIndex.text = String.format(Locale.CHINA, "%02d", position + 1)
-        }
+        lineHeight = holder.stationIndex.lineHeight
 
-        holder.stationName.text = stationList[position].cnName
-
-        val paint = Paint()
-        paint.textSize = holder.stationIndex.textSize
-        val fm = paint.fontMetrics
-        val lineHeight = ceil((fm.descent - fm.ascent).toDouble()).toInt()
-        val mainLayoutParams = holder.stationNameNestedScrollView.layoutParams
-        mainLayoutParams.height = lineHeight * 4
-        mainLayoutParams.width = lineHeight
-        holder.stationNameNestedScrollView.layoutParams = mainLayoutParams
-
-        //当前站点样式
-        val color: Int
-        val style: Int
-        val bg: Int
-        val padding: Int
-        val dp2 = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
-            2F, Resources.getSystem().displayMetrics).toInt()
-        if (position < currentLineStationCount || currentLineStationCount == -1) {
-            color = context.getColor(R.color.textColor3)
-            style = Typeface.NORMAL
-            bg = context.getColor(android.R.color.transparent)
-            padding = 0
-        } else if (position == currentLineStationCount) {
-            com.google.android.material.R.styleable.CardView_cardBackgroundColor
-            color = holder.main.cardBackgroundColor.defaultColor
-            style = Typeface.BOLD
-            bg = context.getColor(R.color.textColor2)
-            padding = dp2
-        } else {
-            color = context.getColor(R.color.textColor2)
-            style = Typeface.NORMAL
-            bg = context.getColor(android.R.color.transparent)
-            padding = 0
-        }
-        holder.stationIndex.setTextColor(color)
-        holder.stationName.setTextColor(color)
-        holder.stationIndex.setTypeface(null, style)
-        holder.stationName.setTypeface(null, style)
-        holder.main.setCardBackgroundColor(bg)
-        holder.constraintLayout.setPadding(padding, dp2, padding, dp2)
-
-        when (holder.stationName.text.length) {
-            2 -> {
-                holder.stationName.setLineSpacing(lineHeight * 2f, 1f)
-            }
-
-            3 -> {
-                holder.stationName.setLineSpacing(lineHeight * 0.5f, 1f)
-            }
-
-            else -> {
-                holder.stationName.setLineSpacing(0f, 1f)
-            }
-        }
-
-
+        holder.stationNameNestedScrollView.layoutParams.width = lineHeight
+        holder.stationNameNestedScrollView.layoutParams.height = lineHeight * 4
         //设置站点名称竖直滚动
         val runnable = object : Runnable {
             var timeCount = 0
@@ -137,7 +81,13 @@ internal class StationOfLineAdapter(
 
                 mHandler.postDelayed(this, 25)
 
-                if(!isScroll)
+
+                if (holder.stationName.text.length <= 4) {
+                    timeCount = 0
+                    return
+                }
+
+                if (!isScroll)
                     return
 
 //                Log.d("runnable", lineName)
@@ -166,6 +116,68 @@ internal class StationOfLineAdapter(
         holder.stationNameNestedScrollView.post {
             mHandler.postDelayed(runnable, 25)
         }
+
+
+        return holder
+    }
+
+    @SuppressLint("SetTextI18n")
+    override fun onBindViewHolder(holder: StationOfLineViewHolder, position: Int) {
+
+        when (position) {
+            0 -> holder.stationIndex.text = "始发"
+            stationList.size - 1 -> holder.stationIndex.text = "终到"
+            else -> holder.stationIndex.text = String.format(Locale.CHINA, "%02d", position + 1)
+        }
+
+        holder.stationName.text = stationList[position].cnName
+
+        //当前站点样式
+        val color: Int
+        val style: Int
+        val bg: Int
+        val padding: Int
+        val dp2 = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            2F, Resources.getSystem().displayMetrics
+        ).toInt()
+        if (position < stationCount || stationCount == -1) {
+            color = context.getColor(R.color.textColor3)
+            style = Typeface.NORMAL
+            bg = context.getColor(android.R.color.transparent)
+            padding = 0
+        } else if (position == stationCount) {
+            color = context.getColor(R.color.cardviewDarkBackground)
+            style = Typeface.BOLD
+            bg = context.getColor(R.color.textColor2)
+            padding = dp2
+        } else {
+            color = context.getColor(R.color.textColor2)
+            style = Typeface.NORMAL
+            bg = context.getColor(android.R.color.transparent)
+            padding = 0
+        }
+        holder.stationIndex.setTextColor(color)
+        holder.stationName.setTextColor(color)
+        holder.stationIndex.setTypeface(context.resources.getFont(R.font.galano), style)
+        holder.stationName.setTypeface(context.resources.getFont(R.font.galano), style)
+        holder.main.setCardBackgroundColor(bg)
+        holder.constraintLayout.setPadding(padding, dp2, padding, dp2)
+
+        when (holder.stationName.text.length) {
+            2 -> {
+                holder.stationName.setLineSpacing(holder.stationIndex.lineHeight * 2f, 1f)
+            }
+
+            3 -> {
+                holder.stationName.setLineSpacing(holder.stationIndex.lineHeight * 0.5f, 1f)
+            }
+
+            else -> {
+                holder.stationName.setLineSpacing(0f, 1f)
+            }
+        }
+
     }
 
     override fun getItemCount(): Int {
@@ -181,6 +193,5 @@ internal class StationOfLineAdapter(
             this.mClickListener = listener
         }
     }
-
 
 }

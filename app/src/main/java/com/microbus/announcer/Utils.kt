@@ -13,6 +13,8 @@ import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.preference.PreferenceManager
 import com.amap.api.maps.model.LatLng
 import com.microbus.announcer.bean.Station
@@ -95,7 +97,10 @@ class Utils(private val context: Context) {
             Locale.getDefault().language
         else
             prefStr!!
+    }
 
+    fun setUILang(lang: String){
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(lang))
     }
 
     /**

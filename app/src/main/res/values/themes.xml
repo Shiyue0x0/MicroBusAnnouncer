@@ -2,6 +2,8 @@
 
     <style name="Theme.MicroBusAnnouncer" parent="Theme.Material3.Light.NoActionBar">
 
+        <item name="android:fontFamily">@font/galano</item>
+
         <item name="android:windowTranslucentStatus">true</item>
 
         <item name="android:statusBarColor">@android:color/transparent</item>
