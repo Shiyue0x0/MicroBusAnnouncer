@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Announcer</string>
-    <string name="line_name">Line</string>
+    <string name="line_name">Line Name</string>
     <string name="up_stations">Up Stations</string>
     <string name="down_stations">Down Stations</string>
     <string name="down_stations_helper">Fill in the Station ID, separated by space</string>
@@ -22,9 +22,9 @@
     <string name="main_speed_unit">(km/h)</string>
     <string name="main_speed_value">-</string>
     <string name="switch_location">LOC</string>
-    <string name="switch_follow_location">Follow</string>
-    <string name="switch_map">Map</string>
-    <string name="up_line">Up</string>
+    <string name="switch_follow_location">FOLLOW</string>
+    <string name="switch_map">MAP</string>
+    <string name="up_line">UP</string>
     <string name="down_line">Down</string>
     <string name="starting_station">Starting Station</string>
     <string name="last_station">Last Station</string>
@@ -65,7 +65,7 @@
     <string name="input_line_name">Enter line name to search</string>
     <string name="cn_name">Chinese Name</string>
     <string name="en_name">English Name</string>
-    <string name="line_type">Line Type (Bus Train Community Underground)</string>
+    <string name="line_type">Line Type (Bus|Train|Community|Underground)</string>
     <string name="station_longitude">Longitude</string>
     <string name="station_latitude">Latitude</string>
     <string name="nav_main">Main</string>

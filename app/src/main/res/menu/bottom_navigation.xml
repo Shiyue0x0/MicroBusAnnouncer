@@ -6,11 +6,11 @@
         android:title="@string/nav_main" />
     <item
         android:id="@+id/item1"
-        android:icon="@drawable/baseline_view_headline_24"
+        android:icon="@drawable/line"
         android:title="@string/nav_line" />
     <item
         android:id="@+id/item2"
-        android:icon="@drawable/baseline_location_on_24"
+        android:icon="@drawable/station"
         android:title="@string/nav_station" />
     <item
         android:id="@+id/item3"

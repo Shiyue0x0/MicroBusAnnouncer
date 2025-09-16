@@ -1,5 +1,6 @@
 package com.microbus.announcer
 
+import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.SharedPreferences
@@ -14,22 +15,35 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.edit
 import androidx.core.os.LocaleListCompat
 import androidx.preference.PreferenceManager
 import com.amap.api.maps.model.LatLng
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.dialog.MaterialDialogs
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
+import com.kiylx.libx.pref_component.preference_util.delegate.boolean
+import com.kiylx.libx.pref_component.preference_util.delegate.int
+import com.kiylx.libx.pref_component.preference_util.delegate.string
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.AlertDialogStationInfoBinding
 import com.microbus.announcer.fragment.StationFragment
+import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileWriter
 import java.io.IOException
 import java.io.InputStream
+import java.io.InputStreamReader
 import java.time.LocalTime
 import java.util.Locale
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import com.microbus.announcer.PrefsHelper
 
 
 class Utils(private val context: Context) {
@@ -37,6 +51,9 @@ class Utils(private val context: Context) {
     var tag: String = javaClass.simpleName
 
     private var prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+
+    private val appRootPath =
+        Environment.getExternalStorageDirectory().absolutePath + "/Announcer"
 
 
     /**
@@ -87,6 +104,14 @@ class Utils(private val context: Context) {
         return prefs.getBoolean("showBottomBar", true)
     }
 
+
+    /**
+     * 从设置中获取是否发送运行通知
+     */
+    fun getIsSeedNotice(): Boolean {
+        return prefs.getBoolean("notice", true)
+    }
+
     /**
      * 从设置中获取界面语言
      * @return zh中文，en英文
@@ -99,7 +124,14 @@ class Utils(private val context: Context) {
             prefStr!!
     }
 
-    fun setUILang(lang: String){
+    /**
+     * 从设置中获取所在城市
+     */
+    fun getCity(): String {
+        return prefs.getString("city", "桂林")!!
+    }
+
+    fun setUILang(lang: String) {
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(lang))
     }
 
@@ -143,14 +175,14 @@ class Utils(private val context: Context) {
      * 从设置中获取站点判定距离
      */
     fun getArriveStationDistance(): Double {
-        return prefs.getString("arriveStationDistance", "15.0")!!.toDouble()
+        return prefs.getString("arriveStationDistance", "30.0")!!.toDouble()
     }
 
     /**
      * 从设置中获取定位间隔（毫秒）
      */
     fun getLocationInterval(): Int {
-        return prefs.getString("locationInterval", "1000")!!.toInt()
+        return prefs.getString("locationInterval", "2500")!!.toInt()
     }
 
     /**
@@ -199,35 +231,6 @@ class Utils(private val context: Context) {
     }
 
     /**
-     * 从设置中获取是否普通话播报
-     */
-    fun getIsVoiceAnnouncements(): Boolean {
-        return prefs.getBoolean("voiceAnnouncements", true)
-    }
-
-    /**
-     * 从设置中获取是否英语播报
-     */
-    fun getIsEnVoiceAnnouncements(): Boolean {
-        return prefs.getBoolean("enVoiceAnnouncements", true)
-    }
-
-
-    /**
-     * 从设置中获取是否进站时间播报
-     */
-    fun getIsArriveTimeAnnouncements(): Boolean {
-        return prefs.getBoolean("arriveTimeAnnouncements", true)
-    }
-
-    /**
-     * 从设置中获取是否进站时间播报
-     */
-    fun getIsSpeedAnnouncements(): Boolean {
-        return prefs.getBoolean("speedAnnouncements", false)
-    }
-
-    /**
      * 从设置中获取是否启用线路轨迹纠偏
      */
     fun getIsLineTrajectoryCorrection(): Boolean {
@@ -239,6 +242,18 @@ class Utils(private val context: Context) {
      */
     fun getIsUseTTS(): Boolean {
         return prefs.getBoolean("useTTS", true)
+    }
+
+    /**
+     * 从设置中获取播报语音库
+     */
+    fun getAnnouncementLibrary(): String {
+
+        if (!isGrantManageFilesAccessPermission()) {
+            return "Default"
+        }
+
+        return prefs.getString("announcementLibrary", "Default")!!
     }
 
     /**
@@ -317,7 +332,7 @@ class Utils(private val context: Context) {
                 }
                 // 十位及个位
                 if (num != 100)
-                    list.addAll(intOrLetterToCnReading((num % 100).toString(), "/cn/time/", true))
+                    list.addAll(intOrLetterToCnReading((num % 100).toString(), "/cn/number/", true))
             } else if (num in 11..99) {
                 // 十位
                 if (num >= 20) {
@@ -327,7 +342,7 @@ class Utils(private val context: Context) {
                 list.add(list.size, "${before}10")
                 // 个位
                 if (num % 10 != 0) {
-                    list.addAll(intOrLetterToCnReading((num % 10).toString(), "/cn/time/", false))
+                    list.addAll(intOrLetterToCnReading((num % 10).toString(), "/cn/number/", false))
                 }
             } else {
                 // 零(0-9)
@@ -343,10 +358,10 @@ class Utils(private val context: Context) {
         val currentTime = LocalTime.now()
         val voiceList = ArrayList<String>()
 
-        voiceList.addAll(intOrLetterToCnReading(currentTime.hour.toString(), "/cn/time/"))
-        voiceList.add(voiceList.size, "/cn/time/hour")
-        voiceList.addAll(intOrLetterToCnReading(currentTime.minute.toString(), "/cn/time/", true))
-        voiceList.add(voiceList.size, "/cn/time/minute")
+        voiceList.addAll(intOrLetterToCnReading(currentTime.hour.toString(), "/cn/number/"))
+        voiceList.add("/cn/common/点")
+        voiceList.addAll(intOrLetterToCnReading(currentTime.minute.toString(), "/cn/number/", true))
+        voiceList.add("/cn/common/分")
 
         return voiceList
     }
@@ -358,7 +373,11 @@ class Utils(private val context: Context) {
         val voiceList = ArrayList<String>()
 
         strList.forEach { result ->
-            voiceList.addAll(intOrLetterToCnReading(result.value, "/cn/time/"))
+            if ("\\d+".toRegex().findAll(result.value).toList().isNotEmpty())
+                voiceList.addAll(intOrLetterToCnReading(result.value, "/cn/number/"))
+            else
+                voiceList.addAll(intOrLetterToCnReading(result.value, "/en/letter/"))
+
         }
 
         return voiceList
@@ -380,16 +399,18 @@ class Utils(private val context: Context) {
             AlertDialogStationInfoBinding.inflate(LayoutInflater.from(context))
 
         val alertDialog =
-            AlertDialog.Builder(context).setView(binding.root)!!
+            MaterialAlertDialogBuilder(context)
+                .setView(binding.root)
                 .setNegativeButton(
                     context.resources.getString(android.R.string.cancel), null
                 )
-                .setPositiveButton(if (type == "new") "更新" else "编辑", null)
-                .setTitle(if (type == "new") "添加站点" else "编辑站点")
-                .show()
+                .setPositiveButton("提交", null)
+                .setTitle(if (type == "new") "新增站点" else "更新站点")
+                .create()
 
 
         if (type == "new") {
+            alertDialog.show()
             if (isOrderGetCurLatLng) {
                 alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).text =
                     "获取当前位置"
@@ -413,17 +434,22 @@ class Utils(private val context: Context) {
                 binding.editTextLatitude.setText(latLng.latitude.toString())
             }
         } else if (type == "update") {
-            alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).text = "删除"
-            alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
-                .setOnClickListener {
-                    stationDatabaseHelper.delById(oldStation.id!!)
-                }
 
             binding.editTextCnName.setText(oldStation.cnName)
             binding.editTextEnName.setText(oldStation.enName)
             binding.editTextType.setText(oldStation.type)
             binding.editTextLongitude.setText(oldStation.longitude.toString())
             binding.editTextLatitude.setText(oldStation.latitude.toString())
+
+            alertDialog.show()
+
+            alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).text = "删除"
+            alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+                .setOnClickListener {
+                    stationDatabaseHelper.delById(oldStation.id!!)
+                }
+
+
         }
 
         alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
@@ -494,4 +520,259 @@ class Utils(private val context: Context) {
 
     }
 
+    /**
+     * 从设置中获取报站表达式
+     * @param stationType （Default：常规站）（Second：第二站）（Starting：起点站）（Terminal：终点站）
+     * @param stationState （Next：下一站）（WillArrive：即将到站）（Arrive：进站）
+     * @return 相应的报站表达式。如果stationType不为Default，且没有查询到填写值，则返回Default的值
+     */
+    fun getAnnouncementFormat(stationType: String, stationState: String): String {
+
+        loadAnnouncementFormatFromConfig()
+
+        val exp = prefs.getString("${stationType}${stationState}AnnouncementExpression", "")!!
+        return if (exp == "" && stationType != "Default")
+            prefs.getString("Default${stationState}AnnouncementExpression", "")!!
+        else
+            exp
+
+    }
+
+    /**
+     * 从表达式中提取报站内容
+     * @param exp 报站表达式
+     * @return 提取后的列表，如果表达式不合法，返回["ERROR", "不合法的内容"]
+     */
+    fun getAnnouncements(exp: String): ArrayList<String> {
+
+        val itemList = exp.split("|")
+        val anList = ArrayList<String>()
+        val itemRegex = Regex("^(?!(.*[|<>])).*$")
+
+        val keywordList = ArrayList<String>(listOf("<time>", "<speed>", "<line>"))
+
+        for (lang in getAnnouncementLangList()) {
+            keywordList.add("<ns$lang>")
+            keywordList.add("<ss$lang>")
+            keywordList.add("<ts$lang>")
+        }
+
+        for (item in itemList) {
+            if (keywordList.contains(item)) {
+                anList.add(item)
+            } else {
+                if (itemRegex.matches(item) && item != "") {
+                    anList.add(item)
+                } else {
+                    return ArrayList(listOf("ERROR", item))
+                }
+            }
+        }
+
+//        for (an in anList) {
+//            Log.d(tag, an)
+//        }
+
+        return anList
+    }
+
+    /**
+     * 获取报站语种列表
+     * */
+    fun getAnnouncementLangList(): ArrayList<String> {
+
+        if (!isGrantManageFilesAccessPermission()) {
+            return ArrayList()
+        }
+
+
+        val dir = File("$appRootPath/Media/${getAnnouncementLibrary()}")
+        val cnDir = File("$appRootPath/Media/${getAnnouncementLibrary()}/cn")
+        val enDir = File("$appRootPath/Media/${getAnnouncementLibrary()}/en")
+
+        if (!cnDir.exists()) {
+            cnDir.mkdirs()
+        }
+
+        if (!enDir.exists()) {
+            enDir.mkdirs()
+        }
+
+        val langFolderList = dir.walk()
+            .filter { it.isDirectory && it.path.split("/").size == dir.path.split("/").size + 1 }
+            .toList()
+
+        val langList = ArrayList<String>(listOf("cn", "en"))
+        for (langFolder in langFolderList) {
+            if (!langList.contains(langFolder.name))
+                langList.add(langFolder.name)
+        }
+
+        return langList
+    }
+
+    /**
+     * 获取报站语音库列表
+     * */
+    fun getAnnouncementLibraryList(): List<String> {
+
+        if (!isGrantManageFilesAccessPermission()) {
+            return ArrayList()
+        }
+
+        val file = File("$appRootPath/Media/")
+        val fileList = file.walk()
+            .filter { it.isDirectory && it.path.split("/").size == file.path.split("/").size + 1 }
+            .toList()
+
+        val list = ArrayList<String>()
+        for (file in fileList) {
+            list.add(file.name)
+        }
+        return list
+    }
+
+    fun requestManageFilesAccessPermission(activity: Activity) {
+        if (!isGrantManageFilesAccessPermission()) {
+            MaterialAlertDialogBuilder(context)
+                .setTitle(context.getString(R.string.request_manage_files_access_permission_title))
+                .setMessage(context.getString(R.string.request_manage_files_access_permission_text))
+                .setPositiveButton(context.getString(R.string.request_manage_files_access_permission_to_grant)) { _, _ ->
+                    val permissionManager = PermissionManager(context, activity)
+                    permissionManager.requestManageFilesAccessPermission()
+                }.setNegativeButton(context.getString(android.R.string.cancel), null).create()
+                .show()
+        }
+    }
+
+    fun requestNormalPermission(activity: Activity): Boolean {
+        val permissionManager = PermissionManager(context, activity)
+        return permissionManager.requestNormalPermission()
+    }
+
+    fun isGrantManageFilesAccessPermission(): Boolean {
+        return !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager())
+    }
+
+    fun getStationTypeList(): List<String> {
+        return listOf("Default", "Starting", "Second", "Terminal")
+    }
+
+    fun getStationStateList(): List<String> {
+        return listOf("Next", "WillArrive", "Arrive")
+    }
+
+    fun loadAnnouncementFormatFromConfig() {
+
+        if (!isGrantManageFilesAccessPermission()) {
+            return
+        }
+
+        // 读取config.json
+        val configFile = File("$appRootPath/Media/${getAnnouncementLibrary()}/config.json")
+        if (!configFile.exists()) {
+            copyDefaultConfig()
+        }
+
+        val configElem = JsonParser.parseString(configFile.readText())
+        val configObj = configElem.asJsonObject
+        val formatObj = configObj.get("announcementFormat").asJsonObject
+
+        prefs.edit {
+            for (stationState in getStationStateList()) {
+                val stateObj = formatObj.get(stationState).asJsonObject
+                for (stationType in getStationTypeList()) {
+                    val format = stateObj.get(stationType).asString
+                    putString("${stationType}${stationState}AnnouncementExpression", format)
+                }
+            }
+        }
+
+    }
+
+    fun updateAnnouncementFormatConfig(
+        stationType: String,
+        stationState: String,
+        newValue: String
+    ) {
+
+        if (!isGrantManageFilesAccessPermission()) {
+            return
+        }
+
+        // 读取config.json
+        val configFile = File("$appRootPath/Media/${getAnnouncementLibrary()}/config.json")
+        if (!configFile.exists()) {
+            copyDefaultConfig()
+        }
+
+        val configElem = JsonParser.parseString(configFile.readText())
+        val configObj = configElem.asJsonObject
+        val formatObj = configObj.get("announcementFormat").asJsonObject
+        val stateObj = formatObj.get(stationState).asJsonObject
+        stateObj.addProperty(stationType, newValue)
+
+        val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create()
+        val configJsonStr = gson.toJson(configElem)
+
+        val writer = FileWriter(configFile)
+        writer.write(configJsonStr)
+        writer.flush()
+
+
+    }
+
+    //todo 添加默认文件
+    fun copyDefaultConfig() {
+
+        if (!isGrantManageFilesAccessPermission()) {
+            return
+        }
+
+        val dir = File("$appRootPath/Media/${getAnnouncementLibrary()}")
+        val outputFile = File("${dir.path}/config.json")
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        if (outputFile.exists()) {
+            return
+        }
+
+        val defaultJsonIS = context.resources.openRawResource(R.raw.announcement_default_config)
+        val bufferedReader = BufferedReader(InputStreamReader(defaultJsonIS))
+
+        val fileWriter = FileWriter(outputFile)
+        var line = bufferedReader.readLine()
+        var jsonStr = ""
+        while (line != null) {
+            jsonStr += line + "\n"
+            line = bufferedReader.readLine()
+        }
+
+        Log.d(tag, "" + jsonStr)
+        fileWriter.write(jsonStr)
+
+        fileWriter.flush()
+        bufferedReader.close()
+        defaultJsonIS.close()
+    }
+
+    fun showRequestLocationPermissionDialog(permissionManager: PermissionManager) {
+        MaterialAlertDialogBuilder(context)
+            .setTitle("要启用定位服务吗？")
+            .setMessage("位置权限：用于地图定位和自动报站")
+            .setPositiveButton(context.getString(R.string.request_manage_files_access_permission_to_grant)) { _, _ ->
+                permissionManager.requestLocationPermission()
+            }
+            .setNegativeButton(context.getString(android.R.string.cancel), null)
+            .create()
+            .show()
+    }
+
+    fun getSettings(){
+         PrefsHelper(prefs).defaultLineName
+    }
+
+
 }
+

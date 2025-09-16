@@ -1,31 +1,25 @@
 package com.microbus.announcer
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
-import android.util.AttributeSet
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
-import android.view.WindowManager
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
-import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.widget.ViewPager2
-import com.microbus.announcer.adapter.FragAdapter
+import com.microbus.announcer.adapter.FragActivityAdapter
 import com.microbus.announcer.databinding.ActivityMainBinding
 import com.microbus.announcer.fragment.LineFragment
 import com.microbus.announcer.fragment.MainFragment
 import com.microbus.announcer.fragment.SettingFragment
 import com.microbus.announcer.fragment.StationFragment
-import java.util.Locale
 
 
 class MainActivity : AppCompatActivity() {
@@ -44,6 +38,7 @@ class MainActivity : AppCompatActivity() {
 
     private var exitTime: Long = 0
 
+
     @SuppressLint("ClickableViewAccessibility", "UnspecifiedRegisterReceiverFlag")
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,6 +46,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         utils = Utils(this)
+
+        utils.loadAnnouncementFormatFromConfig()
 
         // 设置语言
         utils.setUILang(utils.getUILang())
@@ -63,18 +60,13 @@ class MainActivity : AppCompatActivity() {
         wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, tag)
         wakeLock.acquire(60 * 60 * 1000L)
 
-        //window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
-
-        //点亮状态栏，控制状态栏字体颜色变黑
-        val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.isAppearanceLightStatusBars = true
 
         fragmentList.add(MainFragment())
         fragmentList.add(LineFragment())
         fragmentList.add(StationFragment())
         fragmentList.add(SettingFragment())
-        binding.viewPager.adapter = FragAdapter(this, fragmentList)
+        binding.viewPager.adapter = FragActivityAdapter(this, fragmentList)
+
         binding.bottomNavigationView.setOnItemSelectedListener { item ->
             val mainFragment = fragmentList[0] as MainFragment
             if (mainFragment.isOperationLock)
@@ -94,13 +86,13 @@ class MainActivity : AppCompatActivity() {
         binding.viewPager.registerOnPageChangeCallback(object :
             ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
                 val mainFragment = fragmentList[0] as MainFragment
                 if (mainFragment.isOperationLock) {
                     utils.showMsg(getString(R.string.operation_lock_on_tip))
                     binding.viewPager.currentItem = 0
                     return
                 }
-                super.onPageSelected(position)
                 binding.bottomNavigationView.menu[position].isChecked = true
             }
         })
@@ -110,11 +102,10 @@ class MainActivity : AppCompatActivity() {
         else
             binding.bottomNavigationView.visibility = View.GONE
 
-        onBackPressedDispatcher.addCallback {
-            if(binding.viewPager.currentItem == 0){
+      onBackPressedDispatcher.addCallback(this) {
+            if (binding.viewPager.currentItem == 0) {
                 moveTaskToBack(true)
-            }
-            else{
+            } else {
                 binding.viewPager.currentItem = 0
             }
         }
@@ -138,10 +129,30 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if(intent.getBooleanExtra("switchToMainFrag", false)){
+        if (intent.getBooleanExtra("switchToMainFrag", false)) {
             binding.viewPager.currentItem = 0
         }
     }
+
+//    override fun onRequestPermissionsResult(
+//        requestCode: Int,
+//        permissions: Array<out String?>,
+//        grantResults: IntArray,
+//        deviceId: Int
+//    ) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults, deviceId)
+//        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this)
+//        when (requestCode) {
+//            PermissionManager.REQUEST_LOCATION -> {
+//                Log.d(tag, "per2 code: REQUEST_LOCATION")
+//            }
+//
+//            PermissionManager.REQUEST_MANAGE_FILES_ACCESS -> {
+//                Log.d(tag, "per2 code: REQUEST_MANAGE_FILES_ACCESS")
+//            }
+//        }
+//
+//    }
 
 
 }

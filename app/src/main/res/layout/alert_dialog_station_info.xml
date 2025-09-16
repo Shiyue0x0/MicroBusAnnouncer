@@ -51,7 +51,7 @@
             android:ems="10"
             android:hint="@string/line_type"
             android:inputType="text"
-            android:text="" />
+            android:text="B" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout

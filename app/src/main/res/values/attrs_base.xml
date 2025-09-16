@@ -15,5 +15,8 @@
         <attr name="cornerRadius" />
         <attr name="android:fontFamily" />
     </declare-styleable>
+    <declare-styleable name="NestedScrollableHost">
+        <attr name="sameDirectionWithParent" format="boolean" />
+    </declare-styleable>
 </resources>
 

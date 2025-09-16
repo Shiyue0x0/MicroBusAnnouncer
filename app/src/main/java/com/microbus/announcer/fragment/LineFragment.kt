@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.MainActivity
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.LineAdapter
@@ -88,7 +89,7 @@ class LineFragment : Fragment() {
             requireContext(),
             lineDatabaseHelper
         )
-        binding!!.lineRecyclerView.setAdapter(adapter)
+
         //点击路线切换到主控并运行
         adapter.setOnItemClickListener(object : LineAdapter.OnItemClickListener {
             override fun onItemClick(line: Line) {
@@ -98,10 +99,11 @@ class LineFragment : Fragment() {
                 utils.showMsg("已切换至 ${line.name} 运行")
                 mainFragment.originLine = line
                 mainFragment.initLineInterval()
+                mainFragment.binding.lineDirectionBtnGroup.check(mainFragment.binding.lineDirectionBtnUp.id)
                 mainFragment.loadLine(line)
             }
-
         })
+        binding!!.lineRecyclerView.setAdapter(adapter)
     }
 
     private fun addLine() {
@@ -115,17 +117,17 @@ class LineFragment : Fragment() {
 //        alertBinding.editTextIsUpAndDownInvert.setAdapter(adapter)
 
         val alertDialog: AlertDialog? =
-            AlertDialog.Builder(requireContext()).setView(alertBinding.root)
-                ?.setTitle("添加路线")
-                ?.setPositiveButton("提交", null)
-                ?.setNegativeButton("取消") { _, _ ->
-                }?.show()
+            MaterialAlertDialogBuilder(requireContext()).setView(alertBinding.root)
+                .setTitle("新增路线")
+                .setPositiveButton("提交", null)
+                .setNegativeButton(getString(android.R.string.cancel)) { _, _ -> }
+                .show()
 
         alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
             val name = alertBinding.editTextName.text.toString()
             var upLineStation = alertBinding.editTextUpLineStation.text.toString()
             var downLineStation = alertBinding.editTextDownLineStation.text.toString()
-            val isUpAndDownInvert = alertBinding.editTextIsUpAndDownInvert.isChecked
+//            val isUpAndDownInvert = alertBinding.editTextIsUpAndDownInvert.isChecked
 
             if (name == "") {
                 utils.showMsg("请填写路线名称")
@@ -171,7 +173,7 @@ class LineFragment : Fragment() {
                 }
             }
 
-            val line = Line(null, name, upLineStation, downLineStation, isUpAndDownInvert)
+            val line = Line(null, name, upLineStation, downLineStation, true)
             lineDatabaseHelper.insert(line)
             refreshLineList()
             alertDialog.cancel()

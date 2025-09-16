@@ -10,10 +10,10 @@
     tools:context=".fragment.MainFragment">
 
     <!--  地图  -->
-    <com.microbus.announcer.Container
+    <com.microbus.announcer.view.Container
         android:id="@+id/mapContainer"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -22,11 +22,9 @@
         <com.amap.api.maps.MapView
             android:id="@+id/map"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"></com.amap.api.maps.MapView>
 
-        </com.amap.api.maps.MapView>
-
-    </com.microbus.announcer.Container>
+    </com.microbus.announcer.view.Container>
 
     <!--  状态栏填充  -->
     <LinearLayout
@@ -37,7 +35,7 @@
         tools:ignore="MissingConstraints" />
 
     <!-- 头牌 -->
-    <!--    <androidx.cardview.widget.CardView-->
+    <!--    <com.google.android.material.card.MaterialCardView-->
     <!--        android:id="@+id/header"-->
     <!--        android:layout_width="match_parent"-->
     <!--        android:layout_height="wrap_content"-->
@@ -58,7 +56,7 @@
     <!--            android:layout_margin="12dp">-->
 
 
-    <!--            <com.microbus.announcer.ScrollingTextView-->
+    <!--            <com.microbus.announcer.view.ScrollingTextView-->
     <!--                android:id="@+id/header_middle"-->
     <!--                android:layout_width="wrap_content"-->
     <!--                android:layout_height="wrap_content"-->
@@ -78,7 +76,7 @@
     <!--                app:layout_constraintStart_toStartOf="parent"-->
     <!--                app:layout_constraintTop_toTopOf="parent" />-->
 
-    <!--            <com.microbus.announcer.ScrollingTextView-->
+    <!--            <com.microbus.announcer.view.ScrollingTextView-->
 
     <!--                android:id="@+id/header_left"-->
     <!--                android:layout_width="0dp"-->
@@ -98,7 +96,7 @@
     <!--                app:layout_constraintTop_toTopOf="parent"-->
     <!--                app:layout_constraintVertical_bias="1.0" />-->
 
-    <!--            <com.microbus.announcer.ScrollingTextView-->
+    <!--            <com.microbus.announcer.view.ScrollingTextView-->
     <!--                android:id="@+id/header_right"-->
     <!--                android:layout_width="0dp"-->
     <!--                android:layout_height="wrap_content"-->
@@ -118,10 +116,13 @@
 
     <!--        </androidx.constraintlayout.widget.ConstraintLayout>-->
 
-    <!--    </androidx.cardview.widget.CardView>-->
+    <!--    </com.google.android.material.card.MaterialCardView>-->
 
     <!--  路线站点卡  -->
-    <androidx.cardview.widget.CardView
+    <!--    android:foreground="?attr/selectableItemBackground"-->
+    <!--    app:cardBackgroundColor="?attr/cardBackgroundColor"-->
+
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/lineStationCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -130,34 +131,34 @@
         android:layout_marginEnd="16dp"
         android:clickable="true"
         android:focusable="true"
-        android:foreground="?attr/selectableItemBackground"
         android:paddingBottom="12dp"
         android:visibility="invisible"
-        app:cardBackgroundColor="?attr/cardBackgroundColor"
         app:cardCornerRadius="24dp"
         app:layout_constraintTop_toBottomOf="@+id/headerNew">
 
-            <com.microbus.announcer.Container
-                android:id="@+id/lineStationListContainer"
+        <com.microbus.announcer.view.NestedScrollableHost
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="12dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginRight="12dp"
+            android:layout_marginBottom="8dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/lineStationList"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center">
+                android:layout_height="wrap_content" />
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/lineStationList"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="12dp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginRight="12dp"
-                    android:layout_marginBottom="8dp" />
+        </com.microbus.announcer.view.NestedScrollableHost>
 
-            </com.microbus.announcer.Container>
 
-    </androidx.cardview.widget.CardView>
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- 头牌 新 -->
-    <androidx.cardview.widget.CardView
+    <!--    app:cardBackgroundColor="?attr/cardBackgroundColor"-->
+
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/headerNew"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -167,10 +168,8 @@
         android:layout_marginBottom="4dp"
         android:clickable="true"
         android:focusable="true"
-        app:cardBackgroundColor="?attr/cardBackgroundColor"
         app:cardCornerRadius="24dp"
-        app:layout_constraintTop_toBottomOf="@+id/bar"
-        tools:layout_editor_absoluteX="16dp">
+        app:layout_constraintTop_toBottomOf="@+id/bar">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -179,49 +178,52 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <com.microbus.announcer.HeaderTextView
+            <!--            app:background="?attr/cardBackgroundColor"-->
+            <com.microbus.announcer.view.HeaderTextView
                 android:id="@+id/headerLeftNew"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:text="@string/main_staring_station_name"
-                android:textColor="@color/textColor2"
+                android:textColor="?attr/colorPrimary"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                app:background="?attr/cardBackgroundColor" />
+                app:background="?attr/colorSurface" />
 
-            <com.microbus.announcer.HeaderTextView
+            <!--            android:textColor="?attr/cardBackgroundColor"-->
+
+            <com.microbus.announcer.view.HeaderTextView
                 android:id="@+id/headerMiddleNew"
                 android:layout_width="wrap_content"
                 android:layout_height="0dp"
                 android:layout_marginStart="12dp"
                 android:layout_marginEnd="12dp"
-
                 android:maxWidth="80dp"
                 android:paddingStart="8dp"
-                android:paddingTop="4dp"
+                android:paddingTop="8dp"
                 android:paddingEnd="8dp"
-                android:paddingBottom="4dp"
+                android:paddingBottom="8dp"
                 android:text="@string/main_line_0"
-                android:textColor="?attr/cardBackgroundColor"
+                android:textColor="?attr/colorSurface"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                app:background="@color/textColor2"
+                app:background="?attr/colorPrimary"
                 app:cornerRadius="8dp" />
 
-            <com.microbus.announcer.HeaderTextView
+            <!--            app:background="?attr/cardBackgroundColor"-->
+            <com.microbus.announcer.view.HeaderTextView
                 android:id="@+id/headerRightNew"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:text="@string/main_terminal_name"
-                android:textColor="@color/textColor2"
+                android:textColor="?attr/colorPrimary"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                app:background="?attr/cardBackgroundColor" />
+                app:background="?attr/colorSurface" />
         </LinearLayout>
 
-    </androidx.cardview.widget.CardView>
+    </com.google.android.material.card.MaterialCardView>
 
 
     <!--  控制栏与日志  -->
@@ -245,7 +247,9 @@
                 android:gravity="center"
                 android:orientation="horizontal">
 
-                <androidx.cardview.widget.CardView
+                <!--                                    android:foreground="?attr/selectableItemBackground"
+                                    app:cardBackgroundColor="?attr/cardBackgroundColor"-->
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/terminalCard"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -255,8 +259,6 @@
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="?attr/cardBackgroundColor"
                     app:cardCornerRadius="24dp">
 
                     <LinearLayout
@@ -273,26 +275,28 @@
                             android:layout_height="wrap_content"
                             android:text="@string/to" />
 
-                        <com.microbus.announcer.ScrollingTextView
+                        <com.microbus.announcer.view.ScrollingTextView
                             android:id="@+id/terminalName"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:ellipsize="marquee"
-
                             android:gravity="center"
                             android:marqueeRepeatLimit="marquee_forever"
                             android:paddingLeft="8dp"
                             android:paddingRight="8dp"
                             android:singleLine="true"
                             android:text="@string/main_to_station_name"
-                            android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize" />
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="@dimen/middleFontSize"
+                            android:textStyle="bold" />
 
 
                     </LinearLayout>
-                </androidx.cardview.widget.CardView>
+                </com.google.android.material.card.MaterialCardView>
 
-                <androidx.cardview.widget.CardView
+                <!--                                    android:foreground="?attr/selectableItemBackground"
+                                    app:cardBackgroundColor="?attr/cardBackgroundColor"-->
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/currentStationCard"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -302,8 +306,7 @@
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="?attr/cardBackgroundColor"
+
                     app:cardCornerRadius="24dp">
 
                     <LinearLayout
@@ -314,6 +317,7 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
+
                         <TextView
                             android:id="@+id/currentStationState"
                             android:layout_width="wrap_content"
@@ -321,27 +325,28 @@
 
                             android:text="@string/next" />
 
-                        <com.microbus.announcer.ScrollingTextView
+                        <com.microbus.announcer.view.ScrollingTextView
                             android:id="@+id/currentStationName"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:ellipsize="marquee"
-
-
                             android:gravity="center"
                             android:marqueeRepeatLimit="marquee_forever"
                             android:paddingLeft="8dp"
                             android:paddingRight="8dp"
                             android:singleLine="true"
                             android:text="@string/main_next_station_name"
-                            android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize" />
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="@dimen/middleFontSize"
+                            android:textStyle="bold" />
 
 
                     </LinearLayout>
-                </androidx.cardview.widget.CardView>
+                </com.google.android.material.card.MaterialCardView>
 
-                <androidx.cardview.widget.CardView
+                <!--                                    android:foreground="?attr/selectableItemBackground"
+                                    app:cardBackgroundColor="?attr/cardBackgroundColor"-->
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/currentDistanceToCurrentStationCard"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -351,8 +356,7 @@
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="?attr/cardBackgroundColor"
+
                     app:cardCornerRadius="24dp">
 
                     <LinearLayout
@@ -385,26 +389,28 @@
                                 android:textSize="12sp" />
                         </LinearLayout>
 
-                        <com.microbus.announcer.ScrollingTextView
+                        <com.microbus.announcer.view.ScrollingTextView
                             android:id="@+id/currentDistanceToCurrentStationValue"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:ellipsize="marquee"
-
                             android:gravity="center"
                             android:marqueeRepeatLimit="marquee_forever"
                             android:paddingLeft="8dp"
                             android:paddingRight="8dp"
                             android:singleLine="true"
                             android:text="@string/main_distance_value"
-                            android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize" />
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="@dimen/middleFontSize"
+                            android:textStyle="bold" />
 
 
                     </LinearLayout>
-                </androidx.cardview.widget.CardView>
+                </com.google.android.material.card.MaterialCardView>
 
-                <androidx.cardview.widget.CardView
+                <!--                                  android:foreground="?attr/selectableItemBackground"
+                                    app:cardBackgroundColor="?attr/cardBackgroundColor"  -->
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/speedCard"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -413,8 +419,7 @@
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="?attr/cardBackgroundColor"
+
                     app:cardCornerRadius="24dp">
 
                     <LinearLayout
@@ -447,90 +452,151 @@
                                 android:textSize="12sp" />
                         </LinearLayout>
 
-                        <com.microbus.announcer.ScrollingTextView
+                        <com.microbus.announcer.view.ScrollingTextView
                             android:id="@+id/speedValue"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:ellipsize="marquee"
-
                             android:gravity="center"
                             android:marqueeRepeatLimit="marquee_forever"
                             android:paddingLeft="8dp"
                             android:paddingRight="8dp"
                             android:singleLine="true"
                             android:text="@string/main_speed_value"
-                            android:textColor="@color/textColor1"
-                            android:textSize="@dimen/middleFontSize" />
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="@dimen/middleFontSize"
+                            android:textStyle="bold" />
 
                     </LinearLayout>
-                </androidx.cardview.widget.CardView>
+                </com.google.android.material.card.MaterialCardView>
 
             </LinearLayout>
 
 
-            <androidx.cardview.widget.CardView
+            <!--                         app:cardBackgroundColor="?attr/cardBackgroundColor"
+               -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
                 android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="?attr/cardBackgroundColor"
                 app:cardCornerRadius="24dp">
+
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:padding="4dp">
 
-                    <androidx.appcompat.widget.SwitchCompat
+                    <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/locationSwitch"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
+                        android:layout_marginEnd="16dp"
                         android:checked="true"
                         android:text="@string/switch_location"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
+                        android:visibility="gone"
+                        app:switchPadding="8dp"
+                        app:thumbIcon="@drawable/baseline_location_on_24" />
 
-                    <androidx.appcompat.widget.SwitchCompat
+                    <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchFollowLocation"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
+                        android:layout_marginEnd="16dp"
                         android:checked="true"
-                        android:text="@string/switch_follow_location"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toStartOf="@+id/lineDirectionSwitch"
-                        app:layout_constraintStart_toEndOf="@+id/locationSwitch"
-                        app:layout_constraintTop_toTopOf="parent" />
+                        android:visibility="gone"
+                        app:switchPadding="8dp"
+                        app:thumbIcon="@drawable/follow" />
 
-                    <androidx.appcompat.widget.SwitchCompat
+                    <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchMap"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
+                        android:layout_marginEnd="16dp"
                         android:checked="true"
                         android:text="@string/switch_map"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toStartOf="@+id/lineDirectionSwitch"
-                        app:layout_constraintStart_toEndOf="@+id/locationSwitch"
-                        app:layout_constraintTop_toTopOf="parent" />
+                        android:visibility="gone"
+                        app:switchPadding="8dp"
+                        app:thumbIcon="@drawable/map" />
 
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/lineDirectionSwitch"
+                    <!--                    <com.google.android.material.materialswitch.MaterialSwitch-->
+                    <!--                        android:id="@+id/lineDirectionSwitch"-->
+                    <!--                        android:layout_width="wrap_content"-->
+                    <!--                        android:layout_height="wrap_content"-->
+                    <!--                        android:checked="true"-->
+                    <!--                        android:text="@string/up_line"-->
+                    <!--                        android:visibility="gone"-->
+                    <!--                        app:switchPadding="8dp"-->
+                    <!--                        app:thumbIcon="@drawable/line" />-->
 
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/locationBtnGroup"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:checked="true"
-                        android:text="@string/up_line"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
+                        android:layout_marginEnd="8dp">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/locationBtn"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minWidth="0dp"
+                            android:text="@string/switch_location" />
+
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/mapBtnGroup"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/mapBtn"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minWidth="0dp"
+                            android:text="@string/switch_map" />
+
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/lineDirectionBtnGroup"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/lineDirectionBtnUp"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minWidth="0dp"
+                            android:text="@string/up_line" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/lineDirectionBtnDown"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minWidth="0dp"
+                            android:text="@string/down_line" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
 
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+
+
+            </com.google.android.material.card.MaterialCardView>
+
 
             <LinearLayout
 
@@ -541,6 +607,17 @@
 
                 android:gravity="center"
                 android:orientation="horizontal">
+
+
+                <!--                <com.google.android.material.button.MaterialButton-->
+                <!--                    android:id="@+id/startingStation"-->
+                <!--                    style="?attr/materialIconButtonFilledStyle"-->
+                <!--                    android:layout_width="wrap_content"-->
+                <!--                    android:layout_height="wrap_content"-->
+                <!--                    android:layout_marginEnd="8dp"-->
+                <!--                    android:contentDescription="@string/starting_station"-->
+                <!--                    app:icon="@drawable/baseline_start_24"-->
+                <!--                    app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Large.Wide" />-->
 
                 <ImageButton
                     android:id="@+id/startingStation"
@@ -596,8 +673,8 @@
 
             </LinearLayout>
 
-
-            <androidx.cardview.widget.CardView
+            <!--                 app:cardBackgroundColor="?attr/cardBackgroundColor" -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
@@ -607,7 +684,7 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:visibility="gone"
-                app:cardBackgroundColor="?attr/cardBackgroundColor"
+
                 app:cardCornerRadius="24dp">
 
 
@@ -634,7 +711,7 @@
 
                 </LinearLayout>
 
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!--            <TextView-->
             <!--                android:layout_width="match_parent"-->

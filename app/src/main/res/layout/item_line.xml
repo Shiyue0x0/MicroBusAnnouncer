@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-
     android:id="@+id/lineCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -9,12 +8,10 @@
     android:layout_marginTop="8dp"
     android:layout_marginEnd="12dp"
     android:layout_marginBottom="8dp"
-
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
 
-    app:cardBackgroundColor="?attr/cardBackgroundColor"
     app:cardCornerRadius="24dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -30,15 +27,14 @@
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
             android:text="@string/main_line_0"
-            android:textColor="@color/textColor1"
+            android:textColor="?attr/colorPrimary"
             android:textSize="@dimen/largeFontSize"
-
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <com.microbus.announcer.ScrollingTextView
+        <com.microbus.announcer.view.ScrollingTextView
             android:id="@+id/lineStartingStation"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -49,7 +45,7 @@
             android:paddingEnd="4dp"
             android:singleLine="true"
             android:text="@string/main_staring_station_name"
-            android:textColor="@color/textColor2"
+            android:textColor="?attr/colorPrimary"
             android:textSize="@dimen/largeFontSize"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="@+id/line_name"
@@ -57,7 +53,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <com.microbus.announcer.ScrollingTextView
+        <com.microbus.announcer.view.ScrollingTextView
             android:id="@+id/lineTerminal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -68,17 +64,15 @@
             android:paddingEnd="4dp"
             android:singleLine="true"
             android:text="@string/main_terminal_name"
-            android:textColor="@color/textColor2"
+            android:textColor="?attr/colorPrimary"
             android:textSize="@dimen/largeFontSize"
-
-            android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="@+id/line_name"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/line_name"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <com.microbus.announcer.Container
-            android:id="@+id/lineStationListContainer"
+
+        <com.microbus.announcer.view.NestedScrollableHost
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -88,12 +82,24 @@
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/lineStationList"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:layout_behavior="@string/appbar_scrolling_view_behavior" />
-        </com.microbus.announcer.Container>
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+        </com.microbus.announcer.view.NestedScrollableHost>
+
+
+
+        <!--        <com.microbus.announcer.view.Container-->
+        <!--            android:id="@+id/lineStationListContainer"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
+        <!--            app:layout_constraintEnd_toEndOf="parent"-->
+        <!--            app:layout_constraintStart_toStartOf="parent"-->
+        <!--            app:layout_constraintTop_toBottomOf="@+id/line_name">-->
+        <!--        </com.microbus.announcer.view.Container>-->
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

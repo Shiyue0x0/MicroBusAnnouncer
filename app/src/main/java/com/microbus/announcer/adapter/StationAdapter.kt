@@ -35,8 +35,9 @@ internal class StationAdapter(
         var stationType = binding.stationType
         var stationCnName = binding.stationCnName
         var stationEnName = binding.stationEnName
-        var stationLongitude = binding.stationLongitude
-        var stationLatitude = binding.stationLatitude
+
+        //        var stationLongitude = binding.stationLongitude
+//        var stationLatitude = binding.stationLatitude
         var stationLineList = binding.stationLineList
 
         init {
@@ -63,12 +64,13 @@ internal class StationAdapter(
         val station = stationList[position]
 
         holder.station = station
-        holder.stationId.text = String.format(Locale.ROOT, "%03d", station.id)
+        holder.stationId.text = station.id.toString()
+//        holder.stationId.text = String.format(Locale.ROOT, "%03d", station.id)
         holder.stationType.text = station.type
         holder.stationCnName.text = station.cnName
         holder.stationEnName.text = station.enName
-        holder.stationLongitude.text = "${station.longitude}"
-        holder.stationLatitude.text = "${station.latitude}"
+//        holder.stationLongitude.text = "${station.longitude}"
+//        holder.stationLatitude.text = "${station.latitude}"
 
         val linearLayoutManager =
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)

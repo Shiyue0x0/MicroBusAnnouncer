@@ -6,12 +6,7 @@
         <EditTextPreference
             app:defaultValue=""
             app:key="defaultLineName"
-            app:title="默认路线名称"
-            app:useSimpleSummaryProvider="true" />
-        <SwitchPreferenceCompat
-            app:defaultValue="true"
-            app:key="showBottomBar"
-            app:title="显示底部导航栏"
+            app:title="默认路线"
             app:useSimpleSummaryProvider="true" />
         <DropDownPreference
             android:entries="@array/lang_entries"
@@ -20,6 +15,21 @@
             app:key="lang"
             app:summary="%s"
             app:title="界面语言" />
+        <EditTextPreference
+            app:defaultValue="桂林"
+            app:key="city"
+            app:title="搜索城市"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="showBottomBar"
+            app:title="导航栏"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="notice"
+            app:title="运行通知"
+            app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="地图">
@@ -41,7 +51,7 @@
         <SwitchPreferenceCompat
             app:defaultValue="false"
             app:key="lineTrajectoryCorrection"
-            app:title="线路轨迹纠偏"
+            app:title="线路轨迹纠偏（Beta）"
             app:useSimpleSummaryProvider="true" />
         <DropDownPreference
             android:entries="@array/mapStationShowType_entries"
@@ -66,12 +76,12 @@
 
     <PreferenceCategory app:title="定位">
         <EditTextPreference
-            app:defaultValue="15"
+            app:defaultValue="30"
             app:key="arriveStationDistance"
             app:title="站点判定距离（米）"
             app:useSimpleSummaryProvider="true" />
         <EditTextPreference
-            app:defaultValue="1000"
+            app:defaultValue="2500"
             app:key="locationInterval"
             app:title="定位间隔（毫秒）"
             app:useSimpleSummaryProvider="true" />
@@ -93,21 +103,21 @@
             app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="显示">
+    <PreferenceCategory app:title="电显">
         <EditTextPreference
             app:defaultValue="5"
             app:key="lineHeadCardChangeTime"
-            app:title="头牌刷新间隔（秒）"
+            app:title="电显刷新间隔（秒）"
             app:useSimpleSummaryProvider="true" />
         <EditTextPreference
-            app:defaultValue="MicroBus欢迎您 "
+            app:defaultValue="全国文明城市 桂林欢迎您"
             app:key="welInfoLeft"
-            app:title="头牌左侧欢迎信息"
+            app:title="电显左侧欢迎信息"
             app:useSimpleSummaryProvider="true" />
         <EditTextPreference
-            app:defaultValue="安全驾驶 文明出行"
+            app:defaultValue="攻坚十四五 奋进新征程 建设壮美广西"
             app:key="welInfoRight"
-            app:title="头牌右侧欢迎信息"
+            app:title="电显右侧欢迎信息"
             app:useSimpleSummaryProvider="true" />
         <MultiSelectListPreference
             android:entries="@array/headSignShowInfo_entries"
@@ -115,47 +125,97 @@
             app:defaultValue="@array/headSignShowInfo_values"
             app:key="headSignShowInfo"
             app:summary="重启生效"
-            app:title="头牌显示信息" />
+            app:title="电显显示信息" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="播报">
         <SwitchPreferenceCompat
             app:defaultValue="true"
             app:key="stationChangeVibrator"
-            app:title="进出站震动提醒"
+            app:title="进出站振动提醒"
             app:useSimpleSummaryProvider="true" />
-        <SwitchPreferenceCompat
-            app:defaultValue="true"
-            app:key="voiceAnnouncements"
-            app:title="进出站普通话播报"
-            app:useSimpleSummaryProvider="true" />
-        <SwitchPreferenceCompat
-            app:defaultValue="true"
-            app:key="enVoiceAnnouncements"
-            app:title="进出站英语播报"
-            app:useSimpleSummaryProvider="true" />
-        <SwitchPreferenceCompat
-            app:defaultValue="true"
-            app:key="arriveTimeAnnouncements"
-            app:title="进站时间播报"
-            app:useSimpleSummaryProvider="true" />
-        <SwitchPreferenceCompat
-            app:defaultValue="false"
-            app:key="speedAnnouncements"
-            app:title="时速播报"
-            app:useSimpleSummaryProvider="true" />
+
         <SwitchPreferenceCompat
             app:defaultValue="true"
             app:key="useTTS"
             app:title="使用TTS"
             app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            android:defaultValue="Default"
+            app:key="announcementLibrary"
+            app:summary=""
+            app:title="播报语音库" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="下一站播报格式">
+
+        <EditTextPreference
+            app:key="DefaultNextAnnouncementExpression"
+            app:title="默认"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="StartingNextAnnouncementExpression"
+            app:title="起点站"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="SecondNextAnnouncementExpression"
+            app:title="第二站"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="TerminalNextAnnouncementExpression"
+            app:title="终点站"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="即将进站播报格式">
+
+        <EditTextPreference
+            app:key="DefaultWillArriveAnnouncementExpression"
+            app:title="默认"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="StartingWillArriveAnnouncementExpression"
+            app:title="起点站"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="SecondWillArriveAnnouncementExpression"
+            app:title="第二站"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="TerminalWillArriveAnnouncementExpression"
+            app:title="终点站"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="进站播报格式">
+
+        <EditTextPreference
+            app:key="DefaultArriveAnnouncementExpression"
+            app:title="默认"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="StartingArriveAnnouncementExpression"
+            app:title="起点站"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="SecondArriveAnnouncementExpression"
+            app:title="第二站"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="TerminalArriveAnnouncementExpression"
+            app:title="终点站"
+            app:useSimpleSummaryProvider="true" />
+
     </PreferenceCategory>
 
     <PreferenceCategory app:title="数据">
         <Preference
             android:key="backupStationAndLine"
             android:title="备份站点与路线"
-            app:summary="路径：Documents/Announcer/Backups" />
+            app:summary="路径：Announcer/Backups" />
         <Preference
             android:key="restoreStation"
             android:title="还原站点" />
@@ -174,10 +234,22 @@
     </PreferenceCategory>
 
     <PreferenceCategory app:title="关于">
+
         <Preference
+            android:icon="@mipmap/an_round"
             android:key="about"
             android:summary=""
             android:title="@string/app_name" />
+        <Preference
+            android:icon="@drawable/github"
+            android:key="projectUrl"
+            android:summary="Github"
+            android:title="项目地址" />
+        <Preference
+            android:key="author"
+            android:summary="Shiyue"
+            android:title="联系作者" />
+
     </PreferenceCategory>
 
 </PreferenceScreen>

@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.kotlinCompose)
 }
 
 android {
@@ -15,9 +16,9 @@ android {
         applicationId = "com.microbus.announcer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 230
+        versionCode = 240
         versionName =
-            "2.3.0-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
+            "2.4.0-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
     }
 
     buildTypes {
@@ -33,12 +34,13 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
 
     buildFeatures {
         viewBinding = true
         dataBinding = true
+        compose = true
     }
 
     splits {
@@ -47,6 +49,10 @@ android {
             reset()
             include("arm64-v8a")
         }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     android.applicationVariants.all {
@@ -67,24 +73,40 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.easypermissions)
     implementation(libs.viewpager2)
     implementation(libs.recyclerview)
-    implementation(files("libs/AMap3DMap_10.1.200_AMapSearch_9.7.4_AMapLocation_6.4.9_20241226_reIcon.jar"))
-    implementation(files("libs/mobile-ffmpeg-full-gpl-4.4.aar"))
+//    implementation(files("libs/AMap3DMap_10.1.200_AMapSearch_9.7.4_AMapLocation_6.4.9_20241226_reIcon.jar"))
+    implementation(files("libs/AMap3DMap_10.1.302_AMapSearch_9.7.4_AMapLocation_6.5.0_20250804.jar"))
     implementation(libs.androidx.legacy.support.v4)
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.preference)
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.core)
-    testImplementation(libs.junit)
-    implementation(libs.rxjava)
+//    testImplementation(libs.junit)
+//    implementation(libs.rxjava)
     implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.kotlinx.serialization.json)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.design)
+//    androidTestImplementation(libs.androidx.junit)
+//    androidTestImplementation(libs.androidx.espresso.core)
+//    androidTestImplementation(libs.design)
+    implementation(libs.gson)
+    implementation(libs.material)
+
+    implementation(libs.preference.data.core)
+    implementation(libs.preference.ui.compose)
+    implementation(libs.preference.util)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

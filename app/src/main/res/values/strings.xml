@@ -1,4 +1,3 @@
-
 <resources>
     <string name="app_name">Announcer</string>
     <string name="line_name">路线名称</string>
@@ -38,8 +37,8 @@
     <string name="header_speed">速度 Speed</string>
     <string name="switch_line">切换路线</string>
     <string name="plan_line_too_short_tip">路径过短，建议重新规划</string>
-    <string name="search_by_category">按类别查找</string>
-    <string name="out_line_running">退出运行</string>
+    <string name="search_by_category">分类查找</string>
+    <string name="out_line_running">回厂</string>
     <string name="station_not_enough_tip">请先添加至少2个站点</string>
 
     <string name="operation_lock_on_tip">操作锁定已开启\n请长按定位按钮解锁</string>
@@ -55,17 +54,17 @@
     <string name="line_metro">轨道交通</string>
     <string name="line_train">火车车次</string>
     <string name="line_other">其他路线</string>
-    <string name="line_all">全站点路线</string>
+    <string name="line_all">全站路线</string>
 
     <string name="km">(km)</string>
     <string name="m">(m)</string>
 
     <string name="up_and_down_invert">上下行站点对称</string>
     <string name="set_default_line">设为默认路线</string>
-    <string name="input_line_name">输入路线名称搜索</string>
+    <string name="input_line_name">搜索路线</string>
     <string name="cn_name">中文名称</string>
     <string name="en_name">英文名称</string>
-    <string name="line_type">站点类型（B公交站 T火车站 C社区站 U地铁站）</string>
+    <string name="line_type">站点类型（B公交|T火车|C社区|U地铁）</string>
     <string name="station_longitude">站点经度</string>
     <string name="station_latitude">站点纬度</string>
     <string name="nav_main">主控</string>

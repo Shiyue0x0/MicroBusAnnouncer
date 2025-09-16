@@ -1,0 +1,23 @@
+{
+  "name": "",
+  "announcementFormat": {
+    "Next": {
+      "Default": "本号车次|<line>|路，开往|<tscn>|下一站是|<nscn>|The next station is|<nsen>",
+      "Starting": "本号车次|<line>|下一站是|起点站|<nscn>|The next station is|Starting station|<nsen>",
+      "Second": "欢迎乘坐|<line>|路，开往|<tscn>下一站是|<nscn>|This train is bound for|<tsen>|The next station is|<nsen>",
+      "Terminal": "本号车次|<line>|下一站是|终点站|<nscn>|The next station is|Terminal|<nsen>"
+    },
+    "WillArrive": {
+      "Default": "前方到站|<nscn>",
+      "Starting": "前方到站|起点站|<nscn>",
+      "Second": "",
+      "Terminal": "前方到站|终点站|<nscn>"
+    },
+    "Arrive": {
+      "Default": "进站提示音|<time>|当前到站|<nscn>|We are arrive at|<nsen>",
+      "Starting": "进站提示音|<time>|当前到站|起点站|<nscn>|We are arrive at|Starting station|<nsen>",
+      "Second": "",
+      "Terminal": "进站提示音|<time>|当前到站|终点站|<nscn>|We are arrive at|Terminal|<nsen>"
+    }
+  }
+}

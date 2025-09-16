@@ -6,7 +6,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.os.Build
+import android.content.SharedPreferences
+import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.DocumentsContract
@@ -18,9 +19,9 @@ import androidx.preference.DropDownPreference
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreferenceCompat
 import com.microbus.announcer.MainActivity
-import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.database.LineDatabaseHelper
@@ -37,6 +38,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.min
+import androidx.core.content.edit
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 
 open class SettingPreferenceFragment : PreferenceFragmentCompat() {
@@ -45,15 +48,20 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
 
     private val requestRestoreLine = 1
 
-    private lateinit var permissionManager: PermissionManager
+
+    private lateinit var prefs: SharedPreferences
 
     private lateinit var utils: Utils
 
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+
         setPreferencesFromResource(R.xml.preferences, rootKey)
 
         utils = Utils(requireContext())
+
+        prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+
 
         //默认路线名称
         val defaultLinePreference: EditTextPreference? = findPreference("defaultLineName")
@@ -92,12 +100,17 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
             }
 
         //站点判定距离
-        val arriveStationDistancePreference: EditTextPreference? =
-            findPreference("arriveStationDistance")
-        arriveStationDistancePreference?.setOnBindEditTextListener { editText ->
+        val arriveStationDistancePreference: EditTextPreference =
+            findPreference("arriveStationDistance")!!
+        arriveStationDistancePreference.setOnBindEditTextListener { editText ->
             editText.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
             editText.setSelection(editText.text.length)
         }
+
+        arriveStationDistancePreference.setOnPreferenceChangeListener { _, newValue ->
+            true
+        }
+
 
         //定位间隔（毫秒）
         val locationIntervalPreference: EditTextPreference? =
@@ -145,22 +158,10 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
         //备份站点与路线
         findPreference<Preference>("backupStationAndLine")?.setOnPreferenceClickListener {
 
-            permissionManager = PermissionManager(requireContext(), this)
-            //判断是否有管理外部存储的权限
-            if (Build.VERSION.SDK_INT >= 30) {
-                if (!Environment.isExternalStorageManager()) {
-                    AlertDialog.Builder(context)
-                        .setTitle("允许 ${requireContext().resources.getString(R.string.app_name)} 访问设备上的文件吗？")
-                        .setMessage("应用需要该权限来备份数据")
-                        .setPositiveButton("前往授予") { _, _ ->
-                            permissionManager.requestManageFilesAccessPermission()
-                        }
-                        .setNegativeButton("取消", null)
-                        .create()
-                        .show()
-                }
+            if (!utils.isGrantManageFilesAccessPermission()) {
+                utils.requestManageFilesAccessPermission(requireActivity())
+                return@setOnPreferenceClickListener true
             }
-
 
             //获取当前时间
             val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
@@ -168,13 +169,14 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
 
             backupFile("station.db", dataTime)
             backupFile("line.db", dataTime)
-            utils.showMsg("站点和路线已备份至\nDocuments/Announcer/Backups")
+            utils.showMsg("站点和路线已备份至\nAnnouncer/Backups")
 
             true
         }
 
         //还原站点
         findPreference<Preference>("restoreStation")?.setOnPreferenceClickListener {
+
             val uri =
                 "content://com.android.externalstorage.documents/document/primary:Documents%2fAnnouncer%2fBackups".toUri()
             val intent = Intent(Intent.ACTION_GET_CONTENT)
@@ -189,6 +191,7 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
 
         //还原路线
         findPreference<Preference>("restoreLine")?.setOnPreferenceClickListener {
+
             val uri =
                 "content://com.android.externalstorage.documents/document/primary:Documents%2fAnnouncer%2fBackups".toUri()
             val intent = Intent(Intent.ACTION_GET_CONTENT)
@@ -216,12 +219,14 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
 
         //  搜索暂无报站音频的站点
         val appRootPath =
-            Environment.getExternalStorageDirectory().absolutePath + "/Documents/Announcer"
+            Environment.getExternalStorageDirectory().absolutePath + "/Announcer"
         findPreference<Preference>("searchStationNotHaveVoice")?.setOnPreferenceClickListener {
 
             //如果没有管理外部存储的权限，请求授予
-            if (!requestManageFilesAccessPermission())
+            if (!utils.isGrantManageFilesAccessPermission()) {
+                utils.requestManageFilesAccessPermission(requireActivity())
                 return@setOnPreferenceClickListener true
+            }
 
             val stationDatabaseHelper = StationDatabaseHelper(requireContext())
             val stationList = stationDatabaseHelper.quertAll()
@@ -246,17 +251,16 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
             stationVoiceCnLostList.forEach { name ->
                 text += "$name\n"
             }
-             text += "English: \n"
+            text += "English: \n"
             stationVoiceEnLostList.forEach { name ->
                 text += "$name\n"
             }
 
             Log.d(tag, text)
 
-            AlertDialog.Builder(requireContext())
-                .setTitle("")
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("暂无报站音频的站点")
                 .setMessage(text)
-                .create()
                 .show()
 
             true
@@ -272,6 +276,132 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
         }
         val info = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
         aboutPref.summary = info.versionName
+
+
+        // 报站内容校验
+        for (stationType in utils.getStationTypeList()) {
+            for (stationState in utils.getStationStateList()) {
+                val announcementExpressionPreference: EditTextPreference =
+                    findPreference("${stationType}${stationState}AnnouncementExpression")!!
+                announcementExpressionPreference.setOnPreferenceChangeListener { _, newValue ->
+
+                    if (!utils.isGrantManageFilesAccessPermission()) {
+                        utils.requestManageFilesAccessPermission(requireActivity())
+                        return@setOnPreferenceChangeListener true
+                    }
+
+                    utils.loadAnnouncementFormatFromConfig()
+
+                    val ans = utils.getAnnouncements(newValue.toString())
+                    if (ans[0] == "ERROR") {
+                        utils.showMsg("${ans[1]}不正确，请修改")
+                        utils.showMsg("已将需要修改的内容复制到剪切板")
+                        val clipboard =
+                            requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clipData = ClipData.newPlainText("text", newValue.toString())
+                        clipboard.setPrimaryClip(clipData)
+                        false
+                    } else {
+                        // 同步修改config.json
+                        utils.updateAnnouncementFormatConfig(
+                            stationType,
+                            stationState,
+                            newValue.toString()
+                        )
+                        true
+                    }
+                }
+                announcementExpressionPreference.onPreferenceClickListener =
+                    Preference.OnPreferenceClickListener { preference ->
+                        if (!utils.isGrantManageFilesAccessPermission()) {
+                            utils.requestManageFilesAccessPermission(requireActivity())
+                            false
+                        } else {
+                            true
+                        }
+                    }
+            }
+        }
+
+        //动态更新语音库选项
+        val announcementLibraryPreference: Preference =
+            findPreference("announcementLibrary")!!
+        val announcementLibrary = utils.getAnnouncementLibrary()
+        if (announcementLibrary == "" && utils.getAnnouncementLibraryList().isNotEmpty()) {
+            val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext())
+            sharedPreferences.edit {
+                putString("announcementLibrary", utils.getAnnouncementLibraryList().first())
+            }
+        }
+        announcementLibraryPreference.summary = utils.getAnnouncementLibrary()
+
+        announcementLibraryPreference.onPreferenceClickListener =
+            Preference.OnPreferenceClickListener {
+
+                if (!utils.isGrantManageFilesAccessPermission()) {
+                    utils.requestManageFilesAccessPermission(requireActivity())
+                    return@OnPreferenceClickListener true
+                }
+
+
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("选择语音播报库")
+                    .setSingleChoiceItems(
+                        utils.getAnnouncementLibraryList().toTypedArray(),
+                        utils.getAnnouncementLibraryList().indexOf(utils.getAnnouncementLibrary())
+                    ) { dialog, which ->
+                        val sharedPreferences =
+                            PreferenceManager.getDefaultSharedPreferences(requireContext())
+                        sharedPreferences.edit {
+                            putString(
+                                "announcementLibrary",
+                                utils.getAnnouncementLibraryList()[which]
+                            )
+                        }
+                        announcementLibraryPreference.summary = utils.getAnnouncementLibrary()
+                        utils.loadAnnouncementFormatFromConfig()
+                        for (stationType in utils.getStationTypeList()) {
+                            for (stationState in utils.getStationStateList()) {
+                                val preference: EditTextPreference =
+                                    findPreference("${stationType}${stationState}AnnouncementExpression")!!
+                                preference.text = prefs.getString(
+                                    "${stationType}${stationState}AnnouncementExpression",
+                                    ""
+                                )!!
+                            }
+                        }
+                        dialog.cancel()
+                    }
+                    .show()
+                true
+            }
+
+        val projectUrlPreference: Preference =
+            findPreference("projectUrl")!!
+        projectUrlPreference.onPreferenceClickListener = Preference.OnPreferenceClickListener {
+            val uri = "https://github.com/Shiyue0x0/MicroBusAnnouncer".toUri()
+            val intent = Intent(Intent.ACTION_VIEW, uri)
+            if (intent.resolveActivity(requireContext().packageManager) != null) {
+                startActivity(intent)
+            } else {
+                utils.showMsg("打开失败")
+            }
+            true
+        }
+
+        val authorPreference: Preference =
+            findPreference("author")!!
+        authorPreference.onPreferenceClickListener = Preference.OnPreferenceClickListener {
+            val uri = "https://space.bilibili.com/34943744".toUri()
+            val intent = Intent(Intent.ACTION_VIEW, uri)
+            if (intent.resolveActivity(requireContext().packageManager) != null) {
+                startActivity(intent)
+            } else {
+                utils.showMsg("打开失败")
+            }
+            true
+        }
+
 
     }
 
@@ -359,7 +489,7 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
             fileOutputStream.close()
             fileInputStream.close()
 
-            utils.showMsg("原${outputFileCnName}已备份至\nDocuments/Announcer/Backups")
+            utils.showMsg("原${outputFileCnName}已备份至\nAnnouncer/Backups")
             utils.showMsg("${outputFileCnName}还原成功，重启生效")
 
             requireActivity().finish()
@@ -376,7 +506,7 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
     ) {
 
         val outputPath =
-            Environment.getExternalStorageDirectory().absolutePath + "/Documents/Announcer/Backups/" + dataTime + "/database"
+            Environment.getExternalStorageDirectory().absolutePath + "/Announcer/Backups/" + dataTime + "/database"
         //新建备份文件目录
         File(outputPath).mkdirs()
 
@@ -426,27 +556,9 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
             )
         }
 
-        utils.showMsg("站点和路线已备份至\nDocuments/Announcer/Backups")
+        utils.showMsg("站点和路线已备份至\nAnnouncer/Backups")
         utils.showMsg("已加载预设数据，重启生效")
         requireActivity().finish()
-    }
-
-    fun requestManageFilesAccessPermission(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
-            AlertDialog.Builder(requireContext())
-                .setTitle(requireContext().resources.getString(R.string.request_manage_files_access_permission_title))
-                .setMessage(requireContext().resources.getString(R.string.request_manage_files_access_permission_text))
-                .setPositiveButton(requireContext().resources.getString(R.string.request_manage_files_access_permission_to_grant)) { _, _ ->
-                    PermissionManager(requireContext(), this).requestManageFilesAccessPermission()
-                }.setNegativeButton(
-                    requireContext().resources.getString(android.R.string.cancel),
-                    null
-                ).create()
-                .show()
-            return false
-        } else {
-            return true
-        }
     }
 
 }

@@ -1,135 +1,139 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
 
     android:id="@+id/stationCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginStart="12dp"
-    android:layout_marginTop="8dp"
     android:layout_marginEnd="12dp"
     android:layout_marginBottom="8dp"
     android:clickable="true"
-
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
-    app:cardBackgroundColor="?attr/cardBackgroundColor"
     app:cardCornerRadius="24dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_margin="16dp"
-
         android:columnCount="3"
         android:rowCount="2">
+
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/station_type_card"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@+id/station_id"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/station_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="4dp"
+                android:text="B" />
+
+        </com.google.android.material.card.MaterialCardView>
+
 
         <TextView
             android:id="@+id/station_id"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:gravity="start"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
             android:text="@string/station_id_value"
-            android:textColor="@color/textColor2"
-
             android:textSize="32sp"
-            app:layout_constraintBottom_toBottomOf="@+id/station_latitude"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/station_type_card"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/station_type"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:background="@drawable/item_line_of_station_button"
-            android:padding="4dp"
-            android:text="@string/station_type_value"
-            android:textColor="@color/white"
-            app:layout_constraintStart_toEndOf="@+id/station_id"
-            app:layout_constraintTop_toTopOf="parent" />
+        <!--        <TextView-->
+        <!--            android:id="@+id/station_type"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:layout_margin="4dp"-->
+        <!--            android:background="@drawable/item_line_of_station_button"-->
+        <!--            android:padding="4dp"-->
+        <!--            android:text="@string/station_type_value"-->
+        <!--            android:textColor="@color/white"-->
+        <!--            app:layout_constraintBottom_toBottomOf="@+id/station_id"-->
+        <!--            app:layout_constraintStart_toEndOf="@+id/station_id"-->
+        <!--            app:layout_constraintTop_toTopOf="parent" />-->
 
         <TextView
             android:id="@+id/station_cn_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingStart="8dp"
-            android:paddingEnd="4dp"
+            android:layout_marginStart="8dp"
             android:text="@string/station_cn_name_value"
-            android:textColor="@color/textColor2"
             android:textSize="@dimen/largeFontSize"
             android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="@+id/station_type"
-            app:layout_constraintStart_toEndOf="@+id/station_type"
+            app:layout_constraintBottom_toBottomOf="@+id/station_id"
+            app:layout_constraintStart_toEndOf="@+id/station_id"
             app:layout_constraintTop_toTopOf="parent" />
 
 
-        <com.microbus.announcer.ScrollingTextView
+        <!--        <TextView-->
+        <!--            android:id="@+id/station_longitude"-->
+        <!--            android:layout_width="0dp"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:layout_marginTop="4dp"-->
+        <!--            android:paddingStart="8dp"-->
+        <!--            android:paddingEnd="8dp"-->
+        <!--            android:text="@string/station_longitude_value"-->
+        <!--            app:layout_constraintStart_toEndOf="@+id/station_id"-->
+        <!--            app:layout_constraintTop_toBottomOf="@+id/station_type" />-->
+
+        <!--        <TextView-->
+        <!--            android:id="@+id/station_latitude"-->
+        <!--            android:layout_width="0dp"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:paddingStart="8dp"-->
+        <!--            android:paddingEnd="8dp"-->
+        <!--            android:text="@string/station_latitude_value"-->
+        <!--            app:layout_constraintStart_toEndOf="@+id/station_id"-->
+        <!--            app:layout_constraintTop_toBottomOf="@+id/station_longitude" />-->
+
+        <!--        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout-->
+        <!--            android:id="@+id/swipeRefreshLayout"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="36dp"-->
+        <!--            android:layout_marginTop="4dp"-->
+        <!--            app:layout_behavior="@string/appbar_scrolling_view_behavior"-->
+        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
+        <!--            app:layout_constraintEnd_toEndOf="parent"-->
+        <!--            app:layout_constraintStart_toStartOf="parent"-->
+        <!--            app:layout_constraintTop_toBottomOf="@+id/name">-->
+
+        <com.microbus.announcer.view.ScrollingTextView
             android:id="@+id/stationEnName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-
+            android:layout_marginStart="8dp"
             android:ellipsize="marquee"
             android:marqueeRepeatLimit="marquee_forever"
-            android:paddingStart="4dp"
-
-            android:paddingEnd="8dp"
             android:singleLine="true"
             android:text="@string/station_en_name_value"
-
-            android:textColor="@color/textColor2"
-
             android:textSize="@dimen/largeFontSize"
-            app:layout_constraintBottom_toBottomOf="@+id/station_cn_name"
+            app:layout_constraintBottom_toBottomOf="@+id/station_id"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toEndOf="@+id/station_cn_name"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="@+id/station_id" />
 
-        <TextView
-            android:layout_marginTop="4dp"
-            android:id="@+id/station_longitude"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-
-            android:text="@string/station_longitude_value"
-            app:layout_constraintStart_toEndOf="@+id/station_id"
-            app:layout_constraintTop_toBottomOf="@+id/station_type" />
-
-        <TextView
-            android:id="@+id/station_latitude"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-
-            android:text="@string/station_latitude_value"
-            app:layout_constraintStart_toEndOf="@+id/station_id"
-            app:layout_constraintTop_toBottomOf="@+id/station_longitude" />
-
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-            android:id="@+id/swipeRefreshLayout"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/stationLineList"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginTop="4dp"
+            android:layout_height="wrap_content"
             app:layout_behavior="@string/appbar_scrolling_view_behavior"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/station_latitude">
+            app:layout_constraintTop_toBottomOf="@+id/station_id" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/stationLineList"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent" />
+        <!--        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>-->
 
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

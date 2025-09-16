@@ -159,7 +159,7 @@ class StationFragment : Fragment(), AMapLocationListener {
                 val activity = requireActivity() as MainActivity
                 val mainFragment = activity.fragmentList[0] as MainFragment
                 utils.showMsg(station.cnName + "\n" + station.enName)
-                mainFragment.announce(2, station, "all")
+                mainFragment.announce("")
             }
         })
 

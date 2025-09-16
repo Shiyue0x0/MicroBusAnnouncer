@@ -22,7 +22,8 @@ internal class StationOfLineAdapter(
     private val context: Context,
     mStationList: ArrayList<Station>,
     mStationCount: Int,
-   mLineName: String
+    mLineName: String,
+    mStationState: Int = -1     // onNext 0, onWillArrive 1, onArrive, 2
 ) :
     RecyclerView.Adapter<StationOfLineAdapter.StationOfLineViewHolder>() {
 
@@ -38,6 +39,7 @@ internal class StationOfLineAdapter(
 
     var stationCount = mStationCount
     var lineName = mLineName
+    var stationState = mStationState
 
     internal class StationOfLineViewHolder(
         binding: ItemStationOfLineBinding,
@@ -121,16 +123,41 @@ internal class StationOfLineAdapter(
         return holder
     }
 
-    @SuppressLint("SetTextI18n")
+    @SuppressLint("SetTextI18n", "ResourceType")
     override fun onBindViewHolder(holder: StationOfLineViewHolder, position: Int) {
 
         when (position) {
             0 -> holder.stationIndex.text = "始发"
             stationList.size - 1 -> holder.stationIndex.text = "终到"
-            else -> holder.stationIndex.text = String.format(Locale.CHINA, "%02d", position + 1)
+            stationCount -> {
+                when (stationState) {
+                    0 -> holder.stationIndex.text = "→"
+                    1 -> holder.stationIndex.text = "↘"
+                    2 -> holder.stationIndex.text = "↓"
+                }
+            }
+            else -> {
+                holder.stationIndex.text =
+                    String.format(Locale.CHINA, "%02d", position + 1)
+            }
         }
 
+
         holder.stationName.text = stationList[position].cnName
+
+        val typedArray = context.obtainStyledAttributes(
+            intArrayOf(
+                android.R.attr.colorPrimary,
+                com.google.android.material.R.attr.colorSurface,
+                android.R.attr.colorPrimary,
+                com.google.android.material.R.attr.colorOnSurface,
+            )
+        )
+        val bg2 = typedArray.getColor(0, 0)
+        val color2 = typedArray.getColor(1, 0)
+        val color1 = typedArray.getColor(2, 0)
+        val color3 = typedArray.getColor(3, 0)
+        typedArray.recycle()
 
         //当前站点样式
         val color: Int
@@ -141,26 +168,32 @@ internal class StationOfLineAdapter(
             TypedValue.COMPLEX_UNIT_DIP,
             2F, Resources.getSystem().displayMetrics
         ).toInt()
-        if (position < stationCount || stationCount == -1) {
-            color = context.getColor(R.color.textColor3)
+        if (position < stationCount) {
+            color = color1
             style = Typeface.NORMAL
             bg = context.getColor(android.R.color.transparent)
             padding = 0
         } else if (position == stationCount) {
-            color = context.getColor(R.color.cardviewDarkBackground)
+            color = color2
             style = Typeface.BOLD
-            bg = context.getColor(R.color.textColor2)
+            bg = bg2
             padding = dp2
         } else {
-            color = context.getColor(R.color.textColor2)
+            color = color3
             style = Typeface.NORMAL
             bg = context.getColor(android.R.color.transparent)
             padding = 0
         }
         holder.stationIndex.setTextColor(color)
         holder.stationName.setTextColor(color)
-        holder.stationIndex.setTypeface(context.resources.getFont(R.font.galano), style)
-        holder.stationName.setTypeface(context.resources.getFont(R.font.galano), style)
+        holder.stationIndex.setTypeface(
+            context.resources.getFont(R.font.galano_grotesque_bold),
+            style
+        )
+        holder.stationName.setTypeface(
+            context.resources.getFont(R.font.galano_grotesque_bold),
+            style
+        )
         holder.main.setCardBackgroundColor(bg)
         holder.constraintLayout.setPadding(padding, dp2, padding, dp2)
 

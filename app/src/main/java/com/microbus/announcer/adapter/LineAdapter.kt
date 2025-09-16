@@ -19,6 +19,7 @@ import com.microbus.announcer.databinding.AlertDialogLineInfoBinding
 import com.microbus.announcer.databinding.ItemLineBinding
 import androidx.core.content.edit
 import androidx.transition.ChangeScroll
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class LineAdapter(
     private val context: Context,
@@ -63,7 +64,7 @@ class LineAdapter(
         val binding = ItemLineBinding
             .inflate(LayoutInflater.from(parent.context), parent, false)
         stationDatabaseHelper = StationDatabaseHelper(context)
-        binding.lineStationListContainer.setScrollView(binding.lineStationList)
+//        binding.lineStationListContainer.setScrollView(binding.lineStationList)
 
         return LineViewHolder(binding, mClickListener)
     }
@@ -112,7 +113,7 @@ class LineAdapter(
             StationOfLineAdapter.OnItemClickListener {
             override fun onItemClick(view: View?, position: Int) {
                 val station = stationList[position]
-                utils.showMsg("${station.id} ${station.cnName}\n${station.enName}")
+                utils.showMsg("${station.cnName}\n${station.enName}[${station.id}]")
                 utils.haptic(holder.lineStationList)
             }
         })
@@ -123,27 +124,28 @@ class LineAdapter(
             binding.editTextName.setText(line.name)
             binding.editTextUpLineStation.setText(line.upLineStation)
             binding.editTextDownLineStation.setText(line.downLineStation)
-            binding.editTextIsUpAndDownInvert.isChecked = line.isUpAndDownInvert
+//            binding.editTextIsUpAndDownInvert.isChecked = line.isUpAndDownInvert
 
             val alertDialog: AlertDialog? = context.let { it1 ->
-                AlertDialog.Builder(it1).setView(binding.root)
-                    ?.setTitle("编辑路线")
-                    ?.setPositiveButton("更新", null)
-                    ?.setNeutralButton("删除") { _, _ ->
+                MaterialAlertDialogBuilder(it1)
+                    .setView(binding.root)
+                    .setTitle("更新路线")
+                    .setPositiveButton("提交", null)
+                    .setNeutralButton("删除路线") { _, _ ->
                         line.id?.let { it2 -> lineDatabaseHelper.delById(it2) }
                         notifyItemRemoved(position)
                     }
-                    ?.setNegativeButton("取消") { _, _ ->
+                    .setNegativeButton(context.getString(android.R.string.cancel)) { _, _ ->
 
                     }
-                    ?.show()
+                    .show()
             }
 
             alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
                 val name = binding.editTextName.text.toString()
                 var upLineStation = binding.editTextUpLineStation.text.toString()
                 var downLineStation = binding.editTextDownLineStation.text.toString()
-                val isUpAndDownInvert = binding.editTextIsUpAndDownInvert.isChecked
+//                val isUpAndDownInvert = binding.editTextIsUpAndDownInvert.isChecked
 
                 if (name == "") {
                     utils.showMsg("请填写路线名称")
@@ -190,7 +192,7 @@ class LineAdapter(
                 }
 
                 val lineUpdated =
-                    Line(line.id, name, upLineStation, downLineStation, isUpAndDownInvert)
+                    Line(line.id, name, upLineStation, downLineStation, false)
                 lineDatabaseHelper.updateById(line.id!!, lineUpdated)
                 notifyItemChanged(position)
                 alertDialog.cancel()
