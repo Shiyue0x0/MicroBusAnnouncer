@@ -33,12 +33,18 @@
 
         app:layout_constraintTop_toBottomOf="@+id/toolbar">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/lineRecyclerView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:scrollbars="vertical"
-            app:layoutManager="LinearLayoutManager" />
+<!--        <com.microbus.announcer.view.NestedScrollableHost-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content">-->
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/lineRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="vertical"
+                app:layoutManager="LinearLayoutManager" />
+
+<!--        </com.microbus.announcer.view.NestedScrollableHost>-->
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
@@ -49,7 +55,7 @@
         android:layout_gravity="bottom|center"
         android:layout_marginBottom="16dp"
         android:contentDescription="@string/add_line"
-        android:src="@drawable/baseline_add_24"
+        android:src="@drawable/add"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

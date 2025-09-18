@@ -1,6 +1,5 @@
 package com.microbus.announcer
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.os.PowerManager
@@ -10,7 +9,6 @@ import android.view.KeyEvent
 import android.view.View
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.widget.ViewPager2
@@ -39,8 +37,6 @@ class MainActivity : AppCompatActivity() {
     private var exitTime: Long = 0
 
 
-    @SuppressLint("ClickableViewAccessibility", "UnspecifiedRegisterReceiverFlag")
-    @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
@@ -102,7 +98,7 @@ class MainActivity : AppCompatActivity() {
         else
             binding.bottomNavigationView.visibility = View.GONE
 
-      onBackPressedDispatcher.addCallback(this) {
+        onBackPressedDispatcher.addCallback(this) {
             if (binding.viewPager.currentItem == 0) {
                 moveTaskToBack(true)
             } else {
@@ -113,18 +109,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_DOWN) {
-            moveTaskToBack(true)
-            return true
+            if (binding.viewPager.currentItem == 0) {
+                moveTaskToBack(true)
+            } else {
+                binding.viewPager.currentItem = 0
+            }
         }
         return super.onKeyDown(keyCode, event)
     }
 
     override fun onRestart() {
+        super.onRestart()
         wakeLock.release()
         wakeLock.acquire(60 * 60 * 1000L)
-        Log.d(tag, "onRestart" + intent.getBooleanExtra("switchToMainFrag", false))
-
-        super.onRestart()
+//        Log.d(tag, "onRestart" + intent.getBooleanExtra("switchToMainFrag", false))
     }
 
     override fun onNewIntent(intent: Intent) {

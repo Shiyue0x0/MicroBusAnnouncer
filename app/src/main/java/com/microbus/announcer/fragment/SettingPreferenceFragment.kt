@@ -344,7 +344,7 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
                 }
 
 
-                MaterialAlertDialogBuilder(requireContext())
+                MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
                     .setTitle("选择语音播报库")
                     .setSingleChoiceItems(
                         utils.getAnnouncementLibraryList().toTypedArray(),

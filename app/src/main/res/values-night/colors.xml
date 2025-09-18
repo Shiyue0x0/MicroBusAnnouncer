@@ -1,4 +1,11 @@
 <resources>
+
+    <color name="an_window_bg">#000000</color>
+    <color name="an_contain_bg">#242424</color>
+    <color name="an_text_0">#373737</color>
+    <color name="an_text_1">#CCCCCC</color>
+
+
     <color name="md_theme_primary">#FFB5A0</color>
     <color name="md_theme_onPrimary">#561F0F</color>
     <color name="md_theme_primaryContainer">#723523</color>

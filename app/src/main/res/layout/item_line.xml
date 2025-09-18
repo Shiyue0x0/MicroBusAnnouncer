@@ -5,14 +5,14 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginStart="12dp"
-    android:layout_marginTop="8dp"
     android:layout_marginEnd="12dp"
     android:layout_marginBottom="8dp"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
-
-    app:cardCornerRadius="24dp">
+    app:cardBackgroundColor="@color/an_contain_bg"
+    app:cardCornerRadius="24dp"
+    app:strokeWidth="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -71,33 +71,35 @@
             app:layout_constraintStart_toEndOf="@+id/line_name"
             app:layout_constraintTop_toTopOf="parent" />
 
-
         <com.microbus.announcer.view.NestedScrollableHost
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/line_name">
+            app:layout_constraintTop_toBottomOf="@+id/line_name"
+            app:sameDirectionWithParent="true">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/lineStationList"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_height="match_parent"
+                app:layout_constraintTop_toBottomOf="@+id/line_name" />
 
         </com.microbus.announcer.view.NestedScrollableHost>
 
 
-
-        <!--        <com.microbus.announcer.view.Container-->
-        <!--            android:id="@+id/lineStationListContainer"-->
-        <!--            android:layout_width="wrap_content"-->
-        <!--            android:layout_height="wrap_content"-->
-        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
-        <!--            app:layout_constraintEnd_toEndOf="parent"-->
-        <!--            app:layout_constraintStart_toStartOf="parent"-->
-        <!--            app:layout_constraintTop_toBottomOf="@+id/line_name">-->
-        <!--        </com.microbus.announcer.view.Container>-->
+<!--                <com.microbus.announcer.view.Container-->
+<!--                    android:id="@+id/lineStationListContainer"-->
+<!--                    android:layout_width="wrap_content"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    app:layout_constraintBottom_toBottomOf="parent"-->
+<!--                    app:layout_constraintEnd_toEndOf="parent"-->
+<!--                    app:layout_constraintStart_toStartOf="parent"-->
+<!--                    app:layout_constraintTop_toBottomOf="@+id/line_name">-->
+<!--                    -->
+<!--                    -->
+<!--                </com.microbus.announcer.view.Container>-->
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>

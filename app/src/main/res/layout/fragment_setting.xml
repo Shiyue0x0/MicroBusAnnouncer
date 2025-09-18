@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/an_window_bg"
     app:layout_constraintBottom_toBottomOf="parent">
 
     <!--  状态栏填充  -->
@@ -25,25 +26,26 @@
         android:id="@+id/tabLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@+id/toolbar">
+        app:layout_constraintTop_toBottomOf="@+id/toolbar"
+        app:tabBackground="@color/an_window_bg">
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:tag="sysAndLoc"
-            android:text="系统与定位" />
+            android:text="系统与电显" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:tag="Announcement"
-            android:text="语音播报" />
+            android:text="语音播报库" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:tag="mapAndEs"
-            android:text="地图与电显" />
+            android:text="地图与定位" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
@@ -58,20 +60,15 @@
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/tabLayout"
-        app:sameDirectionWithParent="false">
+        app:sameDirectionWithParent="true">
 
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/viewPager"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tabLayout" />
 
     </com.microbus.announcer.view.NestedScrollableHost>
-
-
-    <!--    <androidx.fragment.app.FragmentContainerView-->
-    <!--        android:id="@+id/fragment_container"-->
-    <!--        android:layout_width="match_parent"-->
-    <!--        android:layout_height="0dp"-->
-    <!--        app:layout_constraintTop_toBottomOf="@id/toolbar" />-->
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -18,7 +18,7 @@
     <string name="main_distance_unit">(m)</string>
     <string name="main_distance_value">-</string>
     <string name="main_speed_title">速度</string>
-    <string name="main_speed_unit">(km/h)</string>
+    <string name="main_speed_unit">(kmh)</string>
     <string name="main_speed_value">-</string>
     <string name="switch_location">定位</string>
     <string name="switch_follow_location">跟随</string>
@@ -61,7 +61,7 @@
 
     <string name="up_and_down_invert">上下行站点对称</string>
     <string name="set_default_line">设为默认路线</string>
-    <string name="input_line_name">搜索路线</string>
+    <string name="input_line_name">搜索要运行的路线</string>
     <string name="cn_name">中文名称</string>
     <string name="en_name">英文名称</string>
     <string name="line_type">站点类型（B公交|T火车|C社区|U地铁）</string>

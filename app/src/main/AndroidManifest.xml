@@ -67,12 +67,12 @@
             tools:ignore="DiscouragedApi,LockedOrientationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <service android:name="com.amap.api.location.APSService" /> <!-- @string/amapKey是高德地图的key -->
+        <service android:name="com.amap.api.location.APSService" />
+        <!-- @string/amapKey是高德地图的key -->
         <meta-data
             android:name="com.amap.api.v2.apikey"
             android:value="@string/amapKey" />

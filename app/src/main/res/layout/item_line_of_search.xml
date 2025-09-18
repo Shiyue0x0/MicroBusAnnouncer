@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -15,26 +16,31 @@
     <!--        android:text="" />-->
 
     <com.google.android.material.card.MaterialCardView
+        style=""
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp">
+        android:layout_marginEnd="8dp"
+        app:cardBackgroundColor="@color/an_window_bg"
+        app:strokeColor="@color/an_window_bg">
 
         <TextView
             android:id="@+id/name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="8dp"
-            android:text="K99" />
+            android:text="K99"
+            android:textColor="@color/md_theme_onSurface"
+            android:textStyle="bold" />
 
     </com.google.android.material.card.MaterialCardView>
 
 
     <TextView
-
         android:id="@+id/text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="起点站 - 终点站" />
+        android:text="起点站 - 终点站"
+        android:textStyle="bold" />
 
 
 </LinearLayout>

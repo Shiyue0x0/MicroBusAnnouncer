@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-
     android:id="@+id/stationCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -11,44 +10,45 @@
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
-    app:cardCornerRadius="24dp">
+    app:cardBackgroundColor="@color/an_contain_bg"
+    app:cardCornerRadius="24dp"
+    app:strokeWidth="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_margin="16dp"
-        android:columnCount="3"
-        android:rowCount="2">
-
+        android:layout_margin="16dp">
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/station_type_card"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toBottomOf="@+id/station_id"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <TextView
-                android:id="@+id/station_type"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:padding="4dp"
-                android:text="B" />
+                android:padding="8dp">
+
+                <TextView
+                    android:id="@+id/station_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="start"
+                    android:text="@string/station_id_value"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:id="@+id/station_type"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="B"
+                    android:textSize="18sp" />
+            </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
-
-        <TextView
-            android:id="@+id/station_id"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:gravity="start"
-            android:text="@string/station_id_value"
-            android:textSize="32sp"
-            app:layout_constraintStart_toEndOf="@+id/station_type_card"
-            app:layout_constraintTop_toTopOf="parent" />
 
         <!--        <TextView-->
         <!--            android:id="@+id/station_type"-->
@@ -69,11 +69,24 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:text="@string/station_cn_name_value"
-            android:textSize="@dimen/largeFontSize"
+            android:textSize="18sp"
             android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="@+id/station_id"
-            app:layout_constraintStart_toEndOf="@+id/station_id"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintBottom_toBottomOf="@+id/station_type_card"
+            app:layout_constraintStart_toEndOf="@+id/station_type_card"
+            app:layout_constraintTop_toTopOf="@+id/station_type_card" />
+
+        <TextView
+            android:id="@+id/station_name_split"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="|"
+            android:textColor="@color/md_theme_surfaceVariant"
+            android:textSize="18sp"
+            app:layout_constraintBottom_toBottomOf="@+id/station_type_card"
+            app:layout_constraintEnd_toStartOf="@+id/stationEnName"
+            app:layout_constraintStart_toEndOf="@+id/station_cn_name"
+            app:layout_constraintTop_toTopOf="@+id/station_type_card" />
 
 
         <!--        <TextView-->
@@ -112,16 +125,16 @@
             android:id="@+id/stationEnName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="4dp"
             android:ellipsize="marquee"
             android:marqueeRepeatLimit="marquee_forever"
             android:singleLine="true"
             android:text="@string/station_en_name_value"
-            android:textSize="@dimen/largeFontSize"
-            app:layout_constraintBottom_toBottomOf="@+id/station_id"
+            android:textSize="18sp"
+            app:layout_constraintBottom_toBottomOf="@+id/station_type_card"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/station_cn_name"
-            app:layout_constraintTop_toTopOf="@+id/station_id" />
+            app:layout_constraintStart_toEndOf="@+id/station_name_split"
+            app:layout_constraintTop_toTopOf="@+id/station_type_card" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/stationLineList"
@@ -130,7 +143,7 @@
             app:layout_behavior="@string/appbar_scrolling_view_behavior"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/station_id" />
+            app:layout_constraintTop_toBottomOf="@+id/station_type_card" />
 
         <!--        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>-->
 

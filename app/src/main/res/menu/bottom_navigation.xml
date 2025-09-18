@@ -2,7 +2,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/item0"
-        android:icon="@drawable/baseline_keyboard_command_key_24"
+        android:icon="@drawable/keyboard_command_key"
         android:title="@string/nav_main" />
     <item
         android:id="@+id/item1"
@@ -14,6 +14,6 @@
         android:title="@string/nav_station" />
     <item
         android:id="@+id/item3"
-        android:icon="@drawable/baseline_settings_24"
+        android:icon="@drawable/settings"
         android:title="@string/nav_setting" />
 </menu>

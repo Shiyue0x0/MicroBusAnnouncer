@@ -21,11 +21,17 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import androidx.viewpager2.widget.ViewPager2.ORIENTATION_HORIZONTAL
+import com.microbus.announcer.R
 import kotlin.math.absoluteValue
 import kotlin.math.sign
+import androidx.core.content.withStyledAttributes
+import androidx.core.view.size
+
 
 /**
  * Layout to wrap a scrollable component inside a ViewPager2. Provided as a solution to the problem
@@ -37,8 +43,14 @@ import kotlin.math.sign
  */
 class NestedScrollableHost : FrameLayout {
     constructor(context: Context) : super(context)
-    constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
+    constructor(context: Context, attrs: AttributeSet?) : super(context, attrs) {
+        context.withStyledAttributes(attrs, R.styleable.NestedScrollableHost) {
+            isChildHasSameDirection =
+                getBoolean(R.styleable.NestedScrollableHost_sameDirectionWithParent, false)
+        }
+    }
 
+    private var isChildHasSameDirection = true
     private var touchSlop = 0
     private var initialX = 0f
     private var initialY = 0f
@@ -48,10 +60,10 @@ class NestedScrollableHost : FrameLayout {
             while (v != null && v !is ViewPager2) {
                 v = v.parent as? View
             }
-            return v as? ViewPager2
+            return v
         }
 
-    private val child: View? get() = if (childCount > 0) getChildAt(0) else null
+    private val child: View? get() = getChildRecyclerView(this)
 
     init {
         touchSlop = ViewConfiguration.get(context).scaledTouchSlop
@@ -74,8 +86,9 @@ class NestedScrollableHost : FrameLayout {
     private fun handleInterceptTouchEvent(e: MotionEvent) {
         val orientation = parentViewPager?.orientation ?: return
 
-        // Early return if child can't scroll in same direction as parent
-        if (!canChildScroll(orientation, -1f) && !canChildScroll(orientation, 1f)) {
+        // Early return if child can't scroll in its direction
+        val childOrientation = if (isChildHasSameDirection) orientation else orientation xor 1
+        if (!canChildScroll(childOrientation, -1f) && !canChildScroll(childOrientation, 1f)) {
             return
         }
 
@@ -93,11 +106,8 @@ class NestedScrollableHost : FrameLayout {
             val scaledDy = dy.absoluteValue * if (isVpHorizontal) 1f else .5f
 
             if (scaledDx > touchSlop || scaledDy > touchSlop) {
-                if (isVpHorizontal == (scaledDy > scaledDx)) {
-                    // Gesture is perpendicular, allow all parents to intercept
-                    parent.requestDisallowInterceptTouchEvent(false)
-                } else {
-                    // Gesture is parallel, query child if movement in that direction is possible
+                if (isVpHorizontal == (scaledDx > scaledDy)) {
+                    // Gesture direction is same, query child if movement in that direction is possible
                     if (canChildScroll(orientation, if (isVpHorizontal) dx else dy)) {
                         // Child can scroll, disallow all parents to intercept
                         parent.requestDisallowInterceptTouchEvent(true)
@@ -105,8 +115,32 @@ class NestedScrollableHost : FrameLayout {
                         // Child cannot scroll, allow all parents to intercept
                         parent.requestDisallowInterceptTouchEvent(false)
                     }
+                } else {
+                    // Gesture direction is different, allow all parents to intercept
+                    parent.requestDisallowInterceptTouchEvent(true)
                 }
             }
         }
     }
+
+    fun getChildRecyclerView(view: View?): View? {
+        val unvisited = ArrayList<View?>()
+        unvisited.add(view)
+
+        while (!unvisited.isEmpty()) {
+            val child = unvisited.removeAt(0)
+            if (child is RecyclerView) {
+                return child
+            }
+            if (child !is ViewGroup) {
+                continue
+            }
+            val viewGroup = child
+            for (i in 0..<viewGroup.size) {
+                unvisited.add(viewGroup.getChildAt(i))
+            }
+        }
+        return null
+    }
+
 }

@@ -29,27 +29,39 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <androidx.core.widget.NestedScrollView
-            android:id="@+id/stationNameNestedScrollView"
+        <com.microbus.announcer.view.NestedScrollableHost
             android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            android:layout_marginTop="4dp"
-            android:padding="0dp"
-            android:scrollbars="none"
+            android:layout_height="wrap_content"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/station_index">
+            app:layout_constraintTop_toBottomOf="@id/station_index"
+            app:sameDirectionWithParent="false">
 
-            <TextView
-                android:id="@+id/stationName"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
+            <!-- layout_height由adapter控制  -->
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/stationNameNestedScrollView"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_marginTop="4dp"
+                android:padding="0dp"
                 android:scrollbars="none"
-                android:text="@string/station_name" />
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/station_index">
 
-        </androidx.core.widget.NestedScrollView>
+                <TextView
+                    android:id="@+id/stationName"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:scrollbars="none"
+                    android:text="@string/station_name" />
+
+            </androidx.core.widget.NestedScrollView>
+
+        </com.microbus.announcer.view.NestedScrollableHost>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

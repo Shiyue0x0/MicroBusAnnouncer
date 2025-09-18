@@ -41,6 +41,11 @@ internal class StationOfLineAdapter(
     var lineName = mLineName
     var stationState = mStationState
 
+    val dp2 = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP,
+        2F, Resources.getSystem().displayMetrics
+    ).toInt()
+
     internal class StationOfLineViewHolder(
         binding: ItemStationOfLineBinding,
         clickListener: OnItemClickListener
@@ -74,8 +79,8 @@ internal class StationOfLineAdapter(
 
         lineHeight = holder.stationIndex.lineHeight
 
-        holder.stationNameNestedScrollView.layoutParams.width = lineHeight
-        holder.stationNameNestedScrollView.layoutParams.height = lineHeight * 4
+        holder.stationNameNestedScrollView.layoutParams.width = (lineHeight * 1.1).toInt()
+        holder.stationNameNestedScrollView.layoutParams.height = lineHeight * 4 + dp2 * 2
         //设置站点名称竖直滚动
         val runnable = object : Runnable {
             var timeCount = 0
@@ -84,10 +89,10 @@ internal class StationOfLineAdapter(
                 mHandler.postDelayed(this, 25)
 
 
-                if (holder.stationName.text.length <= 4) {
-                    timeCount = 0
-                    return
-                }
+//                if (holder.stationName.text.length <= 4) {
+//                    timeCount = 0
+//                    return
+//                }
 
                 if (!isScroll)
                     return
@@ -145,41 +150,37 @@ internal class StationOfLineAdapter(
 
         holder.stationName.text = stationList[position].cnName
 
-        val typedArray = context.obtainStyledAttributes(
-            intArrayOf(
-                android.R.attr.colorPrimary,
-                com.google.android.material.R.attr.colorSurface,
-                android.R.attr.colorPrimary,
-                com.google.android.material.R.attr.colorOnSurface,
-            )
-        )
-        val bg2 = typedArray.getColor(0, 0)
-        val color2 = typedArray.getColor(1, 0)
-        val color1 = typedArray.getColor(2, 0)
-        val color3 = typedArray.getColor(3, 0)
-        typedArray.recycle()
+//        val typedArray = context.obtainStyledAttributes(
+//            intArrayOf(
+//                android.R.attr.colorPrimary,
+//                com.google.android.material.R.attr.colorSurface,
+//                android.R.attr.colorPrimary,
+//                com.google.android.material.R.attr.colorOnSurface,
+//            )
+//        )
+//        val bg2 = typedArray.getColor(0, 0)
+//        val color2 = typedArray.getColor(1, 0)
+//        val color1 = typedArray.getColor(2, 0)
+//        val color3 = typedArray.getColor(3, 0)
+//        typedArray.recycle()
 
         //当前站点样式
         val color: Int
         val style: Int
         val bg: Int
         val padding: Int
-        val dp2 = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP,
-            2F, Resources.getSystem().displayMetrics
-        ).toInt()
         if (position < stationCount) {
-            color = color1
+            color = context.getColor(R.color.an_text_1)
             style = Typeface.NORMAL
             bg = context.getColor(android.R.color.transparent)
             padding = 0
         } else if (position == stationCount) {
-            color = color2
+            color = context.getColor(R.color.md_theme_onSurface)
             style = Typeface.BOLD
-            bg = bg2
+            bg = context.getColor(R.color.md_theme_surface)
             padding = dp2
         } else {
-            color = color3
+            color = context.getColor(R.color.md_theme_onSurface)
             style = Typeface.NORMAL
             bg = context.getColor(android.R.color.transparent)
             padding = 0

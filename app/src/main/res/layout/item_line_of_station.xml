@@ -1,12 +1,36 @@
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/lineName"
+<!--<TextView -->
+<!--    android:id="@+id/lineName"-->
+<!--    android:layout_width="wrap_content"-->
+<!--    android:layout_height="wrap_content"-->
+<!--    android:layout_margin="4dp"-->
+<!--    android:background="@drawable/item_line_of_station_button"-->
+<!--    android:padding="4dp"-->
+<!--    android:text="@string/main_line_0"-->
+<!--    android:textColor="?attr/colorPrimary" />-->
+
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/station_type_card"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_margin="4dp"
-    android:background="@drawable/item_line_of_station_button"
-    android:padding="4dp"
-    android:text="@string/main_line_0"
-    android:textColor="?attr/colorSurface" />
+    android:layout_marginEnd="8dp"
+    android:layout_marginTop="8dp"
+    android:clickable="false"
+    android:focusable="false"
+    app:cardBackgroundColor="@color/an_window_bg"
+    app:layout_constraintBottom_toBottomOf="@+id/station_id"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    app:strokeColor="@color/an_window_bg">
+
+    <TextView
+        android:id="@+id/lineName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:text="@string/main_line_0" />
+
+</com.google.android.material.card.MaterialCardView>
 
 
 

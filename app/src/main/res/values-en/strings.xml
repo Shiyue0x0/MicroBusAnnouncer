@@ -7,8 +7,8 @@
     <string name="down_stations_helper">Fill in the Station ID, separated by space</string>
 
     <string name="main_line_0">-</string>
-    <string name="main_staring_station_name">Unknown</string>
-    <string name="main_terminal_name">Unknown</string>
+    <string name="main_staring_station_name">Welcome aboard</string>
+    <string name="main_terminal_name">MicroBus</string>
     <string name="to">To</string>
     <string name="main_to_station_name">Unknown</string>
     <string name="next">Next</string>
@@ -18,8 +18,8 @@
     <string name="main_distance_title">Dist</string>
     <string name="main_distance_unit">(m)</string>
     <string name="main_distance_value">-</string>
-    <string name="main_speed_title">Speed</string>
-    <string name="main_speed_unit">(km/h)</string>
+    <string name="main_speed_title">SPD</string>
+    <string name="main_speed_unit">(kmh)</string>
     <string name="main_speed_value">-</string>
     <string name="switch_location">LOC</string>
     <string name="switch_follow_location">FOLLOW</string>

@@ -8,9 +8,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material3.FabPosition
 import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.MainActivity
+import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.LineAdapter
 import com.microbus.announcer.bean.Line
@@ -92,7 +94,9 @@ class LineFragment : Fragment() {
 
         //点击路线切换到主控并运行
         adapter.setOnItemClickListener(object : LineAdapter.OnItemClickListener {
-            override fun onItemClick(line: Line) {
+            override fun onItemClick(line: Line, position: Int) {
+                if (position == 0)
+                    return
                 val activity = requireActivity() as MainActivity
                 activity.binding.viewPager.currentItem = 0
                 val mainFragment = activity.fragmentList[0] as MainFragment
@@ -117,7 +121,8 @@ class LineFragment : Fragment() {
 //        alertBinding.editTextIsUpAndDownInvert.setAdapter(adapter)
 
         val alertDialog: AlertDialog? =
-            MaterialAlertDialogBuilder(requireContext()).setView(alertBinding.root)
+            MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
+                .setView(alertBinding.root)
                 .setTitle("新增路线")
                 .setPositiveButton("提交", null)
                 .setNegativeButton(getString(android.R.string.cancel)) { _, _ -> }

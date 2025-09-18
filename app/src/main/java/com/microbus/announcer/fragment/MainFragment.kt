@@ -51,6 +51,7 @@ import android.view.animation.AnimationUtils
 import android.view.animation.DecelerateInterpolator
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
@@ -94,26 +95,29 @@ import com.amap.api.services.route.RideRouteResult
 import com.amap.api.services.route.RouteSearch
 import com.amap.api.services.route.WalkRouteResult
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.microbus.announcer.view.HeaderTextView
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.LineOfSearchAdapter
 import com.microbus.announcer.adapter.StationOfLineAdapter
+import com.microbus.announcer.bean.EsItem
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.AlertDialogLineSwitchBinding
 import com.microbus.announcer.databinding.FragmentMainBinding
+import com.microbus.announcer.view.HeaderTextView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
+import java.time.LocalTime
 import java.util.Date
 import java.util.Locale
 import java.util.stream.Collectors
@@ -204,7 +208,7 @@ class MainFragment : Fragment() {
 
     var originLine = Line()
 
-    private lateinit var currentLine: Line
+    private var currentLine = Line()
 
     /**当前方向路线站点下标序列*/
 //    private var currentLineStationIdList = ArrayList<Int>()
@@ -310,12 +314,17 @@ class MainFragment : Fragment() {
 
     private val speedRefreshHandler = Handler(mLooper)
 
+    private val audioReleaseHandler = Handler(mLooper)
+
     private lateinit var announcementLangList: ArrayList<String>
 
     private lateinit var permissionManager: PermissionManager
     private var hasInitNotice = false
 
     var matchCount = 0
+
+    var esList = ArrayList<EsItem>()
+    var esPlayIndex = 0
 
     @SuppressLint("InternalInsetResource", "DiscouragedApi")
     override fun onCreateView(
@@ -375,7 +384,7 @@ class MainFragment : Fragment() {
         initButtonClickListener()
 
         // 初始化电显
-        initHeadSign()
+        initEs()
 
         // 初始化报站
         initAnnouncement()
@@ -536,16 +545,16 @@ class MainFragment : Fragment() {
             else
                 currentLineStationList.last().enName
 
-            binding.headerLeftNew.showText(
-                if (utils.getUILang() == "zh") currentLineStationList.first().cnName
-                else currentLineStationList.first().enName
-            )
-
-            binding.headerRightNew.showText(
-                if (utils.getUILang() == "zh") currentLineStationList.last().cnName
-                else
-                    currentLineStationList.last().enName
-            )
+//            binding.headerLeftNew.showText(
+//                if (utils.getUILang() == "zh") currentLineStationList.first().cnName
+//                else currentLineStationList.first().enName
+//            )
+//
+//            binding.headerRightNew.showText(
+//                if (utils.getUILang() == "zh") currentLineStationList.last().cnName
+//                else
+//                    currentLineStationList.last().enName
+//            )
 
             //加载路线站点变更卡片
 
@@ -566,8 +575,8 @@ class MainFragment : Fragment() {
 
         } else {
             binding.terminalName.text = getString(R.string.main_to_station_name)
-            binding.headerLeftNew.showText(getString(R.string.main_staring_station_name))
-            binding.headerRightNew.showText(getString(R.string.main_terminal_name))
+//            binding.headerLeftNew.showText(getString(R.string.main_staring_station_name))
+//            binding.headerRightNew.showText(getString(R.string.main_terminal_name))
         }
 
 //        binding.headerLeft.text =
@@ -682,6 +691,8 @@ class MainFragment : Fragment() {
         //刷新站点标点
         refreshStationMarker()
 
+        refreshEsToStaringAndTerminal()
+
 //        val intent = Intent(LineRunningService().actionLineLoad)
 //            .putExtra("line", currentLine.name)
 //            .putExtra("lineId", currentLine.id)
@@ -744,9 +755,9 @@ class MainFragment : Fragment() {
             val dialogBinding = AlertDialogLineSwitchBinding.inflate(LayoutInflater.from(context))
 
             val alertDialog =
-                MaterialAlertDialogBuilder(requireContext())
+                MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
                     .setView(dialogBinding.root)
-                    .setTitle(resources.getString(R.string.switch_line))
+//                    .setTitle(resources.getString(R.string.switch_line))
                     .setNeutralButton(resources.getString(R.string.line_all)) { dialog, which ->
                         loadLineAll()
                     }
@@ -807,7 +818,7 @@ class MainFragment : Fragment() {
                             )
                         )
 
-                        MaterialAlertDialogBuilder(requireContext())
+                        MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
                             .setTitle(resources.getString(R.string.switch_line))
                             .setItems(lineTypeList) { _, which ->
                                 when (which) {
@@ -888,7 +899,10 @@ class MainFragment : Fragment() {
 
 
 
-                                        MaterialAlertDialogBuilder(requireContext())
+                                        MaterialAlertDialogBuilder(
+                                            requireContext(),
+                                            R.style.CustomAlertDialogStyle
+                                        )
                                             .setTitle(resources.getString(R.string.line_other))
                                             .setItems(lineInfoList) { _, which ->
                                                 if (lineInfoList[which] != "") {
@@ -920,9 +934,7 @@ class MainFragment : Fragment() {
             dialogBinding.lineNameInput.setRawInputType(InputType.TYPE_CLASS_NUMBER)
             dialogBinding.lineNameInput.requestFocus()
             WindowCompat.getInsetsController(requireActivity().window, dialogBinding.lineNameInput)
-                .show(
-                    WindowInsetsCompat.Type.ime()
-                )
+                .show(WindowInsetsCompat.Type.ime())
 
             searchLine("", dialogBinding, alertDialog)
 
@@ -998,7 +1010,8 @@ class MainFragment : Fragment() {
             textView.setPadding(100, 50, 100, 50)
             val scrollView = ScrollView(requireContext())
             scrollView.addView(textView)
-            MaterialAlertDialogBuilder(requireContext()).setTitle(getString(R.string.running_info))
+            MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
+                .setTitle(getString(R.string.running_info))
                 .setView(scrollView).create()
                 .show()
         }
@@ -1186,7 +1199,7 @@ class MainFragment : Fragment() {
             refreshLineStationList()
 
             //刷新路线头屏
-            refreshLineHeadDisplay()
+            refreshEsToStationState()
 
             //更新路线站点更新信息
             //updateLineStationChangeInfoAndNotice()
@@ -1353,7 +1366,9 @@ class MainFragment : Fragment() {
     /**
      * 初始化电显
      */
-    private fun initHeadSign() {
+    private fun initEs() {
+
+        esList = utils.getEsList(utils.getEsText())
 
         //路线电显显示序列
         lineHeadCardShowList = utils.getHeadSignShowInfo()
@@ -1363,9 +1378,9 @@ class MainFragment : Fragment() {
         lineHeadCardCurrentShow =
             lineHeadCardShowList!!.elementAt(lineHeadCardCurrentShowIndex).toInt()
 
-        binding.headerMiddleNew.showTimeMs = utils.getLineHeadCardChangeTime() * 1000
-        binding.headerLeftNew.showTimeMs = utils.getLineHeadCardChangeTime() * 1000
-        binding.headerRightNew.showTimeMs = utils.getLineHeadCardChangeTime() * 1000
+//        binding.headerMiddleNew.showTimeMs = utils.getLineHeadCardChangeTime() * 1000
+//        binding.headerLeftNew.showTimeMs = utils.getLineHeadCardChangeTime() * 1000
+//        binding.headerRightNew.showTimeMs = utils.getLineHeadCardChangeTime() * 1000
 
         var isLeftScrollFinish = false
         var isRightScrollFinish = false
@@ -1382,9 +1397,9 @@ class MainFragment : Fragment() {
                 override fun onScrollFinish() {
                     isLeftScrollFinish = true
                     if (isRightScrollFinish) {
-                        refreshHeader()
                         isLeftScrollFinish = false
                         isRightScrollFinish = false
+                        refreshEs()
                     }
                 }
             }
@@ -1394,13 +1409,13 @@ class MainFragment : Fragment() {
                 override fun onScrollFinish() {
                     isRightScrollFinish = true
                     if (isLeftScrollFinish) {
-                        refreshHeader()
                         isLeftScrollFinish = false
                         isRightScrollFinish = false
+                        refreshEs()
                     }
                 }
             }
-
+        refreshEs()
     }
 
     /**
@@ -1709,35 +1724,36 @@ class MainFragment : Fragment() {
 
             // 单击地图，设置路线规划起点/终点（关闭“单击地图添加站点”时可用）
             if (!utils.getIsClickMapToAddStation()) {
-                MaterialAlertDialogBuilder(requireContext()).setTitle("").setNegativeButton(
-                    "从这出发"
-                ) { p0, p1 ->
-                    planFrom = LatLng(it.latitude, it.longitude)
-                    if (this::planFromMarker.isInitialized) planFromMarker.destroy()
-                    planFromMarker = aMap.addMarker(
-                        MarkerOptions().position(planFrom).title("起点")
-                    )
-                }.setPositiveButton("去这里") { p0, p1 ->
-                    planTo = LatLng(it.latitude, it.longitude)
-                    if (!this::planFrom.isInitialized) {
-                        planFrom = currentLngLat
+                MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
+                    .setTitle("")
+                    .setNegativeButton("从这出发") { p0, p1 ->
+                        planFrom = LatLng(it.latitude, it.longitude)
+                        if (this::planFromMarker.isInitialized) planFromMarker.destroy()
                         planFromMarker = aMap.addMarker(
                             MarkerOptions().position(planFrom).title("起点")
                         )
                     }
-                    if (this::planToMarker.isInitialized) planToMarker.destroy()
-                    planToMarker = aMap.addMarker(
-                        MarkerOptions().position(planTo).title("终点")
-                    )
-                    // 开始规划路线
-                    linePlan(planFrom, planTo)
-                }.setNeutralButton(resources.getString(android.R.string.cancel), null).show()
+                    .setPositiveButton("去这里") { p0, p1 ->
+                        planTo = LatLng(it.latitude, it.longitude)
+                        if (!this::planFrom.isInitialized) {
+                            planFrom = currentLngLat
+                            planFromMarker = aMap.addMarker(
+                                MarkerOptions().position(planFrom).title("起点")
+                            )
+                        }
+                        if (this::planToMarker.isInitialized) planToMarker.destroy()
+                        planToMarker = aMap.addMarker(
+                            MarkerOptions().position(planTo).title("终点")
+                        )
+                        // 开始规划路线
+                        linePlan(planFrom, planTo)
+                    }.setNeutralButton(resources.getString(android.R.string.cancel), null).show()
 
             }
         }
 
         autoFollowNavigationRunnable = Runnable {
-            if (binding.locationSwitch.isChecked)
+            if (binding.locationBtn.isChecked)
                 binding.switchFollowLocation.isChecked = true
         }
 
@@ -1862,7 +1878,8 @@ class MainFragment : Fragment() {
                     else -> ArrayList()
                 }
 
-                MaterialAlertDialogBuilder(requireContext()).setTitle(chosenStationCname)
+                MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
+                    .setTitle(chosenStationCname)
                     .setMessage("将 $chosenStationCname 设置为")
                     .setNegativeButton("区间始发站", object : DialogInterface.OnClickListener {
                         override fun onClick(p0: DialogInterface?, p1: Int) {
@@ -2249,11 +2266,14 @@ class MainFragment : Fragment() {
                     "即将进站：${lineStationList[i].cnName} for ${lastDistanceToStationList[i]} to ${currentDistanceToStationList[i]}"
                 )
 
+
                 if (isReverseLine) {
                     reverseLineDirection()
-                } else if (currentLineStationState != onNext || lineStationList[i].id != currentLineStation.id) {
-                    setStationAndState(i, onNext)
-                } else {
+                }
+//                else if (currentLineStationState != onNext || lineStationList[i].id != currentLineStation.id) {
+//                    setStationAndState(i, onNext)
+//                }
+                else {
                     setStationAndState(i, onWillArrive)
                 }
 
@@ -2747,15 +2767,33 @@ class MainFragment : Fragment() {
     }
 
     /**
-     * 刷新路线头屏
+     * 立即刷新电显，并切换到站点状态（如果有）
      */
-    private fun refreshLineHeadDisplay() {
+    private fun refreshEsToStationState() {
         lineHeadCardImmediatelyRefresh = true
-        lineHeadCardCurrentShowIndex = 0
-        lineHeadCardCurrentShow = lineHeadCardShowList!!.elementAt(0).toInt()
-//        mHandler.removeCallbacksAndMessages(null)
-//        mHandler.postDelayed(lineHeadCardRefreshRunnable as Runnable, 0)
-        refreshHeader()
+        esPlayIndex = 0
+        for (i in esList.indices) {
+            if (getTypeMap()[esList[i].type] == currentLineStationState) {
+                esPlayIndex = i
+                break
+            }
+        }
+        refreshEs()
+    }
+
+    /**
+     * 立即刷新电显，并切换到首末站显示（如果有）
+     */
+    private fun refreshEsToStaringAndTerminal() {
+        lineHeadCardImmediatelyRefresh = true
+        esPlayIndex = 0
+        for (i in esList.indices) {
+            if (esList[i].type == "B") {
+                esPlayIndex = i
+                break
+            }
+        }
+        refreshEs()
     }
 
     /**
@@ -2952,8 +2990,8 @@ class MainFragment : Fragment() {
 //                Log.d(tag, file)
 
             // 音频推流
-            audioManager?.requestAudioFocus(audioFocusRequest!!)
-            for (filePath in filePathList) {
+            filePathList.forEachIndexed { i, filePath ->
+
 
                 if (!isActive) {
                     audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
@@ -2977,6 +3015,8 @@ class MainFragment : Fragment() {
                 var sampleRate = 0
                 var channelCount = 0
                 var pcmEncoding = 0
+                var durationUs = 0L
+
                 var decoder = MediaCodec.createDecoderByType("audio/mpeg")
                 val extractor = MediaExtractor().apply {
                     setDataSource(filePath)
@@ -2998,6 +3038,7 @@ class MainFragment : Fragment() {
                                 pcmEncoding = AudioFormat.ENCODING_PCM_16BIT
 
                             }
+                            durationUs = format.getLong(MediaFormat.KEY_DURATION)
 
                             decoder = MediaCodec.createDecoderByType(mime).apply {
                                 configure(format, null, null, 0)
@@ -3075,7 +3116,18 @@ class MainFragment : Fragment() {
                         }
                     }
 
+                    // 最后一段音频播放完毕，释放资源
+                    if (i == filePathList.size - 1) {
+                        audioReleaseHandler.postDelayed({
+                            if (!audioScope.isActive)
+                                return@postDelayed
+                            audioTrack.release()
+                            audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+                        }, durationUs / 1000 + 500) //500ms冗余
+                    }
+
                     // 输出
+                    audioManager?.requestAudioFocus(audioFocusRequest!!)
                     val outIndex = decoder.dequeueOutputBuffer(info, 10000)
                     when (outIndex) {
                         MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED -> {
@@ -3097,8 +3149,13 @@ class MainFragment : Fragment() {
                                 outputBuffer.get(pcmData)
 
                                 synchronized(audioTrack) {
-                                    if (audioTrack.state == AudioTrack.STATE_INITIALIZED && audioTrack.playState == AudioTrack.PLAYSTATE_PLAYING)
+                                    if (audioTrack.state == AudioTrack.STATE_INITIALIZED && audioTrack.playState == AudioTrack.PLAYSTATE_PLAYING) {
                                         audioTrack.write(pcmData, 0, pcmData.size)
+//                                        Log.d(
+//                                            tag,
+//                                            "${audioTrack.playbackHeadPosition * 1000 / audioTrack.sampleRate}/ ${info.presentationTimeUs / 1000}"
+//                                        )
+                                    }
                                 }
                                 decoder.releaseOutputBuffer(outIndex, false)
                             }
@@ -3108,14 +3165,15 @@ class MainFragment : Fragment() {
                     if ((info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                         break
                     }
+
+                }
+
+                // 等待播放完毕
+                if (i == filePathList.size - 1) {
+                    Thread.sleep(durationUs / 1000 + 1000)  //1000ms冗余
                 }
 
             }
-
-            // 播放完毕
-            audioTrack.release()
-            audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-
         }
     }
 
@@ -3254,7 +3312,8 @@ class MainFragment : Fragment() {
                 "${sortedMatchLineList[i].name}  $lineStartingStationCnName - $lineTerminalCnName"
         }
 
-        MaterialAlertDialogBuilder(requireContext()).setTitle(title)
+        MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
+            .setTitle(title)
             .setItems(lineInfoList) { _, which ->
                 if (lineInfoList[which] != "") {
                     originLine = sortedMatchLineList[which]
@@ -3271,7 +3330,7 @@ class MainFragment : Fragment() {
     private fun searchLine(
         key: String,
         dialogBinding: AlertDialogLineSwitchBinding,
-        alertDialog: androidx.appcompat.app.AlertDialog
+        alertDialog: AlertDialog
     ) {
 
         "^(\\d+.*)$".toRegex()
@@ -3428,10 +3487,37 @@ class MainFragment : Fragment() {
         }
     }
 
-    fun refreshHeader() {
+    fun refreshEs() {
 
         if (!isAdded)
             return
+
+//        if(esPlayIndex >= 0 && esPlayIndex < esList.size)
+//            Log.d(tag, "refreshEs: $esPlayIndex / ${esList.size} ${esList[esPlayIndex].leftText}")
+//        else
+//            Log.d(tag, "refreshEs: $esPlayIndex / ${esList.size}")
+
+
+        val typeList = getTypeList()
+        val typeMap = getTypeMap()
+
+        if (esPlayIndex >= 0 && esPlayIndex < esList.size && typeList.contains(esList[esPlayIndex].type)) {
+            if (typeMap[esList[esPlayIndex].type] != currentLineStationState) {
+                esPlayNext()
+                return
+            }
+        }
+
+
+        var leftText: String
+        var rightText: String
+        if (esPlayIndex >= 0 && esPlayIndex < esList.size) {
+            leftText = esList[esPlayIndex].leftText
+            rightText = esList[esPlayIndex].rightText
+        } else {
+            leftText = getString(R.string.main_staring_station_name)
+            rightText = getString(R.string.main_terminal_name)
+        }
 
         speedRefreshHandler.removeCallbacksAndMessages(null)
 
@@ -3441,79 +3527,55 @@ class MainFragment : Fragment() {
 
         lineHeadCardImmediatelyRefresh = false
 
-        var leftInfo = ""
-        var rightInfo = ""
+        val valueMap = HashMap<String, String>()
 
-        when (lineHeadCardCurrentShow) {
+        valueMap["<next>"] = utils.getEsNextWord()
+        valueMap["<will>"] = utils.getEsWillArriveWord()
+        valueMap["<arrive>"] = utils.getEsArriveWord()
 
-            onWel -> {
-                leftInfo = utils.getWelInfo(0)
-                rightInfo = utils.getWelInfo(1)
-            }
+        valueMap["<time>"] = LocalTime.now().toString()
+        valueMap["<speed>"] = currentSpeedKmH.toString()
+        valueMap["<line>"] = currentLine.name
 
-            onStartAndTerminal -> {
-                if (currentLineStationList.isNotEmpty() && currentLine.name != resources.getString(
-                        R.string.line_all
-                    )
-                ) {
-                    if (utils.getUILang() == "zh") {
-                        leftInfo = currentLineStationList.first().cnName
-                        rightInfo = currentLineStationList.last().cnName
-                    } else {
-                        leftInfo = currentLineStationList.first().enName
-                        rightInfo = currentLineStationList.last().enName
-                    }
-                } else {
-                    leftInfo = resources.getString(R.string.header_wel_left)
-                    rightInfo = resources.getString(R.string.header_wel_right)
-                }
+        valueMap["<nscn>"] = currentLineStation.cnName
+        valueMap["<nsen>"] = currentLineStation.enName
 
-            }
+        valueMap["<sscn>"] =
+            if (currentLineStationList.isEmpty()) "" else currentLineStationList.first().cnName
+        valueMap["<ssen>"] =
+            if (currentLineStationList.isEmpty()) "" else currentLineStationList.first().enName
 
-            onNextOrArrive -> {
-                leftInfo = when (currentLineStationState) {
-                    onNext -> resources.getString(R.string.next)
-                    onWillArrive -> resources.getString(R.string.will_arrive)
-                    onArrive -> resources.getString(R.string.arrive)
-                    else -> ""
-                }
-                //判断当前是否为起点站
-                var info = ""
-                if (currentLineStationCount == 0) info += "${resources.getString(R.string.starting_station)} "
-                //判断当前是否为终点站
-                else if (currentLineStationCount == currentLineStationList.size - 1) info += "${
-                    resources.getString(
-                        R.string.terminal
-                    )
-                } "
-                info += if (utils.getUILang() == "zh")
-                    currentLineStation.cnName
-                else
-                    currentLineStation.enName
-                rightInfo = info
-            }
+        valueMap["<tscn>"] =
+            if (currentLineStationList.isEmpty()) "" else currentLineStationList.last().cnName
+        valueMap["<tsen>"] =
+            if (currentLineStationList.isEmpty()) "" else currentLineStationList.last().enName
 
-            onSpeed -> {
-                leftInfo = resources.getString(R.string.header_speed)
-                rightInfo = String.format(Locale.CHINA, "%.1fkm/h", currentSpeedKmH)
-            }
+        val keywordList = utils.getEsKeywordList()
+        for (keyword in keywordList) {
+            leftText = leftText.replace(keyword, valueMap[keyword] ?: "", true)
+            rightText = rightText.replace(keyword, valueMap[keyword] ?: "", true)
         }
 
-        binding.headerLeftNew.showText(leftInfo)
-        binding.headerRightNew.showText(rightInfo)
+        val minTimeS =
+            if (esPlayIndex >= 0 && esPlayIndex < esList.size) esList[esPlayIndex].minTimeS else 5
+        binding.headerLeftNew.showTimeMs = minTimeS * 1000
+        binding.headerRightNew.showTimeMs = minTimeS * 1000
+
+        binding.headerLeftNew.showText(leftText)
+        binding.headerRightNew.showText(rightText)
 
         // 每隔1s刷新一次速度
         var speedRefreshCount = 0
-        if (lineHeadCardCurrentShow == onSpeed) {
+        if (esPlayIndex >= 0 && esPlayIndex < esList.size && esList[esPlayIndex].type == "S") {
             val speedRefreshRunnable = object : Runnable {
                 override fun run() {
-                    binding.headerRightNew.setText(
-                        String.format(
-                            Locale.CHINA,
-                            "%.1fkm/h",
-                            currentSpeedKmH
-                        )
-                    )
+//                    binding.headerRightNew.setText(
+//                        String.format(
+//                            Locale.CHINA,
+//                            "%.1fkm/h",
+//                            currentSpeedKmH
+//                        )
+//                    )
 
                     speedRefreshCount++
 
@@ -3525,11 +3587,12 @@ class MainFragment : Fragment() {
         }
 
 
-        lineHeadCardCurrentShowIndex =
-            (lineHeadCardCurrentShowIndex + 1) % (lineHeadCardShowList!!.size)
-        lineHeadCardCurrentShow =
-            lineHeadCardShowList!!.elementAt(lineHeadCardCurrentShowIndex).toInt()
+//        lineHeadCardCurrentShowIndex =
+//            (lineHeadCardCurrentShowIndex + 1) % (lineHeadCardShowList!!.size)
+//        lineHeadCardCurrentShow =
+//            lineHeadCardShowList!!.elementAt(lineHeadCardCurrentShowIndex).toInt()
 
+        esPlayNext()
 
     }
 
@@ -3702,7 +3765,7 @@ class MainFragment : Fragment() {
         refreshLineStationList()
 
         //刷新路线头屏
-        refreshLineHeadDisplay()
+        refreshEsToStationState()
 
         //更新路线站点更新信息和系统通知
         refreshLineStationChangeInfo()
@@ -3713,7 +3776,7 @@ class MainFragment : Fragment() {
 
     fun findOnlineLine(
         res: BusLineResult,
-        alertDialog: androidx.appcompat.app.AlertDialog? = null
+        alertDialog: AlertDialog? = null
     ) {
         if (res.busLines.isNotEmpty()) {
 
@@ -3731,7 +3794,7 @@ class MainFragment : Fragment() {
             if (res.busLines.size == 2) {
                 setOnlineLine(res, alertDialog, 0)
             } else {
-                MaterialAlertDialogBuilder(requireContext())
+                MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
                     .setTitle("选择要应用的路线")
                     .setItems(lineNameList) { _, which ->
                         setOnlineLine(res, alertDialog, which * 2)
@@ -3745,7 +3808,7 @@ class MainFragment : Fragment() {
 
     fun setOnlineLine(
         res: BusLineResult,
-        alertDialog: androidx.appcompat.app.AlertDialog? = null,
+        alertDialog: AlertDialog? = null,
         chosenIndex: Int
     ) {
 
@@ -3828,7 +3891,7 @@ class MainFragment : Fragment() {
     }
 
     fun reverseLineDirection() {
-        val checkedId = if(binding.lineDirectionBtnUp.isChecked)
+        val checkedId = if (binding.lineDirectionBtnUp.isChecked)
             binding.lineDirectionBtnDown.id
         else
             binding.lineDirectionBtnUp.id
@@ -3836,5 +3899,26 @@ class MainFragment : Fragment() {
         binding.lineDirectionBtnGroup.check(checkedId)
     }
 
+    fun esPlayNext() {
+//        esPlayIndex = (esPlayIndex + 1) % esList.size
+        if (esPlayIndex < esList.size - 1) {
+            esPlayIndex++
+        } else {
+            esList = utils.getEsList(utils.getEsText())
+            esPlayIndex = 0
+        }
+    }
+
+    fun getTypeList(): List<String> {
+        return listOf("N", "W", "A")
+    }
+
+    fun getTypeMap(): HashMap<String, Int> {
+        val typeMap = HashMap<String, Int>()
+        typeMap["N"] = onNext
+        typeMap["W"] = onWillArrive
+        typeMap["A"] = onArrive
+        return typeMap
+    }
 
 }

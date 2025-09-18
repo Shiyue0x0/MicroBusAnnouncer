@@ -1,7 +1,6 @@
 package com.microbus.announcer
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
@@ -20,12 +19,9 @@ import androidx.core.os.LocaleListCompat
 import androidx.preference.PreferenceManager
 import com.amap.api.maps.model.LatLng
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.dialog.MaterialDialogs
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
-import com.kiylx.libx.pref_component.preference_util.delegate.boolean
-import com.kiylx.libx.pref_component.preference_util.delegate.int
-import com.kiylx.libx.pref_component.preference_util.delegate.string
+import com.microbus.announcer.bean.EsItem
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.AlertDialogStationInfoBinding
@@ -43,7 +39,6 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
-import com.microbus.announcer.PrefsHelper
 
 
 class Utils(private val context: Context) {
@@ -128,7 +123,7 @@ class Utils(private val context: Context) {
      * 从设置中获取所在城市
      */
     fun getCity(): String {
-        return prefs.getString("city", "桂林")!!
+        return prefs.getString("city", "桂林") ?: "桂林"
     }
 
     fun setUILang(lang: String) {
@@ -212,22 +207,21 @@ class Utils(private val context: Context) {
      * 从设置中获取地图站点显示方式
      */
     fun getMapStationShowType(): Int {
-        return prefs.getString("mapStationShowType", "0")!!.toInt()
+        return prefs.getString("mapStationShowType", "0")?.toInt() ?: 0
     }
 
     /**
      * 从设置中获取超过秒数自动跟随定位
      */
     fun getAutoFollowNavigationWhenAboveSecond(): Long {
-        return prefs.getString("autoFollowNavigationWhenAboveSecond", "10")!!.toLong()
+        return prefs.getString("autoFollowNavigationWhenAboveSecond", "10")?.toLong() ?: 10L
     }
-
 
     /**
      * 从设置中获取地图模式
      */
     fun getMapType(): Int {
-        return prefs.getString("mapType", "1")!!.toInt()
+        return prefs.getString("mapType", "1")?.toInt() ?: 1
     }
 
     /**
@@ -249,11 +243,12 @@ class Utils(private val context: Context) {
      */
     fun getAnnouncementLibrary(): String {
 
+        val default = "Default"
         if (!isGrantManageFilesAccessPermission()) {
-            return "Default"
+            return default
         }
 
-        return prefs.getString("announcementLibrary", "Default")!!
+        return prefs.getString("announcementLibrary", default) ?: default
     }
 
     /**
@@ -399,7 +394,7 @@ class Utils(private val context: Context) {
             AlertDialogStationInfoBinding.inflate(LayoutInflater.from(context))
 
         val alertDialog =
-            MaterialAlertDialogBuilder(context)
+            MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
                 .setView(binding.root)
                 .setNegativeButton(
                     context.resources.getString(android.R.string.cancel), null
@@ -407,6 +402,7 @@ class Utils(private val context: Context) {
                 .setPositiveButton("提交", null)
                 .setTitle(if (type == "new") "新增站点" else "更新站点")
                 .create()
+
 
 
         if (type == "new") {
@@ -585,7 +581,6 @@ class Utils(private val context: Context) {
             return ArrayList()
         }
 
-
         val dir = File("$appRootPath/Media/${getAnnouncementLibrary()}")
         val cnDir = File("$appRootPath/Media/${getAnnouncementLibrary()}/cn")
         val enDir = File("$appRootPath/Media/${getAnnouncementLibrary()}/en")
@@ -634,7 +629,7 @@ class Utils(private val context: Context) {
 
     fun requestManageFilesAccessPermission(activity: Activity) {
         if (!isGrantManageFilesAccessPermission()) {
-            MaterialAlertDialogBuilder(context)
+            MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
                 .setTitle(context.getString(R.string.request_manage_files_access_permission_title))
                 .setMessage(context.getString(R.string.request_manage_files_access_permission_text))
                 .setPositiveButton(context.getString(R.string.request_manage_files_access_permission_to_grant)) { _, _ ->
@@ -758,9 +753,9 @@ class Utils(private val context: Context) {
     }
 
     fun showRequestLocationPermissionDialog(permissionManager: PermissionManager) {
-        MaterialAlertDialogBuilder(context)
+        MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
             .setTitle("要启用定位服务吗？")
-            .setMessage("位置权限：用于地图定位和自动报站")
+            .setMessage("需要位置权限用于自动报站")
             .setPositiveButton(context.getString(R.string.request_manage_files_access_permission_to_grant)) { _, _ ->
                 permissionManager.requestLocationPermission()
             }
@@ -769,8 +764,121 @@ class Utils(private val context: Context) {
             .show()
     }
 
-    fun getSettings(){
-         PrefsHelper(prefs).defaultLineName
+
+    fun getEsText(): String {
+        val default = "<nscn>|到了|5|A\n" +
+                "下一站|<nscn>|5|N\n" +
+                "全国文明城市 桂林欢迎您|攻坚十四五 奋进新征程 建设壮美广西|5|C\n" +
+                "速度|<speed>|5|S"
+        return prefs.getString("esText", default) ?: default
+    }
+
+    /**
+     * 获取电显显示内容列表
+     * @return
+     * */
+    fun getEsList(text: String): ArrayList<EsItem> {
+
+        val esList = ArrayList<EsItem>()
+
+        if (text == "") {
+            return esList
+        }
+
+        val lines = text.split('\n')
+
+        val keywordList = getEsKeywordList()
+        val numReg = Regex("^[1-9]\\d*$")
+        val typeList = listOf("C", "N", "W", "A", "B", "S", "T")
+        var typeListStr = ""
+        for (type in typeList) {
+            typeListStr += type
+        }
+        for (i in lines.indices) {
+            val items = lines[i].split('|')
+
+//            val items = ArrayList<String>()
+//            for (charI in lines[i].indices) {
+//                var line = ""
+//                if (lines[i][charI] == '\\') {
+//                    if (charI < lines[i].length - 1 && lines[i][charI + 1] == '|') {
+//                        line += lines[i][charI]
+//                    } else {
+//                        items.add(line)
+//                        continue
+//                    }
+//                } else {
+//                    line += lines[i][charI]
+//                }
+//                items.add(line)
+//            }
+
+            if (items.size != 4) {
+                esList.clear()
+                esList.add(EsItem("第${i + 1}行参数不正确，请检查格式", "", -1))
+                return esList
+            } else {
+                for (j in items.indices) {
+                    // 检查左右文本 todo 关键词判断
+                    if (j == 0 || j == 1) {
+
+                    }
+                    // 检查最短显示时间和内容类型
+                    else if (j == 2) {
+                        if (!numReg.matches(items[j])) {
+                            esList.clear()
+                            esList.add(
+                                EsItem(
+                                    "第${i + 1}行最短显示时间必须为正整数",
+                                    "请前往设置修改",
+                                    -1
+                                )
+                            )
+                            return esList
+                        }
+                    }
+                    // 检查内容类型
+                    else if (j == 3) {
+                        if (!typeList.contains(items[j])) {
+                            esList.clear()
+                            esList.add(
+                                EsItem(
+                                    "第${i + 1}行内容类型需选填${typeListStr}其一",
+                                    "请前往设置修改",
+                                    -1
+                                )
+                            )
+                            return esList
+                        }
+                    }
+                }
+            }
+            esList.add(EsItem(items[0], items[1], items[2].toInt(), items[3]))
+        }
+        return esList
+    }
+
+    fun getEsKeywordList(): ArrayList<String> {
+        val keywordList =
+            ArrayList<String>(listOf("<next>", "<will>", "<arrive>", "<time>", "<speed>", "<line>"))
+        for (lang in getAnnouncementLangList()) {
+            keywordList.add("<ns$lang>")
+            keywordList.add("<ss$lang>")
+            keywordList.add("<ts$lang>")
+        }
+        return keywordList
+    }
+
+    fun getEsNextWord(): String {
+        return prefs.getString("esNextWord", "下一站") ?: "下一站"
+    }
+
+    fun getEsWillArriveWord(): String {
+        return prefs.getString("esWillArriveWord", "即将到达") ?: "即将到达"
+    }
+
+    fun getEsArriveWord(): String {
+        return prefs.getString("esArriveWord", "到达") ?: "到达"
     }
 
 
