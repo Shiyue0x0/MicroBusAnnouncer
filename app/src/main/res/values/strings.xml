@@ -86,6 +86,7 @@
     <string name="press_again_exit_app">再按一次退出应用</string>
 
     <string name="search_station_not_have_voice_finish">已将缺失音频的站点复制到剪切板</string>
+    <string name="xPixelPerSecond">%1$d 像素/秒</string>
 
 
 </resources>

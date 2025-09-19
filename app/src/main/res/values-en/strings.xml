@@ -87,6 +87,7 @@
     <string name="press_again_exit_app">Press again to exit the application</string>
 
     <string name="search_station_not_have_voice_finish">The station with missing audio has been copied</string>
+    <string name="xPixelPerSecond">%1$d Pixel/S</string>
 
 
 </resources>

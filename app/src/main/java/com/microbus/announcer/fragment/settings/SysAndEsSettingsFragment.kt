@@ -387,13 +387,13 @@ class SysAndEsSettingsFragment : Fragment() {
 
 
                 binding.text.visibility = ViewGroup.VISIBLE
-                binding.text.text = "$eSSpeed 像素/秒"
+                binding.text.text = getString(R.string.xPixelPerSecond, eSSpeed)
 
 //                utils.showMsg(eSSpeed.toString())
                 binding.slider.addOnChangeListener { slider, value, fromUser ->
 //                    Log.d(tag, "slider: $value")
                     binding.es.pixelMovePerSecond = value.toInt()
-                    binding.text.text = "${value.toInt()} 像素/秒"
+                    binding.text.text = getString(R.string.xPixelPerSecond, value.toInt())
 
                 }
 
@@ -466,7 +466,7 @@ class SysAndEsSettingsFragment : Fragment() {
             val numerator = (esFinishPositionOfLastWord * 10).toInt()
             val denominator = 10
             val pair = utils.simplifyFraction(numerator, denominator)
-            "最后一个字滚动到屏幕左边 ${pair.first} / ${pair.second} 处时结束"
+            "最后一个字滚动到屏幕左边 ${pair.first} / ${pair.second} 处时"
         }
 
     }
