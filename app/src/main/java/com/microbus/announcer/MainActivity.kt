@@ -4,11 +4,11 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
-import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import androidx.core.view.get
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.widget.ViewPager2
@@ -56,6 +56,10 @@ class MainActivity : AppCompatActivity() {
         wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, tag)
         wakeLock.acquire(60 * 60 * 1000L)
 
+        //点亮状态栏，控制状态栏字体颜色变黑
+//        val controller =
+//            WindowInsetsControllerCompat(window, this.decorView)
+//        controller.isAppearanceLightStatusBars = true
 
         fragmentList.add(MainFragment())
         fragmentList.add(LineFragment())
@@ -82,6 +86,20 @@ class MainActivity : AppCompatActivity() {
         binding.viewPager.registerOnPageChangeCallback(object :
             ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
+                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+
+                if (position == 0) {
+                    // 黑夜地图 或 （跟随系统且主题色黑色）
+                    if (utils.getMapType() == 3 || (utils.getMapType() == 0 && utils.getIfDarkMode())) {
+                        insetsController.isAppearanceLightStatusBars = false
+                    } else {
+                        insetsController.isAppearanceLightStatusBars = true
+                    }
+                } else {
+                    insetsController.isAppearanceLightStatusBars = !utils.getIfDarkMode()
+                }
+
+
                 super.onPageSelected(position)
                 val mainFragment = fragmentList[0] as MainFragment
                 if (mainFragment.isOperationLock) {

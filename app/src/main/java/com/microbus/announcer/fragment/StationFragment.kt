@@ -27,7 +27,7 @@ import com.microbus.announcer.adapter.StationAdapter
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
-import com.microbus.announcer.databinding.AlertDialogStationInfoBinding
+import com.microbus.announcer.databinding.DialogStationInfoBinding
 import com.microbus.announcer.databinding.FragmentStationBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +44,7 @@ class StationFragment : Fragment(), AMapLocationListener {
     lateinit var mLocationClient: AMapLocationClient
     private lateinit var mLocationOption: AMapLocationClientOption
 
-    private lateinit var alertBinding: AlertDialogStationInfoBinding
+    private lateinit var alertBinding: DialogStationInfoBinding
 
     private lateinit var utils: Utils
 
@@ -165,15 +165,18 @@ class StationFragment : Fragment(), AMapLocationListener {
 
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun addStation() {
-        utils.showStationDialog("new", stationFragment = this, isOrderGetCurLatLng = true)
-        binding!!.stationRecyclerView.adapter!!.notifyDataSetChanged()
+        utils.showStationDialog("new", stationFragment = this, isOrderGetCurLatLng = true, onDone = {
+            binding!!.stationRecyclerView.adapter!!.notifyDataSetChanged()
+        })
     }
 
 
     /**
      * 初始化下拉刷新控件 SwipeRefreshLayout
      */
+    @SuppressLint("NotifyDataSetChanged")
     private fun initSwipeRefreshLayout() {
         binding!!.swipeRefreshLayout.setOnRefreshListener {
             binding!!.stationRecyclerView.adapter!!.notifyDataSetChanged()

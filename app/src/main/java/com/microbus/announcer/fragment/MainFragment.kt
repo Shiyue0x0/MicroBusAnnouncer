@@ -106,9 +106,8 @@ import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
-import com.microbus.announcer.databinding.AlertDialogLineSwitchBinding
+import com.microbus.announcer.databinding.DialogLineSwitchBinding
 import com.microbus.announcer.databinding.FragmentMainBinding
-import com.microbus.announcer.view.HeaderTextView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -326,6 +325,7 @@ class MainFragment : Fragment() {
     var esList = ArrayList<EsItem>()
     var esPlayIndex = 0
 
+
     @SuppressLint("InternalInsetResource", "DiscouragedApi")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -359,15 +359,12 @@ class MainFragment : Fragment() {
         val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
         binding.bar.layoutParams.height = resources.getDimensionPixelSize(resourceId)
 
-//        //点亮状态栏，控制状态栏字体颜色变黑
-//        val controller = WindowInsetsControllerCompat(requireActivity().window, requireActivity().decorView)
-//        controller.isAppearanceLightStatusBars = true
+
 
         permissionManager = PermissionManager(requireContext(), requireActivity())
 
         //初始化定位
         initLocation()
-
 
         //初始化地图
         initMap()
@@ -400,7 +397,6 @@ class MainFragment : Fragment() {
 
         announcementLangList = utils.getAnnouncementLangList()
 
-
         return binding.root
     }
 
@@ -414,8 +410,9 @@ class MainFragment : Fragment() {
         binding.mapBtnGroup.check(binding.mapBtnGroup.id)
         binding.locationBtnGroup.check(binding.locationBtn.id)
 
-
         (binding.lineStationList.adapter as StationOfLineAdapter).isScroll = true
+
+
     }
 
     /* 不再与用户交互时 */
@@ -429,6 +426,8 @@ class MainFragment : Fragment() {
 
 
         (binding.lineStationList.adapter as StationOfLineAdapter).isScroll = false
+
+//        prefs.unregisterOnSharedPreferenceChangeListener(prefsChangeListener)
 
         // 保存历史位置
         val sharedPreferences: SharedPreferences =
@@ -455,7 +454,11 @@ class MainFragment : Fragment() {
      */
     fun loadLine(line: Line) {
 
-        speedRefreshHandler.removeCallbacksAndMessages(null)
+        Log.d(tag, "linename: ${line.name}")
+        Log.d(tag, "upLineStation: ${line.upLineStation}")
+        Log.d(tag, "downLineStation: ${line.downLineStation}")
+
+//        speedRefreshHandler.removeCallbacksAndMessages(null)
 
         //切换当前路线
         currentLine = line
@@ -469,7 +472,7 @@ class MainFragment : Fragment() {
 
         //加载路线名称
 //        binding.headerMiddle.text = currentLine.name
-        binding.headerMiddleNew.showText(currentLine.name)
+        binding.headerMiddleNew.showText(currentLine.name, esPlayIndex)
         binding.headerMiddleNew.requestLayout()
 
 
@@ -498,7 +501,10 @@ class MainFragment : Fragment() {
             }
             // 云端路线
             else if (strIndex.toIntOrNull() != null) {
-                Log.d(tag, "strIndex: ${strIndex.toInt()}")
+//                Log.d(
+//                    tag,
+//                    "strIndex: ${strIndex.toInt()} ${cloudStationList.find { it.id == strIndex.toInt() }!!.cnName}"
+//                )
                 currentLineStationList.add(cloudStationList.find { it.id == strIndex.toInt() }!!)
             }
         }
@@ -693,6 +699,11 @@ class MainFragment : Fragment() {
 
         refreshEsToStaringAndTerminal()
 
+
+        // 刷新电显
+        refreshEsToStaringAndTerminal()
+        refreshEs()
+
 //        val intent = Intent(LineRunningService().actionLineLoad)
 //            .putExtra("line", currentLine.name)
 //            .putExtra("lineId", currentLine.id)
@@ -740,7 +751,6 @@ class MainFragment : Fragment() {
      */
     fun initButtonClickListener() {
 
-        binding.locationBtnGroup.check(binding.locationBtn.id)
         binding.mapBtnGroup.check(binding.mapBtn.id)
         binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
 
@@ -752,7 +762,7 @@ class MainFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            val dialogBinding = AlertDialogLineSwitchBinding.inflate(LayoutInflater.from(context))
+            val dialogBinding = DialogLineSwitchBinding.inflate(LayoutInflater.from(context))
 
             val alertDialog =
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
@@ -1056,7 +1066,9 @@ class MainFragment : Fragment() {
 //            binding.switchFollowLocation.isChecked = isChecked
 //        }
 
+
         binding.locationBtn.addOnCheckedChangeListener { button, isChecked ->
+
             if (isOperationLock) {
                 utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
                 button.isChecked = !button.isChecked
@@ -1065,6 +1077,7 @@ class MainFragment : Fragment() {
 
             if (isChecked) {
                 if (!permissionManager.hasLocationPermission()) {
+                    button.isChecked = false
                     utils.showRequestLocationPermissionDialog(permissionManager)
                     return@addOnCheckedChangeListener
                 }
@@ -1171,12 +1184,10 @@ class MainFragment : Fragment() {
                 return@addOnButtonCheckedListener
             }
 
-            if (isChecked) {
-                currentLineDirection = onUp
-//                binding.lineDirectionSwitch.text = resources.getString(R.string.up_line)
+            currentLineDirection = if (isChecked) {
+                onUp
             } else {
-                currentLineDirection = onDown
-//                binding.lineDirectionSwitch.text = resources.getString(R.string.down_line)
+                onDown
             }
 
             if (currentLine.id == null) return@addOnButtonCheckedListener
@@ -1184,7 +1195,6 @@ class MainFragment : Fragment() {
             val lastLineStation = currentLineStation
 
             loadLine(currentLine)
-
 
             //若切换后站点仍在列表中，切换为该站
             for (stationIndex in currentLineStationList.indices) {
@@ -1382,40 +1392,103 @@ class MainFragment : Fragment() {
 //        binding.headerLeftNew.showTimeMs = utils.getLineHeadCardChangeTime() * 1000
 //        binding.headerRightNew.showTimeMs = utils.getLineHeadCardChangeTime() * 1000
 
-        var isLeftScrollFinish = false
-        var isRightScrollFinish = false
+//        var isLeftScrollFinish = false
+//        var isRightScrollFinish = false
+//
+//        binding.headerMiddleNew.scrollFinishCallback =
+//            object : ESView.ScrollFinishCallback {
+//                override fun onScrollFinish() {
+//                    binding.headerMiddleNew.showText(currentLine.name, esPlayIndex)
+//                }
+//            }
 
-        binding.headerMiddleNew.scrollFinishCallback =
-            object : HeaderTextView.ScrollFinishCallback {
-                override fun onScrollFinish() {
-                    binding.headerMiddleNew.showText(currentLine.name)
-                }
-            }
+//        var isRefreshing = false
+//        binding.headerLeftNew.scrollFinishCallback =
+//            object : HeaderTextView.ScrollFinishCallback {
+//                override fun onScrollFinish() {
+//                    Log.d(tag, "左finish: ${binding.headerLeftNew.getText()}")
+//                    isLeftScrollFinish = true
+//                    if (isRightScrollFinish && !isRefreshing) {
+//                        isRefreshing = true
+//                        isLeftScrollFinish = false
+//                        isRightScrollFinish = false
+//                        esPlayNext()
+//                        refreshEs()
+//                        isRefreshing = false
+//                    }
+//                }
+//            }
+//
+//        binding.headerRightNew.scrollFinishCallback =
+//            object : HeaderTextView.ScrollFinishCallback {
+//                override fun onScrollFinish() {
+//                    Log.d(tag, "右finish: ${binding.headerRightNew.getText()}")
+//                    isRightScrollFinish = true
+//                    if (isLeftScrollFinish && !isRefreshing) {
+//                        isRefreshing = true
+//                        isLeftScrollFinish = false
+//                        isRightScrollFinish = false
+//                        esPlayNext()
+//                        refreshEs()
+//                        isRefreshing = false
+//                    }
+//                }
+//            }
 
-        binding.headerLeftNew.scrollFinishCallback =
-            object : HeaderTextView.ScrollFinishCallback {
-                override fun onScrollFinish() {
-                    isLeftScrollFinish = true
-                    if (isRightScrollFinish) {
-                        isLeftScrollFinish = false
-                        isRightScrollFinish = false
-                        refreshEs()
-                    }
+//        val fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//            requireContext().display.refreshRate
+//        } else {
+//            val windowManager = requireContext().getSystemService(Context.WINDOW_SERVICE) as WindowManager
+//            windowManager.defaultDisplay.refreshRate
+//        }
+        val esRefreshHandler = Handler(mLooper)
+        var isRefreshing = false
+        val esRefreshRunnable = object : Runnable {
+            override fun run() {
+                val isLeftFinish = binding.headerLeftNew.isShowFinish
+                val isRightFinish = binding.headerRightNew.isShowFinish
+                if (!isRefreshing && isLeftFinish && isRightFinish) {
+                    isRefreshing = true
+                    esPlayNext()
+                    refreshEs()
+                    isRefreshing = false
                 }
+                if (binding.headerMiddleNew.isShowFinish) {
+                    binding.headerMiddleNew.showText(currentLine.name, esPlayIndex)
+                }
+                esRefreshHandler.postDelayed(this, 100L)
             }
+        }
+        esRefreshHandler.postDelayed(esRefreshRunnable, 0L)
 
-        binding.headerRightNew.scrollFinishCallback =
-            object : HeaderTextView.ScrollFinishCallback {
-                override fun onScrollFinish() {
-                    isRightScrollFinish = true
-                    if (isLeftScrollFinish) {
-                        isLeftScrollFinish = false
-                        isRightScrollFinish = false
-                        refreshEs()
-                    }
+
+//        var speedRefreshCount = 0
+        val types = listOf("S", "T")
+        val speedRefreshRunnable = object : Runnable {
+            override fun run() {
+//                currentSpeedKmH = speedRefreshCount.toDouble()
+//                speedRefreshCount++
+                if (esPlayIndex > 0 && esPlayIndex < esList.size && types.contains(esList[esPlayIndex].type)) {
+                    refreshEsOnlyText(true)
                 }
+
+                val esSpeed = utils.getEsSpeed()
+                binding.headerLeftNew.pixelMovePerSecond = esSpeed
+                binding.headerRightNew.pixelMovePerSecond = esSpeed
+                binding.headerMiddleNew.pixelMovePerSecond = esSpeed
+
+                val pos = utils.getEsFinishPositionOfLastWord()
+                binding.headerLeftNew.finishPositionOfLastWord = pos
+                binding.headerRightNew.finishPositionOfLastWord = pos
+                binding.headerMiddleNew.finishPositionOfLastWord = pos
+
+                speedRefreshHandler.postDelayed(this, 1000L)
             }
-        refreshEs()
+        }
+        speedRefreshHandler.postDelayed(speedRefreshRunnable, 0L)
+
+        binding.headerLeftNew.minShowTimeMs = 500
+        binding.headerRightNew.minShowTimeMs = 500
     }
 
     /**
@@ -1686,6 +1759,7 @@ class MainFragment : Fragment() {
         uiSettings?.zoomPosition = AMapOptions.ZOOM_POSITION_RIGHT_CENTER
         uiSettings?.isScaleControlsEnabled = true
 //        aMap.isMyLocationEnabled = true
+        uiSettings?.isZoomControlsEnabled = false
 
         //高德logo设置在地图下方
         aMapUiSettings = aMap.uiSettings!!
@@ -1837,6 +1911,8 @@ class MainFragment : Fragment() {
      */
     private fun initLine() {
 
+//        binding.lineStationCard.visibility = ViewGroup.GONE
+
         //初始化路线站点卡片
         binding.lineStationList.setHasFixedSize(true)
         binding.lineStationList.layoutManager =
@@ -1879,9 +1955,8 @@ class MainFragment : Fragment() {
                 }
 
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                    .setTitle(chosenStationCname)
-                    .setMessage("将 $chosenStationCname 设置为")
-                    .setNegativeButton("区间始发站", object : DialogInterface.OnClickListener {
+                    .setTitle("将 $chosenStationCname 设为")
+                    .setPositiveButton("区间起点", object : DialogInterface.OnClickListener {
                         override fun onClick(p0: DialogInterface?, p1: Int) {
 
                             val startingId = currentLineStationList[position].id
@@ -1925,7 +2000,7 @@ class MainFragment : Fragment() {
                             adapter.isScroll = true
                         }
                     })
-                    .setPositiveButton("区间终点站", object : DialogInterface.OnClickListener {
+                    .setNegativeButton("区间终点", object : DialogInterface.OnClickListener {
                         override fun onClick(p0: DialogInterface?, p1: Int) {
 
                             val startingId = currentLineStationList[position].id
@@ -1978,80 +2053,80 @@ class MainFragment : Fragment() {
         //切换为 上一次运行的路线 或 默认路线
         val sharedPreferences =
             requireContext().getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
-        val lastRunningLineName = sharedPreferences.getString("lineName", "")!!
+        val lastRunningLineName = sharedPreferences.getString("lineName", "") ?: ""
+        val onlineLineUpId = sharedPreferences.getString("onlineLineUpId", "") ?: ""
+        val onlineLineDownId = sharedPreferences.getString("onlineLineDownId", "") ?: ""
 
-        val lastLineList = lineDatabaseHelper.quertByName(lastRunningLineName).toMutableList()
-        val onlineLineUpId = sharedPreferences.getString("onlineLineUpId", "")!!
-        val onlineLineDownId = sharedPreferences.getString("onlineLineDownId", "")!!
-        utils.showMsg(lastRunningLineName)
-        Log.d(tag, onlineLineUpId)
-        Log.d(tag, onlineLineDownId)
-        if (lastLineList.isEmpty() && onlineLineUpId != "" && onlineLineDownId != "") {
-            // 在线搜索路线
-            val busLineQuery = BusLineQuery(
-                "",
-                BusLineQuery.SearchType.BY_LINE_ID,
-                utils.getCity()
-            )
-            busLineQuery.pageNumber = 0
-            busLineQuery.extensions = "all"
-            val busLineSearch = BusLineSearch(requireContext(), busLineQuery)
-            val onlineLine = Line()
-            cloudStationList.clear()
-            busLineSearch.setOnBusLineSearchListener { res, rCode ->
-                utils.showMsg("setOnBusLineSearchListener${res.busLines.size}")
-                if (res.busLines.isNotEmpty()) {
-                    Log.d(tag, res.query.queryString)
-                    if (res.query.queryString == onlineLineUpId) {
-                        val line = getOnlineLine(res, 0, false)
-                        onlineLine.upLineStation = line.upLineStation
-                        onlineLine.name = line.name
-                        if (onlineLine.downLineStation != "") {
-                            utils.showMsg("down ok")
-                            originLine = onlineLine
-                            initLineInterval()
-                            currentLineStationState = onNext
-                            binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-                            loadLine(onlineLine)
-                            utils.haptic(binding.headerMiddleNew)
+        val localLineList = lineDatabaseHelper.quertByName(lastRunningLineName).toMutableList()
+//        Log.d(tag, onlineLineUpId)
+//        Log.d(tag, onlineLineDownId)
+
+        // 获取云端路线
+        if (localLineList.isEmpty()) {
+            if (onlineLineUpId != "" && onlineLineDownId != "") {
+                var hasLoad = false
+                val onlineLine = Line()
+                onlineLine.id = -1
+                onlineLine.isUpAndDownInvert = false
+                cloudStationList.clear()
+                CoroutineScope(Dispatchers.IO).launch {
+                    for (i in 0..1) {
+                        // 在线搜索路线
+                        val lineQuery = BusLineQuery(
+                            if (i == 0) onlineLineUpId else onlineLineDownId,
+                            BusLineQuery.SearchType.BY_LINE_ID,
+                            utils.getCity()
+                        )
+                        lineQuery.pageNumber = 0
+                        lineQuery.extensions = "all"
+                        val busLineSearch = BusLineSearch(requireContext(), lineQuery)
+                        busLineSearch.setOnBusLineSearchListener { res, rCode ->
+//                utils.showMsg("setOnBusLineSearchListener${res.busLines.size}")
+                            if (res.busLines.isNotEmpty()) {
+//                            Log.d(tag, res.query.queryString)
+                                if (i == 0) {
+                                    val line = getOnlineLine(res, 0, false)
+                                    onlineLine.upLineStation = line.upLineStation
+                                    onlineLine.name = line.name
+                                } else {
+                                    onlineLine.downLineStation =
+                                        getOnlineLine(res, 0, false).upLineStation
+                                }
+                                CoroutineScope((Dispatchers.Main)).launch {
+                                    if (!hasLoad && onlineLine.upLineStation != "" && onlineLine.downLineStation != "") {
+                                        originLine = onlineLine
+                                        initLineInterval()
+                                        currentLineStationState = onNext
+                                        binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
+                                        loadLine(onlineLine)
+                                        utils.haptic(binding.headerMiddleNew)
+                                        hasLoad = true
+                                    }
+                                }
+                            }
                         }
-                    } else if (res.query.queryString == onlineLineDownId) {
-                        onlineLine.downLineStation = getOnlineLine(res, 0, false).upLineStation
-                        if (onlineLine.upLineStation != "") {
-                            utils.showMsg("up ok")
-                            originLine = onlineLine
-                            initLineInterval()
-                            currentLineStationState = onNext
-                            binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-                            loadLine(onlineLine)
-                            utils.haptic(binding.headerMiddleNew)
-                        }
+                        busLineSearch.searchBusLineAsyn()
                     }
                 }
             }
-            CoroutineScope(Dispatchers.IO).launch {
-                busLineQuery.queryString = onlineLineUpId
-                busLineSearch.searchBusLineAsyn()
-                busLineQuery.queryString = onlineLineDownId
-                busLineSearch.searchBusLineAsyn()
-            }
+        } else {
+            utils.showMsg(localLineList.first().name)
+            originLine = localLineList.first()
+            initLineInterval()
+            currentLineStationState = onNext
+            binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
+            loadLine(originLine)
+            utils.haptic(binding.headerMiddleNew)
         }
 
-        val defaultLineName = utils.getDefaultLineName()
-        val defaultLineList = lineDatabaseHelper.quertByName(defaultLineName)
-
-        val selectedLine = if (lastLineList.isNotEmpty())
-            lastLineList.first()
-        else if (defaultLineList.isNotEmpty())
-            defaultLineList.first()
-        else Line(name = getString(R.string.main_line_0))
-
-        currentLine = selectedLine
-        initLineInterval()
-        originLine = currentLine
-        currentLineStationState = onNext
-        binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-        loadLine(currentLine)
+//        val defaultLineName = utils.getDefaultLineName()
+//        val defaultLineList = lineDatabaseHelper.quertByName(defaultLineName)
+//
+//        val selectedLine = if (lastLineList.isNotEmpty())
+//            lastLineList.first()
+//        else if (defaultLineList.isNotEmpty())
+//            defaultLineList.first()
+//        else Line(name = getString(R.string.main_line_0))
 
 
     }
@@ -2335,6 +2410,7 @@ class MainFragment : Fragment() {
 
         if (::aMapStationClickText.isInitialized) aMapStationClickText.remove()
 
+
         //移除标记序号
         for (text in aMapStationTextList) {
             text.remove()
@@ -2391,6 +2467,8 @@ class MainFragment : Fragment() {
      */
     private fun showCurrentLineStationMarker() {
 
+        Log.d(tag, "showCurrentLineStationMarker")
+
         val latLngList = ArrayList<LatLng>()
 
         val multiPointLists = ArrayList<ArrayList<MultiPointItem>>()
@@ -2405,12 +2483,14 @@ class MainFragment : Fragment() {
 
         for (i in currentLineStationList.indices) {
 
+            Log.d(tag, currentLineStationList[i].cnName)
+
             val latLng = LatLng(
                 currentLineStationList[i].latitude, currentLineStationList[i].longitude
             )
             latLngList.add(latLng)
 
-            //绘制站点面
+            //绘制站点范围
             val circle = aMap.addCircle(
                 CircleOptions().center(latLng).radius(utils.getArriveStationDistance())
                     .fillColor(Color.argb(8, 0, 0, 0)).strokeColor(Color.argb(64, 0, 0, 0))
@@ -2420,19 +2500,22 @@ class MainFragment : Fragment() {
 
             //绘制站点标点
             val multiPointItem = MultiPointItem(latLng)
+
             // 文本序号
             var indexText: String
             if (currentLine.name != resources.getString(R.string.line_all)) {
                 indexText = if (i < 9) "0${i + 1}"
                 else "${i + 1}"
+                multiPointItem.title = "$indexText ${currentLineStationList[i].cnName}"
+                multiPointItem.customerId = i.toString()
             } else {
-                val stationIndex = currentLineStationList[i].id!!
-                indexText = if (stationIndex < 9) "0${stationIndex + 1}"
-                else "${stationIndex + 1}"
+                multiPointItem.title =
+                    "${currentLineStationList[i].cnName}[${currentLineStationList[i].id!!}]"
+                multiPointItem.customerId = currentLineStationList[i].id!!.toString()
             }
 
-            multiPointItem.title = "$indexText ${currentLineStationList[i].cnName}"
-            multiPointItem.customerId = i.toString()
+
+
             when (i) {
                 in 0 until currentLineStationCount -> multiPointLists[0].add(multiPointItem)
 
@@ -2540,6 +2623,7 @@ class MainFragment : Fragment() {
             aMapStationTextList.add(aMap.addText(textOptions)!!)
 
         }
+
         refreshMapStationText()
     }
 
@@ -2771,14 +2855,13 @@ class MainFragment : Fragment() {
      */
     private fun refreshEsToStationState() {
         lineHeadCardImmediatelyRefresh = true
-        esPlayIndex = 0
         for (i in esList.indices) {
             if (getTypeMap()[esList[i].type] == currentLineStationState) {
                 esPlayIndex = i
+                refreshEs()
                 break
             }
         }
-        refreshEs()
     }
 
     /**
@@ -2786,14 +2869,14 @@ class MainFragment : Fragment() {
      */
     private fun refreshEsToStaringAndTerminal() {
         lineHeadCardImmediatelyRefresh = true
-        esPlayIndex = 0
         for (i in esList.indices) {
             if (esList[i].type == "B") {
                 esPlayIndex = i
+                refreshEs()
                 break
             }
         }
-        refreshEs()
+
     }
 
     /**
@@ -3190,21 +3273,32 @@ class MainFragment : Fragment() {
 
                 else -> Color.rgb(55, 178, 103)
             }
-            // 文本序号
-            val indexText = if (i < 9) "0${i + 1}"
-            else "${i + 1}"
+
+            // 文本序号/ID
+            val indexText = if (currentLine.name != resources.getString(R.string.line_all)) {
+                if (i < 9) "0${i + 1}"
+                else "${i + 1}"
+            } else {
+                currentLineStationList[i].id!!.toString()
+            }
+
             // 文本内容
             val textContext = if (aMap.cameraPosition!!.zoom > aMapZoomPoint) {
-                "$indexText ${currentLineStationList[i].cnName}"
+                if (currentLine.name != resources.getString(R.string.line_all))
+                    "$indexText ${currentLineStationList[i].cnName}"
+                else
+                    "${currentLineStationList[i].cnName}[$indexText]"
             } else {
                 indexText
             }
+
             // 文本框背景
             val backgroundColor = if (aMap.cameraPosition!!.zoom > aMapZoomPoint) {
                 Color.WHITE
             } else {
                 Color.TRANSPARENT
             }
+
             // 应用Text
             aMapStationTextList[i].fontColor = fontColor
             aMapStationTextList[i].text = textContext
@@ -3329,7 +3423,7 @@ class MainFragment : Fragment() {
 
     private fun searchLine(
         key: String,
-        dialogBinding: AlertDialogLineSwitchBinding,
+        dialogBinding: DialogLineSwitchBinding,
         alertDialog: AlertDialog
     ) {
 
@@ -3492,25 +3586,61 @@ class MainFragment : Fragment() {
         if (!isAdded)
             return
 
-//        if(esPlayIndex >= 0 && esPlayIndex < esList.size)
+//        speedRefreshHandler.removeCallbacksAndMessages(null)
+
+        lineHeadCardImmediatelyRefresh = false
+
+//        if (esPlayIndex >= 0 && esPlayIndex < esList.size)
 //            Log.d(tag, "refreshEs: $esPlayIndex / ${esList.size} ${esList[esPlayIndex].leftText}")
 //        else
 //            Log.d(tag, "refreshEs: $esPlayIndex / ${esList.size}")
-
 
         val typeList = getTypeList()
         val typeMap = getTypeMap()
 
         if (esPlayIndex >= 0 && esPlayIndex < esList.size && typeList.contains(esList[esPlayIndex].type)) {
             if (typeMap[esList[esPlayIndex].type] != currentLineStationState) {
-                esPlayNext()
                 return
             }
         }
 
+        val minTimeS =
+            if (esPlayIndex >= 0 && esPlayIndex < esList.size) esList[esPlayIndex].minTimeS else 5
+        binding.headerLeftNew.minShowTimeMs = minTimeS * 1000
+        binding.headerRightNew.minShowTimeMs = minTimeS * 1000
+
+        refreshEsOnlyText()
+
+
+//        // 每隔1s刷新一次速度
+//        var speedRefreshCount = 0
+//        if (esPlayIndex >= 0 && esPlayIndex < esList.size && esList[esPlayIndex].type == "S") {
+//            val speedRefreshRunnable = object : Runnable {
+//                override fun run() {
+//                    currentSpeedKmH = speedRefreshCount.toDouble()
+//                    speedRefreshCount++
+////                    refreshEsOnlyText(true)
+//                    if (speedRefreshCount < minTimeS)
+//                        speedRefreshHandler.postDelayed(this, 1000L)
+//                }
+//            }
+//            speedRefreshHandler.postDelayed(speedRefreshRunnable, 0L)
+//        }
+
+
+//        lineHeadCardCurrentShowIndex =
+//            (lineHeadCardCurrentShowIndex + 1) % (lineHeadCardShowList!!.size)
+//        lineHeadCardCurrentShow =
+//            lineHeadCardShowList!!.elementAt(lineHeadCardCurrentShowIndex).toInt()
+
+
+    }
+
+    fun refreshEsOnlyText(isUseSet: Boolean = false) {
 
         var leftText: String
         var rightText: String
+
         if (esPlayIndex >= 0 && esPlayIndex < esList.size) {
             leftText = esList[esPlayIndex].leftText
             rightText = esList[esPlayIndex].rightText
@@ -3519,13 +3649,9 @@ class MainFragment : Fragment() {
             rightText = getString(R.string.main_terminal_name)
         }
 
-        speedRefreshHandler.removeCallbacksAndMessages(null)
-
         if (binding.headerMiddleNew.isShowFinish) {
-            binding.headerMiddleNew.showText(currentLine.name)
+            binding.headerMiddleNew.showText(currentLine.name, esPlayIndex)
         }
-
-        lineHeadCardImmediatelyRefresh = false
 
         val valueMap = HashMap<String, String>()
 
@@ -3534,7 +3660,7 @@ class MainFragment : Fragment() {
         valueMap["<arrive>"] = utils.getEsArriveWord()
 
         valueMap["<time>"] = LocalTime.now().toString()
-        valueMap["<speed>"] = currentSpeedKmH.toString()
+        valueMap["<speed>"] = String.format(Locale.CHINA, "%.1f", currentSpeedKmH)
         valueMap["<line>"] = currentLine.name
 
         valueMap["<nscn>"] = currentLineStation.cnName
@@ -3556,43 +3682,14 @@ class MainFragment : Fragment() {
             rightText = rightText.replace(keyword, valueMap[keyword] ?: "", true)
         }
 
-        val minTimeS =
-            if (esPlayIndex >= 0 && esPlayIndex < esList.size) esList[esPlayIndex].minTimeS else 5
-        binding.headerLeftNew.showTimeMs = minTimeS * 1000
-        binding.headerRightNew.showTimeMs = minTimeS * 1000
-
-        binding.headerLeftNew.showText(leftText)
-        binding.headerRightNew.showText(rightText)
-
-        // 每隔1s刷新一次速度
-        var speedRefreshCount = 0
-        if (esPlayIndex >= 0 && esPlayIndex < esList.size && esList[esPlayIndex].type == "S") {
-            val speedRefreshRunnable = object : Runnable {
-                override fun run() {
-//                    binding.headerRightNew.setText(
-//                        String.format(
-//                            Locale.CHINA,
-//                            "%.1fkm/h",
-//                            currentSpeedKmH
-//                        )
-//                    )
-
-                    speedRefreshCount++
-
-                    if (speedRefreshCount < utils.getLineHeadCardChangeTime())
-                        speedRefreshHandler.postDelayed(this, 1000L)
-                }
-            }
-            speedRefreshHandler.postDelayed(speedRefreshRunnable, 0L)
+        if (isUseSet) {
+            binding.headerLeftNew.setText(leftText)
+            binding.headerRightNew.setText(rightText)
+        } else {
+            binding.headerLeftNew.showText(leftText, esPlayIndex)
+            binding.headerRightNew.showText(rightText, esPlayIndex)
         }
 
-
-//        lineHeadCardCurrentShowIndex =
-//            (lineHeadCardCurrentShowIndex + 1) % (lineHeadCardShowList!!.size)
-//        lineHeadCardCurrentShow =
-//            lineHeadCardShowList!!.elementAt(lineHeadCardCurrentShowIndex).toInt()
-
-        esPlayNext()
 
     }
 
@@ -3622,7 +3719,7 @@ class MainFragment : Fragment() {
                         distance < 200 && isContainSameNameStation
                     }
 
-                if (similarStation == null && station.type == "B") {
+                if (similarStation == null) {
                     allStationLineStationList.add(station)
                     allStationLine.upLineStation += "${station.id} "
                 }
@@ -3880,7 +3977,7 @@ class MainFragment : Fragment() {
                 }
             }
         }
-        utils.showMsg(upLineStationStr)
+//        utils.showMsg(upLineStationStr)
         return Line(
             -1,
             res.busLines[chosenIndex].busLineName.split("路").first(),

@@ -13,7 +13,7 @@ import com.google.android.material.tabs.TabLayout
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.FragFragAdapter
 import com.microbus.announcer.databinding.FragmentSettingBinding
-import com.microbus.announcer.fragment.settings.AnnouncementSettingsFragment
+import com.microbus.announcer.fragment.settings.AnSettingsFragment
 import com.microbus.announcer.fragment.settings.SysAndEsSettingsFragment
 
 class SettingFragment : Fragment() {
@@ -59,7 +59,7 @@ class SettingFragment : Fragment() {
 
 
         fragmentList.add(SysAndEsSettingsFragment())
-        fragmentList.add(AnnouncementSettingsFragment())
+        fragmentList.add(AnSettingsFragment())
         fragmentList.add(SettingPreferenceFragment())
         binding.viewPager.adapter = FragFragAdapter(this, fragmentList)
 

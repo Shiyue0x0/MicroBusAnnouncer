@@ -15,7 +15,7 @@ import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
-import com.microbus.announcer.databinding.AlertDialogLineInfoBinding
+import com.microbus.announcer.databinding.DialogLineInfoBinding
 import com.microbus.announcer.databinding.ItemLineBinding
 import androidx.core.content.edit
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -170,7 +170,7 @@ class LineAdapter(
             })
 
             holder.lineCard.setOnLongClickListener {
-                val binding = AlertDialogLineInfoBinding.inflate(LayoutInflater.from(context))
+                val binding = DialogLineInfoBinding.inflate(LayoutInflater.from(context))
 
                 binding.editTextName.setText(line.name)
                 binding.editTextUpLineStation.setText(line.upLineStation)

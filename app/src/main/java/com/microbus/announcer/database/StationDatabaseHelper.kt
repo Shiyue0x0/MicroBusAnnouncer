@@ -38,6 +38,9 @@ class StationDatabaseHelper(
         val result = readableDatabase.insert(tableName, null, values)
         if (result > 0)
             Log.d(tag, "已添加站点 ${station.cnName}")
+        else{
+            Log.d(tag, "添加失败，返回码 ${result}")
+        }
         return result
     }
 
@@ -151,7 +154,7 @@ class StationDatabaseHelper(
     fun updateById(id: Int, station: Station) {
         val sql =
             "update $tableName set cnName = '${station.cnName}', enName = '${station.enName}', " +
-                    "longitude = ${station.longitude}, latitude = ${station.latitude}, type = ${station.type}" +
+                    "longitude = ${station.longitude}, latitude = ${station.latitude}, type = '${station.type}'" +
                     "where id = $id;"
         writableDatabase.execSQL(sql)
     }

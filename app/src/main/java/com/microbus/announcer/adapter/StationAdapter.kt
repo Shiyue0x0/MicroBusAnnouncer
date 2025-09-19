@@ -9,15 +9,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.microbus.announcer.Utils
-import com.microbus.announcer.adapter.LineAdapter.LineHeaderViewHolder
-import com.microbus.announcer.adapter.LineAdapter.LineViewHolder
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
-import com.microbus.announcer.databinding.ItemLineBinding
-import com.microbus.announcer.databinding.ItemLineHeaderBinding
+import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.ItemStationBinding
 import com.microbus.announcer.databinding.ItemStationHeaderBinding
-import java.util.Locale
 
 internal class StationAdapter(
     private val context: Context,
@@ -31,6 +27,9 @@ internal class StationAdapter(
     val commonView = 0
 
     val headerView = 1
+
+    val stationDatabaseHelper = StationDatabaseHelper(context)
+
 
     internal class StationViewHolder(
         binding: ItemStationBinding,
@@ -102,13 +101,13 @@ internal class StationAdapter(
         // LineViewHolder
         if (position == 0) {
             val holder = holder as StationHeaderViewHolder
-            holder.title.text = "本地站点：${stationList.size}个"
+            holder.title.text = "查找到站点：${stationList.size}个"
         }
         // ItemLineHeaderHolder
         else {
             val holder = holder as StationViewHolder
             val position = position - 1
-            val station = stationList[position]
+            val station = stationDatabaseHelper.queryById(stationList[position].id ?: -1).first()
 
             holder.station = station
             holder.stationId.text = station.id.toString()
@@ -127,8 +126,12 @@ internal class StationAdapter(
                 station.id?.let { LineOfStationAdapter(it, lineDatabaseHelper) }
 
             holder.stationCard.setOnLongClickListener {
-                utils.showStationDialog("update", station)
-//                notifyDataSetChanged()
+                utils.showStationDialog(
+                    "update",
+                    stationDatabaseHelper.queryById(station.id ?: -1).first(), onDone = {
+                        notifyItemChanged(position + 1)
+                    }
+                )
                 return@setOnLongClickListener true
             }
         }

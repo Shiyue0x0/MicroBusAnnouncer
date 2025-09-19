@@ -3,6 +3,7 @@ package com.microbus.announcer
 import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.os.Build
 import android.os.CountDownTimer
 import android.os.Environment
@@ -24,7 +25,7 @@ import com.google.gson.JsonParser
 import com.microbus.announcer.bean.EsItem
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.StationDatabaseHelper
-import com.microbus.announcer.databinding.AlertDialogStationInfoBinding
+import com.microbus.announcer.databinding.DialogStationInfoBinding
 import com.microbus.announcer.fragment.StationFragment
 import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
@@ -35,6 +36,7 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.time.LocalTime
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -207,7 +209,7 @@ class Utils(private val context: Context) {
      * 从设置中获取地图站点显示方式
      */
     fun getMapStationShowType(): Int {
-        return prefs.getString("mapStationShowType", "0")?.toInt() ?: 0
+        return prefs.getString("mapStationShowType", "1")?.toInt() ?: 1
     }
 
     /**
@@ -385,13 +387,14 @@ class Utils(private val context: Context) {
         isOrderLatLng: Boolean = false,
         stationFragment: StationFragment = StationFragment(),
         isOrderGetCurLatLng: Boolean = false,
+        onDone: () -> Unit = {},
 
         ) {
 
         val stationDatabaseHelper = StationDatabaseHelper(context)
 
         val binding =
-            AlertDialogStationInfoBinding.inflate(LayoutInflater.from(context))
+            DialogStationInfoBinding.inflate(LayoutInflater.from(context))
 
         val alertDialog =
             MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
@@ -444,15 +447,13 @@ class Utils(private val context: Context) {
                 .setOnClickListener {
                     stationDatabaseHelper.delById(oldStation.id!!)
                 }
-
-
         }
 
         alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
             .setOnClickListener {
                 val cnName = binding.editTextCnName.text.toString()
                 val enName = binding.editTextEnName.text.toString()
-                val type = binding.editTextType.text.toString()
+                val stationType = binding.editTextType.text.toString()
 
                 if (cnName == "") {
                     this.showMsg("请填写中文名称")
@@ -500,14 +501,20 @@ class Utils(private val context: Context) {
                 val longitude: Double = binding.editTextLongitude.text.toString().toDouble()
                 val latitude: Double = binding.editTextLatitude.text.toString().toDouble()
 
-                val stationNew = Station(null, cnName, enName, longitude, latitude, type)
+                val stationNew = Station(null, cnName, enName, longitude, latitude, stationType)
 
                 if (type == "new") {
-                    stationDatabaseHelper.insert(stationNew)
+                    val res = stationDatabaseHelper.insert(stationNew)
+                    if (res > 0) {
+                        showMsg("已添加站点 ${stationNew.cnName}")
+                    } else {
+                        showMsg("添加失败，返回码 $res")
+                    }
                 } else if (type == "update") {
                     stationDatabaseHelper.updateById(oldStation.id!!, stationNew)
                 }
 
+                onDone()
                 alertDialog.cancel()
 
 
@@ -881,6 +888,73 @@ class Utils(private val context: Context) {
         return prefs.getString("esArriveWord", "到达") ?: "到达"
     }
 
+    fun getEsSpeed(): Int {
+        return prefs.getInt("esSpeed", 100)
+    }
 
+    fun getEsFinishPositionOfLastWord(): Float {
+        return prefs.getFloat("esFinishPositionOfLastWord", 0.5F)
+    }
+
+    fun getLibVoiceCount(lang: String): Int {
+
+        if (!isGrantManageFilesAccessPermission()) {
+            return 0
+        }
+
+        val dir = File("$appRootPath/Media/${getAnnouncementLibrary()}/${lang}")
+        if (!dir.exists()) {
+            return 0
+        }
+
+        val commonDir = File("$appRootPath/Media/${getAnnouncementLibrary()}/${lang}/common")
+        val stationDir = File("$appRootPath/Media/${getAnnouncementLibrary()}/${lang}/station")
+
+        val commonVoiceList = commonDir.walk()
+            .filter { it.isFile }
+            .toList()
+
+        val stationVoiceList = stationDir.walk()
+            .filter { it.isFile }
+            .toList()
+
+        return commonVoiceList.size + stationVoiceList.size
+    }
+
+    fun simplifyFraction(numerator: Int, denominator: Int): Pair<Int, Int> {
+        require(denominator != 0) { "分母不能为零" }
+
+        val gcd = greatestCommonDivisor(abs(numerator), abs(denominator))
+        val simplifiedNum = numerator / gcd
+        val simplifiedDen = denominator / gcd
+
+        // 确保分母始终为正数
+        return if (simplifiedDen < 0) {
+            Pair(-simplifiedNum, -simplifiedDen)
+        } else {
+            Pair(simplifiedNum, simplifiedDen)
+        }
+    }
+
+    // 计算最大公约数的辅助函数（使用欧几里得算法）
+    fun greatestCommonDivisor(a: Int, b: Int): Int {
+        var x = a
+        var y = b
+        while (y != 0) {
+            val temp = y
+            y = x % y
+            x = temp
+        }
+        return x
+    }
+
+    // 扩展函数，获取整数的绝对值
+    fun Int.absoluteValue(): Int = if (this < 0) -this else this
+
+    fun getIfDarkMode(): Boolean {
+        val nightModeFlags: Int =
+            context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return nightModeFlags == Configuration.UI_MODE_NIGHT_YES
+    }
 }
 

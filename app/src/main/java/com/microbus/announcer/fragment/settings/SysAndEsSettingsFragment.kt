@@ -8,46 +8,31 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
-import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -59,7 +44,9 @@ import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.compose.BaseSettingItem
 import com.microbus.announcer.compose.SwitchSettingItem
-import com.microbus.announcer.databinding.AlertDialogInputBinding
+import com.microbus.announcer.databinding.DialogInputBinding
+import com.microbus.announcer.databinding.DialogSliderBinding
+import kotlin.math.abs
 
 
 class SysAndEsSettingsFragment : Fragment() {
@@ -122,6 +109,14 @@ class SysAndEsSettingsFragment : Fragment() {
             mutableStateOf(utils.getEsArriveWord())
         }
 
+        val (esSpeed, setEsSpeed) = remember {
+            mutableIntStateOf(utils.getEsSpeed())
+        }
+
+        val (esFinishPositionOfLastWord, setEsFinishPositionOfLastWord) = remember {
+            mutableFloatStateOf(utils.getEsFinishPositionOfLastWord())
+        }
+
         DisposableEffect(prefs) {
             val listener = OnSharedPreferenceChangeListener { prefs, key ->
                 when (key) {
@@ -132,6 +127,13 @@ class SysAndEsSettingsFragment : Fragment() {
                     "esNextWord" -> setEsNextWord(prefs.getString(key, "") ?: "")
                     "esWillArriveWord" -> setEsWillArriveWord(prefs.getString(key, "") ?: "")
                     "esArriveWord" -> setEsArriveWord(prefs.getString(key, "") ?: "")
+                    "esSpeed" -> setEsSpeed(prefs.getInt(key, 100))
+                    "esFinishPositionOfLastWord" -> setEsFinishPositionOfLastWord(
+                        prefs.getFloat(
+                            key,
+                            0.5F
+                        )
+                    )
                 }
             }
             prefs.registerOnSharedPreferenceChangeListener(listener)
@@ -156,6 +158,8 @@ class SysAndEsSettingsFragment : Fragment() {
                         CityNameItem(city)
                         NavItem(nav, setNav)
                         ESTextItem(esText)
+                        ESSpeedItem(esSpeed)
+                        ESFinishPositionOfLastWordItem(esFinishPositionOfLastWord)
                         EsKeywordItemGroup(esNextWord, esWillArriveWord, esArriveWord)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -163,9 +167,6 @@ class SysAndEsSettingsFragment : Fragment() {
             }
         }
     }
-
-
-
 
 
     @Composable
@@ -197,7 +198,7 @@ class SysAndEsSettingsFragment : Fragment() {
     fun CityNameItem(city: String) {
         BaseSettingItem(
             "搜索城市", city, painterResource(id = R.drawable.city), {
-                val binding = AlertDialogInputBinding.inflate(LayoutInflater.from(context))
+                val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
@@ -230,11 +231,11 @@ class SysAndEsSettingsFragment : Fragment() {
         BaseSettingItem(
             "导航栏", "底部导航栏", painterResource(id = R.drawable.bottom_nav), {
                 toggleNav(nav, setNav, !nav)
-            }) {
-            SwitchSettingItem(nav) {
-                toggleNav(nav, setNav, it)
-            }
-        }
+            }, rightContain = {
+                SwitchSettingItem(nav) {
+                    toggleNav(nav, setNav, it)
+                }
+            })
     }
 
     fun toggleNav(nav: Boolean, setNav: (Boolean) -> Unit, it: Boolean) {
@@ -255,7 +256,7 @@ class SysAndEsSettingsFragment : Fragment() {
     fun ESTextItem(eSText: String) {
         BaseSettingItem(
             "电显内容", eSText, painterResource(id = R.drawable.text), {
-                val binding = AlertDialogInputBinding.inflate(LayoutInflater.from(context))
+                val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
@@ -331,7 +332,7 @@ class SysAndEsSettingsFragment : Fragment() {
             painterResource(id = R.drawable.city),
             isShowIcon = false,
             clickFun = {
-                val binding = AlertDialogInputBinding.inflate(LayoutInflater.from(context))
+                val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
@@ -361,6 +362,116 @@ class SysAndEsSettingsFragment : Fragment() {
                     .show(WindowInsetsCompat.Type.ime())
             })
     }
+
+    @Composable
+    fun ESSpeedItem(eSSpeed: Int) {
+        BaseSettingItem(
+            "电显文字滚动速度", "$eSSpeed 像素/秒", painterResource(id = R.drawable.speed), {
+                val binding = DialogSliderBinding.inflate(LayoutInflater.from(context))
+                val dialog = MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                ).setTitle("设置电显文字滚动速度").setView(binding.root)
+                    .setPositiveButton("确定", null)
+                    .setNegativeButton(getString(android.R.string.cancel), null).show()
+
+                binding.slider.contentDescription = "拖动以调整电显文字滚动速度"
+                binding.slider.stepSize = 1F
+                binding.slider.valueFrom = 1F
+                binding.slider.valueTo = 500F
+                binding.slider.value = eSSpeed.toFloat()
+
+                binding.es.pixelMovePerSecond = eSSpeed
+                binding.es.finishPositionOfLastWord = utils.getEsFinishPositionOfLastWord()
+                binding.es.setText("请有序排队 文明乘车 桂林公交欢迎您 K99 开往 汽车客运南站")
+
+
+                binding.text.visibility = ViewGroup.VISIBLE
+                binding.text.text = "$eSSpeed 像素/秒"
+
+//                utils.showMsg(eSSpeed.toString())
+                binding.slider.addOnChangeListener { slider, value, fromUser ->
+//                    Log.d(tag, "slider: $value")
+                    binding.es.pixelMovePerSecond = value.toInt()
+                    binding.text.text = "${value.toInt()} 像素/秒"
+
+                }
+
+                dialog.setCanceledOnTouchOutside(false)
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    prefs.edit {
+                        putInt("esSpeed", binding.slider.value.toInt())
+                    }
+                    utils.showMsg("速度设置成功")
+                    dialog.dismiss()
+                }
+
+            })
+    }
+
+    @Composable
+    fun ESFinishPositionOfLastWordItem(esFinishPositionOfLastWord: Float) {
+        val text = getESFinishPositionOfLastWordItemText(esFinishPositionOfLastWord)
+        BaseSettingItem(
+            "电显文字滚动结束时机",
+            text,
+            painterResource(id = R.drawable.switch2),
+            {
+                val binding = DialogSliderBinding.inflate(LayoutInflater.from(context))
+                val dialog = MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                ).setTitle("电显文字滚动结束时机").setView(binding.root)
+                    .setPositiveButton("确定", null)
+                    .setNegativeButton(getString(android.R.string.cancel), null).show()
+
+                binding.slider.contentDescription = "拖动以调整"
+                binding.slider.stepSize = 0.1F
+                binding.slider.valueFrom = 0.0F
+                binding.slider.valueTo = 1.0F
+                binding.slider.value = esFinishPositionOfLastWord
+
+                binding.es.finishPositionOfLastWord = esFinishPositionOfLastWord
+                binding.es.pixelMovePerSecond = utils.getEsSpeed()
+                binding.es.showText("请有序排队 文明乘车 桂林公交欢迎您", -1)
+
+                binding.text.visibility = ViewGroup.VISIBLE
+                binding.text.text = text
+
+//                utils.showMsg(eSSpeed.toString())
+                binding.slider.addOnChangeListener { slider, value, fromUser ->
+//                    Log.d(tag, "slider: $value")
+                    binding.es.finishPositionOfLastWord = value
+                    binding.text.text = getESFinishPositionOfLastWordItemText(value)
+                }
+
+                dialog.setCanceledOnTouchOutside(false)
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    prefs.edit {
+                        putFloat("esFinishPositionOfLastWord", binding.slider.value)
+                    }
+                    utils.showMsg("设置成功")
+                    dialog.dismiss()
+                }
+
+            })
+    }
+
+    fun getESFinishPositionOfLastWordItemText(esFinishPositionOfLastWord: Float): String {
+        return if (abs(esFinishPositionOfLastWord - 0.0F) < 0.0000000001)
+            "最后一个字滚动离开屏幕时"
+        else if (abs(esFinishPositionOfLastWord - 1.0F) < 0.0000000001) {
+            "最后一个字滚动进入屏幕时"
+        } else{
+            val numerator = (esFinishPositionOfLastWord * 10).toInt()
+            val denominator = 10
+            val pair = utils.simplifyFraction(numerator, denominator)
+            "最后一个字滚动到屏幕左边 ${pair.first} / ${pair.second} 处时结束"
+        }
+
+    }
+
+
 
 
 }

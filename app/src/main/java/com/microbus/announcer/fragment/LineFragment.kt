@@ -19,7 +19,7 @@ import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
-import com.microbus.announcer.databinding.AlertDialogLineInfoBinding
+import com.microbus.announcer.databinding.DialogLineInfoBinding
 import com.microbus.announcer.databinding.FragmentLineBinding
 
 
@@ -33,7 +33,7 @@ class LineFragment : Fragment() {
 
     private lateinit var lineDatabaseHelper: LineDatabaseHelper
 
-    private lateinit var alertBinding: AlertDialogLineInfoBinding
+    private lateinit var alertBinding: DialogLineInfoBinding
 
     private lateinit var utils: Utils
 
@@ -111,7 +111,7 @@ class LineFragment : Fragment() {
     }
 
     private fun addLine() {
-        alertBinding = AlertDialogLineInfoBinding.inflate(LayoutInflater.from(context))
+        alertBinding = DialogLineInfoBinding.inflate(LayoutInflater.from(context))
 
 //        val adapter = ArrayAdapter<String>(
 //            requireContext(),

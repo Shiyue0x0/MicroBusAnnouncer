@@ -22,7 +22,7 @@ import com.microbus.announcer.R
 
 
 @Suppress("DEPRECATION")
-class HeaderTextView : View {
+class ESView : View {
 
     private lateinit var paint: Paint
     private lateinit var shaderPaint: Paint
@@ -39,6 +39,10 @@ class HeaderTextView : View {
     private var paddingBottom by Delegates.notNull<Float>()
     private var cornerRadius by Delegates.notNull<Float>()
     private var fontFamily: String? = ""
+
+    var playId = 0
+
+    var loopCount = 0
 
     constructor(context: Context, attrs: AttributeSet) : super(
         context, attrs
@@ -172,17 +176,20 @@ class HeaderTextView : View {
             FloatArray(8) { cornerRadius },
             Path.Direction.CW
         )
+
+        scrollX = measuredWidth.toFloat() - paddingEnd
     }
 
     var frameCount = 0
-    var showTimeMs = Int.MAX_VALUE
+    var allFrameCount = 0
+    var minShowTimeMs = Int.MAX_VALUE
     val fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         context.display.refreshRate
     } else {
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         windowManager.defaultDisplay.refreshRate
     }
-    val speedPixelPerSecond = 100
+    var pixelMovePerSecond = 100
     var isShowFinish = false
     var scrollX = 0F
     val shaderWidth = 20f
@@ -211,7 +218,8 @@ class HeaderTextView : View {
         }
         // View宽度不足够容纳文本，轮播显示，羽化水平边缘
         else {
-            scrollX = width - (frameCount * speedPixelPerSecond / fps) - paddingEnd
+//            scrollX = width - (frameCount * speedPixelPerSecond / fps) - paddingEnd
+            scrollX -= pixelMovePerSecond / fps
             canvas.drawText(
                 text,
                 scrollX,
@@ -254,7 +262,8 @@ class HeaderTextView : View {
         }
     }
 
-
+    var finishPositionOfLastWord =
+        0.5F     // 文字滚动完毕的时机（通过最后一个字的位置来判定）。0：最后一个字进入屏幕时；0.5：最后一个字到达屏幕中央时；1：最后一个字离开屏幕时。
     var mainThreadRunning = true
     val mainThread = Thread {
         while (true) {
@@ -262,37 +271,50 @@ class HeaderTextView : View {
                 if (paint.measureText(text) > width) {
                     postInvalidate()
                 }
-
                 if (paint.measureText(text) <= width) {
-                    if (frameCount / fps * 1000 > showTimeMs) {
-                        isShowFinish = true
-                        if (this@HeaderTextView::scrollFinishCallback.isInitialized)
-                            scrollFinishCallback.onScrollFinish()
+                    isShowFinish = if (allFrameCount / fps * 1000 > minShowTimeMs) {
+                        true
+                    } else {
+                        false
                     }
                 } else {
-                    if (scrollX < -paint.measureText(text) + width / 2) {
+                    if (scrollX < -paint.measureText(text) + width * finishPositionOfLastWord &&
+                        allFrameCount / fps * 1000 > minShowTimeMs
+                    ) {
                         isShowFinish = true
-                        if (this@HeaderTextView::scrollFinishCallback.isInitialized)
-                            scrollFinishCallback.onScrollFinish()
+                    } else if (loopCount == 0) {
+                        isShowFinish = false
                     }
-                    if (scrollX < -paint.measureText(text) + width / 3) {
+                    if (scrollX < -paint.measureText(text) + width * finishPositionOfLastWord * 0.95) {
                         frameCount = 0
+                        scrollX = width.toFloat() - paddingEnd
+                        loopCount++
                     }
 
                 }
                 frameCount = (frameCount + 1) % Int.MAX_VALUE
+                allFrameCount = (allFrameCount + 1) % Int.MAX_VALUE
             }
 
             Thread.sleep((1000 / fps).toLong())
         }
     }
+    //                        if (this@HeaderTextView::scrollFinishCallback.isInitialized)
+    //                            scrollFinishCallback.onScrollFinish()
 
-    fun showText(textNew: String) {
+    fun showText(textNew: String, playId: Int) {
 
+        mainThreadRunning = false
+
+        this.playId = playId
         frameCount = 0
+        allFrameCount = 0
+        loopCount = 0
+        scrollX = width - paddingEnd
         isShowFinish = false
 
         setText(textNew)
+        mainThreadRunning = true
 
     }
 
@@ -308,5 +330,8 @@ class HeaderTextView : View {
         fun onScrollFinish()
     }
 
+    fun getText(): String {
+        return text
+    }
 
 }

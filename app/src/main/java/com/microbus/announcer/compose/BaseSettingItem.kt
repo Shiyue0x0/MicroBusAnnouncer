@@ -37,7 +37,9 @@ fun BaseSettingItem(
     icon: Painter? = null,
     clickFun: () -> Unit = {},
     isShowIcon: Boolean = true,
-    function: @Composable () -> Unit = {}
+    isCustomLeft: Boolean = false,
+    leftContain: @Composable () -> Unit = {},
+    rightContain: @Composable () -> Unit = {},
 ) {
 //        Surface(
 //            contentColor = colorResource(R.color.md_theme_onSurface),
@@ -54,7 +56,6 @@ fun BaseSettingItem(
             modifier = Modifier
                 .background(colorResource(R.color.an_contain_bg))
                 .padding(16.dp)
-
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -72,33 +73,37 @@ fun BaseSettingItem(
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    if (title != "") Text(
-                        title,
-                        fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
-                        fontSize = 16.sp
-                    )
-                    if (text != "") {
-                        val lines = text.split('\n')
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {  // 段间距
-                            for (line in lines) {
-                                Text(
-                                    text = line,
-                                    fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
-                                    color = colorResource(R.color.an_text_1),
-                                    fontSize = 14.sp,
-                                    style = LocalTextStyle.current.merge(
-                                        TextStyle(
-                                            lineHeight = 1.2.em,
-                                            platformStyle = PlatformTextStyle(
-                                                includeFontPadding = false
-                                            ),
-                                            lineHeightStyle = LineHeightStyle(
-                                                alignment = LineHeightStyle.Alignment.Center,
-                                                trim = LineHeightStyle.Trim.None
+                    if (isCustomLeft) {
+                        leftContain()
+                    } else {
+                        if (title != "") Text(
+                            title,
+                            fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
+                            fontSize = 16.sp
+                        )
+                        if (text != "") {
+                            val lines = text.split('\n')
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {  // 段间距
+                                for (line in lines) {
+                                    Text(
+                                        text = line,
+                                        fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
+                                        color = colorResource(R.color.an_text_1),
+                                        fontSize = 14.sp,
+                                        style = LocalTextStyle.current.merge(
+                                            TextStyle(
+                                                lineHeight = 1.2.em,
+                                                platformStyle = PlatformTextStyle(
+                                                    includeFontPadding = false
+                                                ),
+                                                lineHeightStyle = LineHeightStyle(
+                                                    alignment = LineHeightStyle.Alignment.Center,
+                                                    trim = LineHeightStyle.Trim.None
+                                                )
                                             )
                                         )
                                     )
-                                )
+                                }
                             }
                         }
                     }
@@ -107,7 +112,7 @@ fun BaseSettingItem(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.End,
                 ) {
-                    function()
+                    rightContain()
                 }
             }
         }
