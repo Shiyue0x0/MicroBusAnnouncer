@@ -81,14 +81,14 @@ Announcer的播报都是由若干个语句拼接而成的，而格式描述的�
 
 还有一些占位符，如下表所示。
 
-| 占位符      | 占位符    |
-|----------|--------|
-| <line>   | 当前路线名称 |
-| <time>   | 当前时间   |
-| <hour>   | 当前小时数  |
-| <hour>   | 当前分钟数  |
-| <second> | 当前秒数   |
-| <speed>  | 当前速度   |
+| 占位符        | 占位符    |
+|------------|--------|
+| `<line>`   | 当前路线名称 |
+| `<time>`   | 当前时间   |
+| `<hour>`   | 当前小时数  |
+| `<hour>`   | 当前分钟数  |
+| `<second>` | 当前秒数   |
+| `<speed>`  | 当前速度   |
 
 在`设置`-`语音播报库`中，可以自定义播报格式。
 
@@ -108,9 +108,13 @@ Announcer会按照播报格式在语音库中寻找对应的语音。
 
 假设当前站点为`桂林北站(Guilin North Station)`，语音库为`MicroBus`
 
-1. 对于`到了`，Announcer会在`Announcer/Media/MicroBus/cn/common``Announcer/Media/MicroBus/en/common`等文件夹中查找文件名为`到了`的音频文件并播报。（如果存在对应文件）
+1. 对于`到了`，Announcer会在`Announcer/Media/MicroBus/cn/common``Announcer/Media/MicroBus/en/common`
+   等文件夹中查找文件名为`到了`的音频文件并播报。（如果存在对应文件）
 
-2. 对于`<nsen>`，Announcer会在`Announcer/Media/MicroBus/en/station`中查找文件名为`Guilin North Station`的音频文件。 此时文件夹中如果存在`Guilin North Station.wav``Guilin North Station.mp3``Guilin North Station.ogg`或者其他格式的音频文件，就会被Announcer读取并播报。
+2. 对于`<nsen>`，Announcer会在`Announcer/Media/MicroBus/en/station`中查找文件名为
+   `Guilin North Station`的音频文件。 此时文件夹中如果存在 `Guilin North Station.wav` 
+   `Guilin North Station.mp3` `Guilin North Station.ogg`
+   或者其他格式的音频文件，就会被Announcer读取并播报。
 
 尽管对于常规语句，Announcer会不区分语种地进行查找，但还是建议您按语种存放音频文件。
 
