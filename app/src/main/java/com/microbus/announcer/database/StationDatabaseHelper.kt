@@ -22,7 +22,7 @@ class StationDatabaseHelper(
                 "enName VARCHAR NOT NULL," +
                 "longitude DOUBLE NOT NULL," +
                 "latitude DOUBLE NOT NULL," +
-                "type VARCHAR DEFAULT '');"
+                "type VARCHAR DEFAULT 'B');"
         db!!.execSQL(sql)
         Log.d(tag, "已创建表 $tableName")
     }
@@ -38,8 +38,8 @@ class StationDatabaseHelper(
         val result = readableDatabase.insert(tableName, null, values)
         if (result > 0)
             Log.d(tag, "已添加站点 ${station.cnName}")
-        else{
-            Log.d(tag, "添加失败，返回码 ${result}")
+        else {
+            Log.d(tag, "添加失败，返回码 $result")
         }
         return result
     }
@@ -70,14 +70,15 @@ class StationDatabaseHelper(
             station.enName = cursor.getString(2)
             station.longitude = cursor.getDouble(3)
             station.latitude = cursor.getDouble(4)
-            station.type = cursor.getString(5)
+            if (!cursor.isNull(5))
+                station.type = cursor.getString(5)
             list.add(station)
         }
         cursor.close()
         return list
     }
 
-    fun quertByName(name: String): List<Station> {
+    fun queryByName(name: String): List<Station> {
         val list: MutableList<Station> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
@@ -98,14 +99,15 @@ class StationDatabaseHelper(
             station.enName = cursor.getString(2)
             station.longitude = cursor.getDouble(3)
             station.latitude = cursor.getDouble(4)
-            station.type = cursor.getString(5)
+            if (!cursor.isNull(5))
+                station.type = cursor.getString(5)
             list.add(station)
         }
         cursor.close()
         return list
     }
 
-    fun quertByKey(key: String): List<Station> {
+    fun queryByKey(key: String): List<Station> {
         val list: MutableList<Station> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
@@ -127,14 +129,15 @@ class StationDatabaseHelper(
             station.enName = cursor.getString(2)
             station.longitude = cursor.getDouble(3)
             station.latitude = cursor.getDouble(4)
-            station.type = cursor.getString(5)
+            if (!cursor.isNull(5))
+                station.type = cursor.getString(5)
             list.add(station)
         }
         cursor.close()
         return list
     }
 
-    fun quertAll(): MutableList<Station> {
+    fun queryAll(): MutableList<Station> {
         val list: MutableList<Station> = ArrayList()
         val cursor: Cursor = readableDatabase.query(tableName, null, null, null, null, null, null)
         while (cursor.moveToNext()) {
@@ -144,7 +147,8 @@ class StationDatabaseHelper(
             station.enName = cursor.getString(2)
             station.longitude = cursor.getDouble(3)
             station.latitude = cursor.getDouble(4)
-            station.type = cursor.getString(5)
+            if (!cursor.isNull(5))
+                station.type = cursor.getString(5)
             list.add(station)
         }
         cursor.close()

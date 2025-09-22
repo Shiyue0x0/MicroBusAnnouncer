@@ -21,7 +21,8 @@ class LineDatabaseHelper(
                 "name VARCHAR NOT NULL," +
                 "upLineStation VARCHAR NOT NULL," +
                 "downLineStation VARCHAR NOT NULL," +
-                "isUpAndDownInvert BOOLEAN NOT NULL);"
+                "isUpAndDownInvert BOOLEAN NOT NULL," +
+                "type VARCHAR DEFAULT 'B');"
         db!!.execSQL(sql)
         Log.d(tag, "已创建表 $tableName")
     }
@@ -32,6 +33,7 @@ class LineDatabaseHelper(
         values.put("upLineStation", line.upLineStation)
         values.put("downLineStation", line.downLineStation)
         values.put("isUpAndDownInvert", line.isUpAndDownInvert)
+        values.put("type", line.type)
 
         val result = readableDatabase.insert(tableName, null, values)
         if (result > 0)
@@ -44,7 +46,7 @@ class LineDatabaseHelper(
         writableDatabase.execSQL(sql)
     }
 
-    fun quertByName(name: String): List<Line> {
+    fun queryByName(name: String): List<Line> {
         val list: MutableList<Line> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
@@ -65,15 +67,49 @@ class LineDatabaseHelper(
             line.upLineStation = cursor.getString(2)
             line.downLineStation = cursor.getString(3)
             line.isUpAndDownInvert = cursor.getString(4) == "true"
+            if (!cursor.isNull(5))
+                line.type = cursor.getString(5)
+            else
+                line.type = "B"
             list.add(line)
         }
         cursor.close()
         return list
     }
 
-    fun quertByCount(count: Int): List<Line> {
+    fun queryById(id: Int): List<Line> {
         val list: MutableList<Line> = ArrayList()
-        val limitStr = "1 offset " + (count - 1)
+        // 执行记录查询动作，该语句返回结果集的游标
+        val cursor: Cursor =
+            readableDatabase.query(
+                tableName,
+                null,
+                "id=?",
+                arrayOf(id.toString()),
+                null,
+                null,
+                null
+            )
+        // 循环取出游标指向的每条记录
+        while (cursor.moveToNext()) {
+            val line = Line()
+            line.id = cursor.getInt(0)
+            line.name = cursor.getString(1)
+            line.upLineStation = cursor.getString(2)
+            line.downLineStation = cursor.getString(3)
+            line.isUpAndDownInvert = cursor.getString(4) == "true"
+            if (!cursor.isNull(5))
+                line.type = cursor.getString(5)
+            else
+                line.type = "B"
+            list.add(line)
+        }
+        cursor.close()
+        return list
+    }
+
+    fun queryByCount(count: Int): List<Line> {
+        val list: MutableList<Line> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
             readableDatabase.query(
@@ -94,6 +130,10 @@ class LineDatabaseHelper(
             line.upLineStation = cursor.getString(2)
             line.downLineStation = cursor.getString(3)
             line.isUpAndDownInvert = cursor.getString(4) == "true"
+            if (!cursor.isNull(5))
+                line.type = cursor.getString(5)
+            else
+                line.type = "B"
             list.add(line)
         }
         cursor.close()
@@ -103,7 +143,7 @@ class LineDatabaseHelper(
     /**
      * 返回所有路线(按路线名排序)
      */
-    fun quertAll(): MutableList<Line> {
+    fun queryAll(): MutableList<Line> {
         val list: MutableList<Line> = ArrayList()
         val cursor: Cursor = readableDatabase.query(tableName, null, null, null, null, null, "name")
         while (cursor.moveToNext()) {
@@ -113,6 +153,10 @@ class LineDatabaseHelper(
             line.upLineStation = cursor.getString(2)
             line.downLineStation = cursor.getString(3)
             line.isUpAndDownInvert = cursor.getString(4) == "true"
+            if (!cursor.isNull(5))
+                line.type = cursor.getString(5)
+            else
+                line.type = "B"
             list.add(line)
         }
         cursor.close()
@@ -122,7 +166,7 @@ class LineDatabaseHelper(
     fun updateById(id: Int, line: Line) {
         val sql =
             "update $tableName set name = '${line.name}', upLineStation = '${line.upLineStation}', " +
-                    "downLineStation = '${line.downLineStation}', isUpAndDownInvert = '${line.isUpAndDownInvert}' " +
+                    "downLineStation = '${line.downLineStation}', isUpAndDownInvert = '${line.isUpAndDownInvert}', type = '${line.type}' " +
                     "where id = $id;"
         writableDatabase.execSQL(sql)
     }
@@ -149,6 +193,10 @@ class LineDatabaseHelper(
             line.upLineStation = cursor.getString(2)
             line.downLineStation = cursor.getString(3)
             line.isUpAndDownInvert = cursor.getString(4) == "true"
+            if (!cursor.isNull(5))
+                line.type = cursor.getString(5)
+            else
+                line.type = "B"
             list.add(line)
         }
         cursor.close()

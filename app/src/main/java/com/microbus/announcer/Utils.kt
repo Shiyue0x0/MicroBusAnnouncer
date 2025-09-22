@@ -1,20 +1,25 @@
 package com.microbus.announcer
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.Build
 import android.os.CountDownTimer
 import android.os.Environment
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
+import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.os.LocaleListCompat
 import androidx.preference.PreferenceManager
@@ -46,12 +51,12 @@ import kotlin.math.sqrt
 class Utils(private val context: Context) {
 
     var tag: String = javaClass.simpleName
-
     private var prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-
     private val appRootPath =
         Environment.getExternalStorageDirectory().absolutePath + "/Announcer"
 
+    val tryListeningAnActionName = "com.microbus.announcer.try_listening_an"
+    val switchLineActionName = "com.microbus.announcer.switch_line"
 
     /**
      * Toast提示
@@ -87,12 +92,12 @@ class Utils(private val context: Context) {
     }
 
 
-    /**
-     * 从设置中获取默认路线名称
-     */
-    fun getDefaultLineName(): String {
-        return prefs.getString("defaultLineName", "")!!
-    }
+//    /**
+//     * 从设置中获取默认路线名称
+//     */
+//    fun getDefaultLineName(): String {
+//        return prefs.getString("defaultLineName", "")!!
+//    }
 
     /**
      * 从设置中获取是否显示底部导航栏
@@ -133,13 +138,6 @@ class Utils(private val context: Context) {
     }
 
     /**
-     * 从设置中获取路线头牌刷新间隔（秒）
-     */
-    fun getLineHeadCardChangeTime(): Int {
-        return prefs.getString("lineHeadCardChangeTime", "5")!!.toInt()
-    }
-
-    /**
      * 从设置中获取点击地图是否复制经纬度
      */
     fun getIsClickMapToCopyLngLat(): Boolean {
@@ -165,7 +163,7 @@ class Utils(private val context: Context) {
      * 从设置中获取是否自动切换路线方向
      */
     fun getIsAutoSwitchLineDirection(): Boolean {
-        return prefs.getBoolean("AutoSwitchLineDirection", true)
+        return prefs.getBoolean("autoSwitchLineDirection", true)
     }
 
     /**
@@ -176,23 +174,38 @@ class Utils(private val context: Context) {
     }
 
     /**
-     * 从设置中获取定位间隔（毫秒）
+     * 根据路线类型获取进站范围半径
+     * @param type 路线类型：C社区|B公交|U地铁|T火车
      */
-    fun getLocationInterval(): Int {
-        return prefs.getString("locationInterval", "2500")!!.toInt()
+    fun getStationRangeByLineType(type: String): Float {
+        val default = when (type) {
+            "C" -> 20F
+            "B" -> 30F
+            "U" -> 300F
+            "T" -> 500F
+            else -> 30F
+        }
+        return prefs.getFloat("${type}LineStationRange", default)
     }
 
     /**
-     * 从设置中获取欢迎信息
-     * @param index 0:左侧信息 1：右侧信息
+     * 根据路线类型设置进站范围半径
+     * @param type 路线类型：C社区|B公交|U地铁|T火车
+     * @param range 半径
      */
-    fun getWelInfo(index: Int): String {
-        return when (index) {
-            0 -> prefs.getString("welInfoLeft", "MicroBus")!!
-            1 -> prefs.getString("welInfoRight", "Announcer")!!
-            else -> ""
+    fun setStationRangeByLineType(type: String, range: Float) {
+        prefs.edit {
+            putFloat("${type}LineStationRange", range)
         }
     }
+
+    /**
+     * 从设置中获取定位间隔（毫秒）
+     */
+    fun getLocationInterval(): Int {
+        return prefs.getInt("locationInterval", 2500)
+    }
+
 
     /**
      * 从设置中获取头屏显示信息
@@ -238,6 +251,10 @@ class Utils(private val context: Context) {
      */
     fun getIsUseTTS(): Boolean {
         return prefs.getBoolean("useTTS", true)
+    }
+
+    fun getIsStationChangeVibrator(): Boolean {
+        return prefs.getBoolean("stationChangeVibrator", true)
     }
 
     /**
@@ -525,11 +542,11 @@ class Utils(private val context: Context) {
 
     /**
      * 从设置中获取报站表达式
+     * @param stationState （Next：下一站）（WillArrive：即将到站）（Arrive：进站
      * @param stationType （Default：常规站）（Second：第二站）（Starting：起点站）（Terminal：终点站）
-     * @param stationState （Next：下一站）（WillArrive：即将到站）（Arrive：进站）
      * @return 相应的报站表达式。如果stationType不为Default，且没有查询到填写值，则返回Default的值
      */
-    fun getAnnouncementFormat(stationType: String, stationState: String): String {
+    fun getAnnouncementFormat(stationState: String, stationType: String): String {
 
         loadAnnouncementFormatFromConfig()
 
@@ -542,7 +559,7 @@ class Utils(private val context: Context) {
     }
 
     /**
-     * 从表达式中提取报站内容
+     * 从表达式中提取报站内容（分词器）
      * @param exp 报站表达式
      * @return 提取后的列表，如果表达式不合法，返回["ERROR", "不合法的内容"]
      */
@@ -558,13 +575,16 @@ class Utils(private val context: Context) {
             keywordList.add("<ns$lang>")
             keywordList.add("<ss$lang>")
             keywordList.add("<ts$lang>")
+            keywordList.add("<ms$lang>")
         }
+//        Log.d(tag, exp)
 
         for (item in itemList) {
+//            Log.d(tag, item)
             if (keywordList.contains(item)) {
                 anList.add(item)
             } else {
-                if (itemRegex.matches(item) && item != "") {
+                if ((itemRegex.matches(item) && item != "") || item.substring(1, 3) == "ms") {
                     anList.add(item)
                 } else {
                     return ArrayList(listOf("ERROR", item))
@@ -653,15 +673,32 @@ class Utils(private val context: Context) {
     }
 
     fun isGrantManageFilesAccessPermission(): Boolean {
-        return !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager())
-    }
-
-    fun getStationTypeList(): List<String> {
-        return listOf("Default", "Starting", "Second", "Terminal")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return Environment.isExternalStorageManager()
+        } else {
+            val perms = listOf(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_PHONE_STATE
+            )
+            for (p in perms) {
+                if (ContextCompat.checkSelfPermission(
+                        context,
+                        p
+                    ) != PackageManager.PERMISSION_GRANTED
+                )
+                    return false
+            }
+            return true
+        }
     }
 
     fun getStationStateList(): List<String> {
         return listOf("Next", "WillArrive", "Arrive")
+    }
+
+    fun getStationTypeList(): List<String> {
+        return listOf("Default", "Starting", "Second", "Terminal")
     }
 
     fun loadAnnouncementFormatFromConfig() {
@@ -672,6 +709,7 @@ class Utils(private val context: Context) {
 
         // 读取config.json
         val configFile = File("$appRootPath/Media/${getAnnouncementLibrary()}/config.json")
+
         if (!configFile.exists()) {
             copyDefaultConfig()
         }
@@ -733,11 +771,15 @@ class Utils(private val context: Context) {
 
         val dir = File("$appRootPath/Media/${getAnnouncementLibrary()}")
         val outputFile = File("${dir.path}/config.json")
+
+        Log.d(tag, "$appRootPath/Media/${getAnnouncementLibrary()}")
+
         if (!dir.exists()) {
             dir.mkdirs()
         }
-        if (outputFile.exists()) {
-            return
+
+        if (!outputFile.exists()) {
+            outputFile.mkdirs()
         }
 
         val defaultJsonIS = context.resources.openRawResource(R.raw.announcement_default_config)
@@ -760,15 +802,20 @@ class Utils(private val context: Context) {
     }
 
     fun showRequestLocationPermissionDialog(permissionManager: PermissionManager) {
-        MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
-            .setTitle("要启用定位服务吗？")
-            .setMessage("需要位置权限用于自动报站")
-            .setPositiveButton(context.getString(R.string.request_manage_files_access_permission_to_grant)) { _, _ ->
-                permissionManager.requestLocationPermission()
-            }
-            .setNegativeButton(context.getString(android.R.string.cancel), null)
-            .create()
-            .show()
+        try {
+            MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
+                .setTitle("要启用定位服务吗？")
+                .setMessage("需要位置权限用于自动报站")
+                .setPositiveButton(context.getString(R.string.request_manage_files_access_permission_to_grant)) { _, _ ->
+                    permissionManager.requestLocationPermission()
+                }
+                .setNegativeButton(context.getString(android.R.string.cancel), null)
+                .create()
+                .show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
     }
 
 
@@ -796,29 +843,9 @@ class Utils(private val context: Context) {
 
         val keywordList = getEsKeywordList()
         val numReg = Regex("^[1-9]\\d*$")
-        val typeList = listOf("C", "N", "W", "A", "B", "S", "T")
-        var typeListStr = ""
-        for (type in typeList) {
-            typeListStr += type
-        }
+
         for (i in lines.indices) {
             val items = lines[i].split('|')
-
-//            val items = ArrayList<String>()
-//            for (charI in lines[i].indices) {
-//                var line = ""
-//                if (lines[i][charI] == '\\') {
-//                    if (charI < lines[i].length - 1 && lines[i][charI + 1] == '|') {
-//                        line += lines[i][charI]
-//                    } else {
-//                        items.add(line)
-//                        continue
-//                    }
-//                } else {
-//                    line += lines[i][charI]
-//                }
-//                items.add(line)
-//            }
 
             if (items.size != 4) {
                 esList.clear()
@@ -846,11 +873,11 @@ class Utils(private val context: Context) {
                     }
                     // 检查内容类型
                     else if (j == 3) {
-                        if (!typeList.contains(items[j])) {
+                        if (!items[j].contains(Regex("[DNWASCTBR]"))) {
                             esList.clear()
                             esList.add(
                                 EsItem(
-                                    "第${i + 1}行内容类型需选填${typeListStr}其一",
+                                    "第${i + 1}行内容类型需选填DNWASCTBR其一",
                                     "请前往设置修改",
                                     -1
                                 )
@@ -889,11 +916,11 @@ class Utils(private val context: Context) {
     }
 
     fun getEsSpeed(): Int {
-        return prefs.getInt("esSpeed", 100)
+        return prefs.getInt("esSpeed", 150)
     }
 
     fun getEsFinishPositionOfLastWord(): Float {
-        return prefs.getFloat("esFinishPositionOfLastWord", 0.5F)
+        return prefs.getFloat("esFinishPositionOfLastWord", 0F)
     }
 
     fun getLibVoiceCount(lang: String): Int {
@@ -948,13 +975,23 @@ class Utils(private val context: Context) {
         return x
     }
 
-    // 扩展函数，获取整数的绝对值
-    fun Int.absoluteValue(): Int = if (this < 0) -this else this
 
     fun getIfDarkMode(): Boolean {
         val nightModeFlags: Int =
             context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         return nightModeFlags == Configuration.UI_MODE_NIGHT_YES
+    }
+
+    fun dp2px(dp: Float): Int {
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            dp, Resources.getSystem().displayMetrics
+        ).toInt()
+    }
+
+    fun extractNWA(reg: Regex, input: String): String {
+        return reg.findAll(input)
+            .joinToString("") { it.value }
     }
 }
 

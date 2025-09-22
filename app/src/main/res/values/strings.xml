@@ -4,6 +4,8 @@
     <string name="up_stations">上行站点</string>
     <string name="down_stations">下行站点</string>
     <string name="down_stations_helper">填入站点id，以空格分隔</string>
+    <string name="line_type">路线类型(C社区|B公交|U地铁|T火车)</string>
+
 
     <string name="main_line_0">-</string>
     <string name="main_staring_station_name">MicroBus</string>
@@ -64,7 +66,7 @@
     <string name="input_line_name">搜索要运行的路线</string>
     <string name="cn_name">中文名称</string>
     <string name="en_name">英文名称</string>
-    <string name="line_type">站点类型（B公交|T火车|C社区|U地铁）</string>
+    <string name="station_type">站点类型(C社区|B公交|U地铁|T火车)</string>
     <string name="station_longitude">站点经度</string>
     <string name="station_latitude">站点纬度</string>
     <string name="nav_main">主控</string>

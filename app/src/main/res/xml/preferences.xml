@@ -75,16 +75,16 @@
     </PreferenceCategory>
 
     <PreferenceCategory app:title="定位">
-        <EditTextPreference
-            app:defaultValue="30"
-            app:key="arriveStationDistance"
-            app:title="站点判定距离（米）"
-            app:useSimpleSummaryProvider="true" />
-        <EditTextPreference
-            app:defaultValue="2500"
-            app:key="locationInterval"
-            app:title="定位间隔（毫秒）"
-            app:useSimpleSummaryProvider="true" />
+<!--        <EditTextPreference-->
+<!--            app:defaultValue="30"-->
+<!--            app:key="arriveStationDistance"-->
+<!--            app:title="站点判定距离（米）"-->
+<!--            app:useSimpleSummaryProvider="true" />-->
+<!--        <EditTextPreference-->
+<!--            app:defaultValue="2500"-->
+<!--            app:key="locationInterval"-->
+<!--            app:title="定位间隔（毫秒）"-->
+<!--            app:useSimpleSummaryProvider="true" />-->
         <SwitchPreferenceCompat
             app:defaultValue="true"
             app:key="highPrecisionLocation"
@@ -98,7 +98,7 @@
             app:useSimpleSummaryProvider="true" />
         <SwitchPreferenceCompat
             app:defaultValue="true"
-            app:key="AutoSwitchLineDirection"
+            app:key="autoSwitchLineDirection"
             app:title="自动切换路线方向"
             app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>

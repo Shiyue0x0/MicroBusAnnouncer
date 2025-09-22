@@ -101,7 +101,7 @@ internal class StationAdapter(
         // LineViewHolder
         if (position == 0) {
             val holder = holder as StationHeaderViewHolder
-            holder.title.text = "查找到站点：${stationList.size}个"
+            holder.title.text = "查找到站点 ${stationList.size}个"
         }
         // ItemLineHeaderHolder
         else {

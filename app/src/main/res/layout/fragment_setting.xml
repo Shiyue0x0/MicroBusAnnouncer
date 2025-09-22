@@ -32,7 +32,7 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:tag="sysAndLoc"
+            android:tag="sysAndEs"
             android:text="系统与电显" />
 
         <com.google.android.material.tabs.TabItem
@@ -44,14 +44,20 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:tag="mapAndEs"
-            android:text="地图与定位" />
+            android:tag="mapAndLocation"
+            android:text="定位与地图" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:tag="dateAndAbout"
             android:text="数据与关于" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:tag="oldSetting"
+            android:text="旧版设置" />
 
     </com.google.android.material.tabs.TabLayout>
 

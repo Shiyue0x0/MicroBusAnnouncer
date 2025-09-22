@@ -1,5 +1,6 @@
 package com.microbus.announcer.compose
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +19,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -34,10 +37,11 @@ import com.microbus.announcer.R
 fun BaseSettingItem(
     title: String = "",
     text: String = "",
-    icon: Painter? = null,
+    painter: Painter? = null,
     clickFun: () -> Unit = {},
     isShowIcon: Boolean = true,
     isCustomLeft: Boolean = false,
+    isIcon: Boolean = true,
     leftContain: @Composable () -> Unit = {},
     rightContain: @Composable () -> Unit = {},
 ) {
@@ -49,7 +53,7 @@ fun BaseSettingItem(
         modifier = Modifier
 //                        .padding(16.dp, 0.dp, 16.dp, 8.dp)
             .clip(RoundedCornerShape(24.dp))
-            .clickable() {
+            .clickable {
                 clickFun()
             }) {
         Column(
@@ -62,12 +66,21 @@ fun BaseSettingItem(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (isShowIcon) Column {
-                    if (icon != null) {
-                        Icon(
-                            painter = icon,
-                            contentDescription = title,
-                            modifier = Modifier.height(24.dp)
-                        )
+                    if (painter != null) {
+                        if (isIcon)
+                            Icon(
+                                painter = painter,
+                                contentDescription = title,
+                                modifier = Modifier.height(24.dp)
+                            )
+                        else
+                            Image(
+                                painter = painter,
+                                contentDescription = stringResource(id = R.string.app_name),
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .shadow(elevation = 2.dp, shape = RoundedCornerShape(8.dp))
+                            )
                     } else {
                         Spacer(modifier = Modifier.width(24.dp))
                     }

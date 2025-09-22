@@ -1,13 +1,11 @@
 package com.microbus.announcer.fragment
 
 import android.app.Activity.RESULT_OK
-import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.DocumentsContract
@@ -24,7 +22,6 @@ import androidx.preference.SwitchPreferenceCompat
 import com.microbus.announcer.MainActivity
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
-import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import java.io.BufferedReader
 import java.io.File
@@ -63,20 +60,20 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
 
 
-        //默认路线名称
-        val defaultLinePreference: EditTextPreference? = findPreference("defaultLineName")
-        defaultLinePreference?.setOnPreferenceChangeListener { _, newValue ->
-            val lineDatabaseHelper = LineDatabaseHelper(requireContext())
-            if (lineDatabaseHelper.quertByName(newValue.toString())
-                    .isNotEmpty() || newValue == ""
-            ) {
-                utils.showMsg("设置成功")
-                true
-            } else {
-                utils.showMsg("路线不存在")
-                false
-            }
-        }
+//        //默认路线名称
+//        val defaultLinePreference: EditTextPreference? = findPreference("defaultLineName")
+//        defaultLinePreference?.setOnPreferenceChangeListener { _, newValue ->
+//            val lineDatabaseHelper = LineDatabaseHelper(requireContext())
+//            if (lineDatabaseHelper.quertByName(newValue.toString())
+//                    .isNotEmpty() || newValue == ""
+//            ) {
+//                utils.showMsg("设置成功")
+//                true
+//            } else {
+//                utils.showMsg("路线不存在")
+//                false
+//            }
+//        }
 
         //显示底部导航栏
         val showBottomBarPreference: SwitchPreferenceCompat? = findPreference("showBottomBar")
@@ -100,32 +97,32 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
             }
 
         //站点判定距离
-        val arriveStationDistancePreference: EditTextPreference =
-            findPreference("arriveStationDistance")!!
-        arriveStationDistancePreference.setOnBindEditTextListener { editText ->
-            editText.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-            editText.setSelection(editText.text.length)
-        }
-
-        arriveStationDistancePreference.setOnPreferenceChangeListener { _, newValue ->
-            true
-        }
+//        val arriveStationDistancePreference: EditTextPreference =
+//            findPreference("arriveStationDistance")!!
+//        arriveStationDistancePreference.setOnBindEditTextListener { editText ->
+//            editText.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+//            editText.setSelection(editText.text.length)
+//        }
+//
+//        arriveStationDistancePreference.setOnPreferenceChangeListener { _, newValue ->
+//            true
+//        }
 
 
         //定位间隔（毫秒）
-        val locationIntervalPreference: EditTextPreference? =
-            findPreference("locationInterval")
-        locationIntervalPreference?.setOnBindEditTextListener { editText ->
-            editText.inputType = InputType.TYPE_CLASS_NUMBER
-            editText.setSelection(editText.text.length)
-        }
-        locationIntervalPreference!!.setOnPreferenceChangeListener { _, newValue ->
-            if (newValue.toString().toInt() < 1000) {
-                utils.showMsg("定位间隔不能低于1000毫秒")
-                false
-            } else
-                true
-        }
+//        val locationIntervalPreference: EditTextPreference? =
+//            findPreference("locationInterval")
+//        locationIntervalPreference?.setOnBindEditTextListener { editText ->
+//            editText.inputType = InputType.TYPE_CLASS_NUMBER
+//            editText.setSelection(editText.text.length)
+//        }
+//        locationIntervalPreference!!.setOnPreferenceChangeListener { _, newValue ->
+//            if (newValue.toString().toInt() < 1000) {
+//                utils.showMsg("定位间隔不能低于1000毫秒")
+//                false
+//            } else
+//                true
+//        }
 
 
         //路线头牌刷新间隔
@@ -229,7 +226,7 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
             }
 
             val stationDatabaseHelper = StationDatabaseHelper(requireContext())
-            val stationList = stationDatabaseHelper.quertAll()
+            val stationList = stationDatabaseHelper.queryAll()
 
             val stationVoiceCnLostList = ArrayList<String>()
             val stationVoiceEnLostList = ArrayList<String>()

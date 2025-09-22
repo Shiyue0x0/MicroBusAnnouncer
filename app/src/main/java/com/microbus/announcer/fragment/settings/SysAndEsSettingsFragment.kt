@@ -40,6 +40,7 @@ import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.MainActivity
+import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.compose.BaseSettingItem
@@ -53,6 +54,7 @@ class SysAndEsSettingsFragment : Fragment() {
 
     lateinit var utils: Utils
     private lateinit var prefs: SharedPreferences
+    private lateinit var permissionManager: PermissionManager
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -60,6 +62,7 @@ class SysAndEsSettingsFragment : Fragment() {
 
         utils = Utils(requireContext())
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        permissionManager = PermissionManager(requireContext(), requireActivity())
 
         val composeView = ComposeView(requireContext())
 
@@ -73,6 +76,7 @@ class SysAndEsSettingsFragment : Fragment() {
             layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
             composeView.setLayoutParams(layoutParams)
         }
+
 
         return composeView
     }
@@ -91,6 +95,10 @@ class SysAndEsSettingsFragment : Fragment() {
 
         val (nav, setNav) = remember {
             mutableStateOf(utils.getIsShowBottomBar())
+        }
+
+        val (isSeedNotice, setIsSeedNotice) = remember {
+            mutableStateOf(utils.getIsSeedNotice())
         }
 
         val (esText, setEsText) = remember {
@@ -123,6 +131,7 @@ class SysAndEsSettingsFragment : Fragment() {
                     "lang" -> setLang(prefs.getString(key, "") ?: "")
                     "city" -> setCity(prefs.getString(key, "") ?: "")
                     "showBottomBar" -> setNav(prefs.getBoolean(key, true))
+                    "setIsSeedNotice" -> setNav(prefs.getBoolean(key, true))
                     "esText" -> setEsText(prefs.getString(key, "") ?: "")
                     "esNextWord" -> setEsNextWord(prefs.getString(key, "") ?: "")
                     "esWillArriveWord" -> setEsWillArriveWord(prefs.getString(key, "") ?: "")
@@ -157,6 +166,7 @@ class SysAndEsSettingsFragment : Fragment() {
                         UiLangItem(lang)
                         CityNameItem(city)
                         NavItem(nav, setNav)
+                        IsSeedNoticeItem(isSeedNotice, setIsSeedNotice)
                         ESTextItem(esText)
                         ESSpeedItem(esSpeed)
                         ESFinishPositionOfLastWordItem(esFinishPositionOfLastWord)
@@ -253,6 +263,28 @@ class SysAndEsSettingsFragment : Fragment() {
     }
 
     @Composable
+    fun IsSeedNoticeItem(value: Boolean, setValue: (Boolean) -> Unit) {
+        BaseSettingItem(
+            "路线运行通知", "出站/即将到站/到站时发送通知", painterResource(id = R.drawable.notice), {
+                toggleIsSeedNotice(value, setValue, !value)
+            }, rightContain = {
+                SwitchSettingItem(value) {
+                    toggleIsSeedNotice(value, setValue, it)
+                }
+            })
+    }
+
+    fun toggleIsSeedNotice(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
+        setValue(it)
+        prefs.edit {
+            putBoolean("notice", it)
+        }
+        if (it) {
+            permissionManager.requestNoticePermission()
+        }
+    }
+
+    @Composable
     fun ESTextItem(eSText: String) {
         BaseSettingItem(
             "电显内容", eSText, painterResource(id = R.drawable.text), {
@@ -296,7 +328,6 @@ class SysAndEsSettingsFragment : Fragment() {
 
     @Composable
     fun EsKeywordItemGroup(esNextWord: String, esWillArriveWord: String, esArriveWord: String) {
-
         Column {
             Text(
                 "电显提示词",
@@ -462,7 +493,7 @@ class SysAndEsSettingsFragment : Fragment() {
             "最后一个字滚动离开屏幕时"
         else if (abs(esFinishPositionOfLastWord - 1.0F) < 0.0000000001) {
             "最后一个字滚动进入屏幕时"
-        } else{
+        } else {
             val numerator = (esFinishPositionOfLastWord * 10).toInt()
             val denominator = 10
             val pair = utils.simplifyFraction(numerator, denominator)
@@ -470,8 +501,6 @@ class SysAndEsSettingsFragment : Fragment() {
         }
 
     }
-
-
 
 
 }

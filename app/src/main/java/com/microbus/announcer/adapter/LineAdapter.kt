@@ -2,6 +2,7 @@ package com.microbus.announcer.adapter
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,6 +19,7 @@ import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogLineInfoBinding
 import com.microbus.announcer.databinding.ItemLineBinding
 import androidx.core.content.edit
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.databinding.ItemLineHeaderBinding
@@ -36,7 +38,7 @@ class LineAdapter(
     val commonView = 0
     val headerView = 1
 
-    var allLineList = lineDatabaseHelper.quertAll()
+    var allLineList = lineDatabaseHelper.queryAll()
 
     init {
         setHasStableIds(true)
@@ -120,7 +122,7 @@ class LineAdapter(
         // LineViewHolder
         if (position == 0) {
             val holder = holder as LineHeaderViewHolder
-            holder.title.text = "本地路线：${allLineList.size}条"
+            holder.title.text = "本地路线 ${allLineList.size}条"
         }
         // ItemLineHeaderHolder
         else {
@@ -136,6 +138,14 @@ class LineAdapter(
                 val stationRes = stationDatabaseHelper.queryById(stationStrIndexList[i].toInt())
                 if (stationRes.isNotEmpty())
                     stationList.add(stationRes[0])
+                else
+                    stationList.add(
+                        Station(
+                            id = Int.MAX_VALUE,
+                            cnName = "未知站点",
+                            enName = "unknown"
+                        )
+                    )
             }
 
             holder.line = line
@@ -146,8 +156,8 @@ class LineAdapter(
                 holder.lineStartingStation.text = stationList.first().cnName
                 holder.lineTerminal.text = stationList.last().cnName
             } else {
-                holder.lineStartingStation.text = "-"
-                holder.lineTerminal.text = "-"
+                holder.lineStartingStation.text = "未知站点"
+                holder.lineTerminal.text = "未知站点"
             }
 
             val linearLayoutManager =
@@ -159,13 +169,21 @@ class LineAdapter(
             holder.lineStationList.adapter = stationOfLineAdapter
             stationOfLineAdapterList.add(stationOfLineAdapter)
 
-            //点击站点显示信息
+            //点击站点显示信息，并播报中英文
             stationOfLineAdapter.setOnItemClickListener(object :
                 StationOfLineAdapter.OnItemClickListener {
                 override fun onItemClick(view: View?, position: Int) {
+
                     val station = stationList[position]
                     utils.showMsg("${station.cnName}[${station.id}]\n${station.enName}")
                     utils.haptic(holder.lineStationList)
+
+                    val intent = Intent()
+                        .setAction(utils.tryListeningAnActionName)
+                        .putExtra("format", "<mscn${station.id}>|<msen${station.id}>")
+                    LocalBroadcastManager.getInstance(context)
+                        .sendBroadcast(intent)
+
                 }
             })
 
@@ -196,6 +214,7 @@ class LineAdapter(
                     val name = binding.editTextName.text.toString()
                     var upLineStation = binding.editTextUpLineStation.text.toString()
                     var downLineStation = binding.editTextDownLineStation.text.toString()
+                    val lineType = binding.editTextType.text.toString()
 //                val isUpAndDownInvert = binding.editTextIsUpAndDownInvert.isChecked
 
                     if (name == "") {
@@ -210,6 +229,11 @@ class LineAdapter(
                         )
                     ) {
                         utils.showMsg("路线站点未填写或格式错误")
+                        return@setOnClickListener
+                    }
+
+                    if (lineType == "") {
+                        utils.showMsg("请填写路线类型")
                         return@setOnClickListener
                     }
 
@@ -263,7 +287,7 @@ class LineAdapter(
     }
 
     override fun getItemCount(): Int {
-        return lineDatabaseHelper.quertAll().size + 1
+        return lineDatabaseHelper.queryAll().size + 1
     }
 
     override fun getItemId(position: Int): Long {

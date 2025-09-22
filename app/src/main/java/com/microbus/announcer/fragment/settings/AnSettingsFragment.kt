@@ -1,11 +1,16 @@
 package com.microbus.announcer.fragment.settings
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,12 +41,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.compose.BaseSettingItem
+import com.microbus.announcer.compose.SwitchSettingItem
+import com.microbus.announcer.databinding.DialogInputBinding
 
 
 class AnSettingsFragment : Fragment() {
@@ -69,7 +79,27 @@ class AnSettingsFragment : Fragment() {
             composeView.setLayoutParams(layoutParams)
         }
 
+        initLocalBroadcast()
+
         return composeView
+    }
+
+    fun initLocalBroadcast() {
+
+        val mBroadcastReceiver = object : BroadcastReceiver() {
+            override fun onReceive(
+                context: Context,
+                intent: Intent
+            ) {
+            }
+        }
+
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(utils.tryListeningAnActionName)
+
+        LocalBroadcastManager.getInstance(requireContext())
+            .registerReceiver(mBroadcastReceiver, intentFilter)
+
     }
 
     @Composable
@@ -80,7 +110,6 @@ class AnSettingsFragment : Fragment() {
             mutableStateOf(utils.getAnnouncementLibrary())
         }
 
-        val (libraryPath, setLibraryPath) = remember { mutableStateOf("") }
         val (cnVoiceCount, setCnVoiceCount) = remember {
             mutableIntStateOf(
                 utils.getLibVoiceCount(
@@ -88,6 +117,7 @@ class AnSettingsFragment : Fragment() {
                 )
             )
         }
+
         val (enVoiceCount, setEnVoiceCount) = remember {
             mutableIntStateOf(
                 utils.getLibVoiceCount(
@@ -105,9 +135,37 @@ class AnSettingsFragment : Fragment() {
             )
         }
 
+        val (useTTS, setUseTTS) = remember {
+            mutableStateOf(utils.getIsUseTTS())
+        }
+
+        val (stationChangeVibrator, setStationChangeVibrator) = remember {
+            mutableStateOf(utils.getIsStationChangeVibrator())
+        }
+
+        val anFormatArrayOri = Array(3) { Array(4) { "" } }
+
+        val stationStateList = utils.getStationStateList()
+        val stationTypeList = utils.getStationTypeList()
+
+        anFormatArrayOri.forEachIndexed { rowIndex, row ->
+            row.forEachIndexed { colIndex, value ->
+                anFormatArrayOri[rowIndex][colIndex] = utils.getAnnouncementFormat(
+                    stationStateList[rowIndex],
+                    stationTypeList[colIndex],
+                )
+            }
+        }
+
+        val (anFormatArray, setAnFormatArray) = remember {
+            mutableStateOf(anFormatArrayOri)
+        }
+
 
         DisposableEffect(prefs) {
             val listener = OnSharedPreferenceChangeListener { prefs, key ->
+
+//                utils.showMsg(key ?: "")
                 when (key) {
                     "announcementLibrary" -> {
                         setAnnouncementLibrary(prefs.getString(key, "") ?: "")
@@ -118,7 +176,27 @@ class AnSettingsFragment : Fragment() {
                         customLangList.remove("en")
                         setCustomLangListStr(customLangList.joinToString(" "))
                     }
+                    "useTTS" -> {
+                        setUseTTS(utils.getIsUseTTS())
+                    }
+                    "stationChangeVibrator" -> {
+                        setStationChangeVibrator(utils.getIsStationChangeVibrator())
+                    }
+                    else -> {
+                        val anFormatArrayOri = Array(3) { Array(4) { "" } }
+                        anFormatArrayOri.forEachIndexed { rowIndex, row ->
+                            row.forEachIndexed { colIndex, value ->
+                                anFormatArrayOri[rowIndex][colIndex] = utils.getAnnouncementFormat(
+                                    stationStateList[rowIndex],
+                                    stationTypeList[colIndex],
+                                )
+                            }
+                        }
+                        setAnFormatArray(anFormatArrayOri)
+                    }
                 }
+
+
             }
             prefs.registerOnSharedPreferenceChangeListener(listener)
             onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
@@ -144,8 +222,11 @@ class AnSettingsFragment : Fragment() {
                             enVoiceCount,
                             customLangListStr
                         )
+                        TTSItem(useTTS, setUseTTS)
+                        StationChangeVibratorItem(stationChangeVibrator, setStationChangeVibrator)
+                        AnFormatGroup(anFormatArray)
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
@@ -161,8 +242,7 @@ class AnSettingsFragment : Fragment() {
 
         val title = if (!utils.isGrantManageFilesAccessPermission()) {
             "暂无语音库读取权限，轻触以授予"
-        }
-        else{
+        } else {
             "${announcementLibrary}（当前语音库）"
         }
 
@@ -207,7 +287,7 @@ class AnSettingsFragment : Fragment() {
                         Column(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(colorResource(R.color.an_window_bg))
+                                .background(colorResource(R.color.md_theme_surface))
                                 .padding(8.dp)
                                 .weight(1f)
                         ) {
@@ -221,7 +301,7 @@ class AnSettingsFragment : Fragment() {
                         Column(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(colorResource(R.color.an_window_bg))
+                                .background(colorResource(R.color.md_theme_surface))
                                 .padding(8.dp)
                                 .weight(1f)
                         ) {
@@ -236,7 +316,7 @@ class AnSettingsFragment : Fragment() {
                     Column(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(colorResource(R.color.an_window_bg))
+                            .background(colorResource(R.color.md_theme_surface))
                             .padding(8.dp)
                             .fillMaxWidth()
                     ) {
@@ -255,6 +335,191 @@ class AnSettingsFragment : Fragment() {
                 }
             })
     }
+
+    @Composable
+    fun TTSItem(tts: Boolean, setTTS: (Boolean) -> Unit) {
+        BaseSettingItem(
+            "使用TTS播报",
+            "找不到对应音频文件时使用TTS播报",
+            painterResource(id = R.drawable.tts),
+            {
+                toggleTTS(setTTS, !tts)
+            },
+            rightContain = {
+                SwitchSettingItem(tts) {
+                    toggleTTS(setTTS, it)
+                }
+            })
+    }
+
+    fun toggleTTS(setTTS: (Boolean) -> Unit, it: Boolean) {
+        setTTS(it)
+        prefs.edit {
+            putBoolean("useTTS", it)
+        }
+    }
+
+    @Composable
+    fun StationChangeVibratorItem(value: Boolean, setValue: (Boolean) -> Unit) {
+        BaseSettingItem(
+            "站点状态变更振动提醒",
+            "出站/即将进站/进站时振动提醒",
+            painterResource(id = R.drawable.vibrator),
+            {
+                toggleTTS(setValue, !value)
+            },
+            rightContain = {
+                SwitchSettingItem(value) {
+                    toggleStationChangeVibrator(setValue, it)
+                }
+            })
+    }
+
+    fun toggleStationChangeVibrator(setValue: (Boolean) -> Unit, it: Boolean) {
+        setValue(it)
+        prefs.edit {
+            putBoolean("stationChangeVibrator", it)
+        }
+    }
+
+    @Composable
+    fun AnFormatGroup(anFormatArray: Array<Array<String>>) {
+        val stationStateList = utils.getStationStateList()
+        val stationTypeList = utils.getStationTypeList()
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (state in stationStateList) {
+                val stateStr = when (state) {
+                    "Next" -> "下一站"
+                    "WillArrive" -> "即将到站"
+                    "Arrive" -> "到站"
+                    else -> ""
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    "${stateStr}格式",
+                    fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
+                    modifier = Modifier.padding(16.dp, 8.dp, 0.dp, 4.dp)
+                )
+                for (type in stationTypeList) {
+                    val typeStr = when (type) {
+                        "Default" -> "默认"
+                        "Starting" -> "起点站"
+                        "Second" -> "第二站"
+                        "Terminal" -> "终点站"
+                        else -> ""
+                    }
+                    BaseSettingItem(
+                        typeStr,
+                        anFormatArray[stationStateList.indexOf(state)][stationTypeList.indexOf(type)],
+                        painterResource(id = R.drawable.format),
+                        {
+
+                            if (!utils.isGrantManageFilesAccessPermission()) {
+                                utils.requestManageFilesAccessPermission(requireActivity())
+                                return@BaseSettingItem
+                            }
+
+                            val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
+                            val dialog = MaterialAlertDialogBuilder(
+                                requireContext(),
+                                R.style.CustomAlertDialogStyle
+                            ).setTitle("设置${stateStr}${typeStr}播报")
+                                .setView(binding.root)
+                                .setPositiveButton("确定", null)
+                                .setNegativeButton(getString(android.R.string.cancel), null)
+                                .setNeutralButton("试听", null)
+                                .show()
+
+                            binding.editText.isSingleLine = false
+                            binding.editText.setText(
+                                anFormatArray[stationStateList.indexOf(state)][stationTypeList.indexOf(
+                                    type
+                                )]
+                            )
+
+                            dialog.setCanceledOnTouchOutside(false)
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                                val newValue = binding.editText.text.toString()
+                                if (newValue == "") {
+                                    utils.showMsg("请输入播报格式")
+                                    return@setOnClickListener
+                                }
+
+                                val ans = utils.getAnnouncements(newValue)
+                                if (ans[0] == "ERROR") {
+                                    utils.showMsg("${ans[1]}不正确，请修改")
+                                } else {
+
+                                    prefs.edit {
+                                        putString(
+                                            "${type}${state}AnnouncementExpression",
+                                            newValue
+                                        )
+                                    }
+
+                                    // 同步修改config.json
+                                    utils.updateAnnouncementFormatConfig(
+                                        type,
+                                        state,
+                                        newValue
+                                    )
+                                    utils.showMsg("播报格式设置成功")
+                                    dialog.dismiss()
+                                }
+
+                            }
+
+                            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+
+                                val newValue = binding.editText.text.toString()
+
+                                if (newValue == "") {
+                                    utils.showMsg("请输入播报格式")
+                                    return@setOnClickListener
+                                }
+
+                                val ans = utils.getAnnouncements(newValue)
+                                if (ans[0] == "ERROR") {
+                                    utils.showMsg("${ans[1]}不正确，请修改")
+                                    return@setOnClickListener
+                                } else {
+                                    val intent = Intent()
+                                        .setAction(utils.tryListeningAnActionName)
+                                        .putExtra("stateStr", stateStr)
+                                        .putExtra("typeStr", typeStr)
+                                        .putExtra("format", newValue)
+                                    LocalBroadcastManager.getInstance(requireContext())
+                                        .sendBroadcast(intent)
+                                }
+
+                            }
+
+                            // 中断播报
+                            dialog.setOnDismissListener {
+                                val intent = Intent()
+                                    .setAction(utils.tryListeningAnActionName)
+                                    .setAction(utils.tryListeningAnActionName)
+                                    .putExtra("stateStr", "")
+                                    .putExtra("typeStr", "")
+                                    .putExtra("format", " ")
+                                LocalBroadcastManager.getInstance(requireContext())
+                                    .sendBroadcast(intent)
+                            }
+
+                            binding.textInputLayout.hint = "请输入文本"
+                            binding.textInputLayout.requestFocus()
+                            WindowCompat.getInsetsController(
+                                requireActivity().window,
+                                binding.editText
+                            )
+                                .show(WindowInsetsCompat.Type.ime())
+                        })
+                }
+            }
+        }
+    }
+
 
 }
 

@@ -1,6 +1,7 @@
 package com.microbus.announcer.fragment
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -8,10 +9,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material3.FabPosition
 import androidx.fragment.app.Fragment
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.microbus.announcer.MainActivity
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.LineAdapter
@@ -97,14 +97,22 @@ class LineFragment : Fragment() {
             override fun onItemClick(line: Line, position: Int) {
                 if (position == 0)
                     return
-                val activity = requireActivity() as MainActivity
-                activity.binding.viewPager.currentItem = 0
-                val mainFragment = activity.fragmentList[0] as MainFragment
-                utils.showMsg("已切换至 ${line.name} 运行")
-                mainFragment.originLine = line
-                mainFragment.initLineInterval()
-                mainFragment.binding.lineDirectionBtnGroup.check(mainFragment.binding.lineDirectionBtnUp.id)
-                mainFragment.loadLine(line)
+
+//                val activity = requireActivity() as MainActivity
+//                activity.binding.viewPager.currentItem = 0
+//                val mainFragment = activity.fragmentList[0] as MainFragment
+//                utils.showMsg("已切换至 ${line.name} 运行")
+//                mainFragment.originLine = line
+//                mainFragment.initLineInterval()
+//                mainFragment.binding.lineDirectionBtnGroup.check(mainFragment.binding.lineDirectionBtnUp.id)
+//                mainFragment.loadLine(line)
+
+                val intent = Intent()
+                    .setAction(utils.switchLineActionName)
+                    .putExtra("id", line.id)
+                LocalBroadcastManager.getInstance(requireContext())
+                    .sendBroadcast(intent)
+
             }
         })
         binding!!.lineRecyclerView.setAdapter(adapter)

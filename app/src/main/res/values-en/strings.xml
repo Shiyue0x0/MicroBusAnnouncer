@@ -5,6 +5,8 @@
     <string name="up_stations">Up Stations</string>
     <string name="down_stations">Down Stations</string>
     <string name="down_stations_helper">Fill in the Station ID, separated by space</string>
+    <string name="line_type">Line Type(Community|Bus|Underground|Train)</string>
+
 
     <string name="main_line_0">-</string>
     <string name="main_staring_station_name">Welcome aboard</string>
@@ -65,7 +67,7 @@
     <string name="input_line_name">Enter line name to search</string>
     <string name="cn_name">Chinese Name</string>
     <string name="en_name">English Name</string>
-    <string name="line_type">Line Type (Bus|Train|Community|Underground)</string>
+    <string name="station_type">Line Type (Community|Bus|Underground|Train)</string>
     <string name="station_longitude">Longitude</string>
     <string name="station_latitude">Latitude</string>
     <string name="nav_main">Main</string>

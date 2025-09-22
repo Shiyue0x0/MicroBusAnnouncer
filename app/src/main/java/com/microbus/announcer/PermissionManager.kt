@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import pub.devrel.easypermissions.EasyPermissions
 import androidx.core.net.toUri
@@ -80,17 +79,26 @@ class PermissionManager(private val context: Context, private val activity: Acti
     }
 
     fun requestNoticePermission(): Boolean {
+        if (hasNoticePermission()) {
+            return true
+        } else {
+            if (Build.VERSION.SDK_INT >= 33) {
+                val noticePermission = Manifest.permission.POST_NOTIFICATIONS
+                return requestPermission(listOf(noticePermission), REQUEST_NOTICE)
+            } else {
+                return true
+
+            }
+        }
+    }
+
+    fun hasNoticePermission(): Boolean {
         if (Build.VERSION.SDK_INT >= 33) {
             val noticePermission = Manifest.permission.POST_NOTIFICATIONS
-            return if (!EasyPermissions.hasPermissions(
-                    context,
-                    noticePermission
-                )
-            ) {
-                requestPermission(listOf(noticePermission), REQUEST_NOTICE)
-            } else {
-                true
-            }
+            return EasyPermissions.hasPermissions(
+                context,
+                noticePermission
+            )
         } else {
             return true
         }

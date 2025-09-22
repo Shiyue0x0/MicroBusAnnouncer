@@ -65,7 +65,9 @@ class MainActivity : AppCompatActivity() {
         fragmentList.add(LineFragment())
         fragmentList.add(StationFragment())
         fragmentList.add(SettingFragment())
+
         binding.viewPager.adapter = FragActivityAdapter(this, fragmentList)
+        binding.viewPager.offscreenPageLimit = binding.viewPager.adapter!!.itemCount
 
         binding.bottomNavigationView.setOnItemSelectedListener { item ->
             val mainFragment = fragmentList[0] as MainFragment

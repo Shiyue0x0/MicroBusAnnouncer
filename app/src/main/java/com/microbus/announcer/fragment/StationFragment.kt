@@ -1,6 +1,7 @@
 package com.microbus.announcer.fragment
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -16,11 +17,11 @@ import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.amap.api.location.AMapLocation
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.location.AMapLocationClientOption
 import com.amap.api.location.AMapLocationListener
-import com.microbus.announcer.MainActivity
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.StationAdapter
@@ -29,9 +30,6 @@ import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogStationInfoBinding
 import com.microbus.announcer.databinding.FragmentStationBinding
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 
 class StationFragment : Fragment(), AMapLocationListener {
@@ -95,7 +93,7 @@ class StationFragment : Fragment(), AMapLocationListener {
                 searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
 
                     override fun onQueryTextSubmit(query: String?): Boolean {
-                        val stationList = stationDatabaseHelper.quertByKey(query!!)
+                        val stationList = stationDatabaseHelper.queryByKey(query!!)
                         refreshStationList(stationList)
                         searchView.clearFocus()
                         return true
@@ -108,7 +106,7 @@ class StationFragment : Fragment(), AMapLocationListener {
                 })
 
                 searchView.setOnCloseListener {
-                    val stationList = stationDatabaseHelper.quertAll()
+                    val stationList = stationDatabaseHelper.queryAll()
                     refreshStationList(stationList)
                     false
                 }
@@ -122,7 +120,7 @@ class StationFragment : Fragment(), AMapLocationListener {
 
         })
 
-        val stationList = stationDatabaseHelper.quertAll()
+        val stationList = stationDatabaseHelper.queryAll()
         refreshStationList(stationList)
         initSwipeRefreshLayout()
 
@@ -156,10 +154,11 @@ class StationFragment : Fragment(), AMapLocationListener {
         binding!!.stationRecyclerView.setAdapter(adapter)
         adapter.setOnItemClickListener(object : StationAdapter.OnItemClickListener {
             override fun onItemClick(station: Station) {
-                val activity = requireActivity() as MainActivity
-                val mainFragment = activity.fragmentList[0] as MainFragment
-                utils.showMsg(station.cnName + "\n" + station.enName)
-                mainFragment.announce("")
+                val intent = Intent()
+                    .setAction(utils.tryListeningAnActionName)
+                    .putExtra("format", "<mscn${station.id}>|<msen${station.id}>")
+                LocalBroadcastManager.getInstance(requireContext())
+                    .sendBroadcast(intent)
             }
         })
 
@@ -180,7 +179,7 @@ class StationFragment : Fragment(), AMapLocationListener {
     private fun initSwipeRefreshLayout() {
         binding!!.swipeRefreshLayout.setOnRefreshListener {
             binding!!.stationRecyclerView.adapter!!.notifyDataSetChanged()
-            CoroutineScope(Dispatchers.Main).launch {
+            requireActivity().runOnUiThread{
                 binding!!.swipeRefreshLayout.isRefreshing = false
             }
             utils.haptic(binding!!.swipeRefreshLayout)

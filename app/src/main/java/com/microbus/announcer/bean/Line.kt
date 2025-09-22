@@ -5,5 +5,6 @@ class Line(
     var name: String = "",
     var upLineStation: String = "",
     var downLineStation: String = "",
-    var isUpAndDownInvert: Boolean = true
+    var isUpAndDownInvert: Boolean = true,
+    var type: String = "B",
 )

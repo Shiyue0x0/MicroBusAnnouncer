@@ -37,7 +37,7 @@ internal class LineOfStationAdapter(
     override fun getItemCount(): Int {
         stationList = ArrayList()
         var stationCount = 0
-        val lineList = lineDatabaseHelper.quertAll()
+        val lineList = lineDatabaseHelper.queryAll()
         val lineStationIndexStrSet = HashSet<String>()
         for (line in lineList) {
             lineStationIndexStrSet.clear()
