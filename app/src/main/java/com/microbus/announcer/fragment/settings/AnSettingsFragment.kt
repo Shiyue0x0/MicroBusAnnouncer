@@ -225,7 +225,7 @@ class AnSettingsFragment : Fragment() {
                         TTSItem(useTTS, setUseTTS)
                         StationChangeVibratorItem(stationChangeVibrator, setStationChangeVibrator)
                         AnFormatGroup(anFormatArray)
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(1.dp))
                     }
                 }
             }
@@ -426,7 +426,7 @@ class AnSettingsFragment : Fragment() {
                                 R.style.CustomAlertDialogStyle
                             ).setTitle("设置${stateStr}${typeStr}播报")
                                 .setView(binding.root)
-                                .setPositiveButton("确定", null)
+                                .setPositiveButton(requireContext().getString(android.R.string.ok), null)
                                 .setNegativeButton(getString(android.R.string.cancel), null)
                                 .setNeutralButton("试听", null)
                                 .show()

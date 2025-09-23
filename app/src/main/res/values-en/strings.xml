@@ -2,8 +2,8 @@
 <resources>
     <string name="app_name">Announcer</string>
     <string name="line_name">Line Name</string>
-    <string name="up_stations">Up Stations</string>
-    <string name="down_stations">Down Stations</string>
+    <string name="up_stations">Up Station List</string>
+    <string name="down_stations">Down Station List</string>
     <string name="down_stations_helper">Fill in the Station ID, separated by space</string>
     <string name="line_type">Line Type(Community|Bus|Underground|Train)</string>
 

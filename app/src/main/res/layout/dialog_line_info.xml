@@ -91,10 +91,10 @@
 <!--        android:textOn=""-->
 <!--        app:showText="true" />-->
 
-    <Button
-        android:id="@+id/setDefaultLine"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/set_default_line"/>
+<!--    <Button-->
+<!--        android:id="@+id/setDefaultLine"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="@string/set_default_line"/>-->
 
 </LinearLayout>

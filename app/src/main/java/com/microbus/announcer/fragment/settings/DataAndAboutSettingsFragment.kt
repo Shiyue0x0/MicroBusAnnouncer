@@ -252,7 +252,7 @@ class DataAndAboutSettingsFragment : Fragment() {
                     R.style.CustomAlertDialogStyle
                 ).setTitle("加载预设${name}数据")
                     .setMessage("该操纵会覆盖您现有的${name}数据，建议您先备份后再操作，要继续吗")
-                    .setPositiveButton("确定", null)
+                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
 

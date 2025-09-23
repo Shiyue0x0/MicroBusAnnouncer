@@ -23,6 +23,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.databinding.ItemLineHeaderBinding
+import com.microbus.announcer.fragment.MainFragment
 
 class LineAdapter(
     private val context: Context,
@@ -129,7 +130,7 @@ class LineAdapter(
 
             val holder = holder as LineViewHolder
             val position = position - 1
-            val line = allLineList[position]
+            val line = lineDatabaseHelper.queryById(allLineList[position].id ?: -1).first()
 
             //获取路线起点站、终点站下标
             val stationStrIndexList = line.upLineStation.split(" ").toMutableList()
@@ -193,22 +194,43 @@ class LineAdapter(
                 binding.editTextName.setText(line.name)
                 binding.editTextUpLineStation.setText(line.upLineStation)
                 binding.editTextDownLineStation.setText(line.downLineStation)
+                binding.editTextType.setText(line.type)
 //            binding.editTextIsUpAndDownInvert.isChecked = line.isUpAndDownInvert
 
-                val alertDialog: AlertDialog? = context.let { it1 ->
-                    MaterialAlertDialogBuilder(it1, R.style.CustomAlertDialogStyle)
+                val alertDialog =
+                    MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
                         .setView(binding.root)
                         .setTitle("更新路线")
                         .setPositiveButton("提交", null)
                         .setNeutralButton("删除路线") { _, _ ->
-                            line.id?.let { it2 -> lineDatabaseHelper.delById(it2) }
+                            lineDatabaseHelper.delById(line.id ?: -1)
                             notifyItemRemoved(position)
                         }
-                        .setNegativeButton(context.getString(android.R.string.cancel)) { _, _ ->
+                        .setNegativeButton("到地图编辑") { _, _ ->
 
+                            MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
+                                .setTitle("选择要编辑的方向")
+                                .setNeutralButton(context.getString(android.R.string.cancel), null)
+                                .setNegativeButton("上行") { _, _ ->
+                                    val intent = Intent()
+                                        .setAction(utils.editLineOnMapActionName)
+                                        .putExtra("id", line.id)
+                                        .putExtra("direction", 0)   //上行
+                                    LocalBroadcastManager.getInstance(context)
+                                        .sendBroadcast(intent)
+                                }
+                                .setPositiveButton("下行"){ _, _ ->
+                                    val intent = Intent()
+                                        .setAction(utils.editLineOnMapActionName)
+                                        .putExtra("id", line.id)
+                                        .putExtra("direction", 1)   //下行
+                                    LocalBroadcastManager.getInstance(context)
+                                        .sendBroadcast(intent)
+                                }
+                                .show()
                         }
                         .show()
-                }
+
 
                 alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
                     val name = binding.editTextName.text.toString()
@@ -234,6 +256,11 @@ class LineAdapter(
 
                     if (lineType == "") {
                         utils.showMsg("请填写路线类型")
+                        return@setOnClickListener
+                    }
+
+                    if (!listOf("C", "B", "U", "T").contains(lineType)) {
+                        utils.showMsg("路线类型应为CBUT之一")
                         return@setOnClickListener
                     }
 
@@ -267,17 +294,10 @@ class LineAdapter(
                     }
 
                     val lineUpdated =
-                        Line(line.id, name, upLineStation, downLineStation, false)
+                        Line(line.id, name, upLineStation, downLineStation, false, lineType)
                     lineDatabaseHelper.updateById(line.id!!, lineUpdated)
-                    notifyItemChanged(position)
+                    notifyItemChanged(position + 1)
                     alertDialog.cancel()
-                }
-
-                //设置默认路线名称
-                binding.setDefaultLine.setOnClickListener {
-                    val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-                    prefs.edit { putString("defaultLineName", line.name) }
-                    alertDialog?.cancel()
                 }
 
                 utils.haptic(holder.lineCard)

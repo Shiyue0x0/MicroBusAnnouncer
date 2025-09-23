@@ -7,18 +7,21 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.os.Build
 import android.util.AttributeSet
+import android.util.Log
+import android.view.Choreographer
+import android.view.Choreographer.FrameCallback
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.core.content.withStyledAttributes
-import kotlin.properties.Delegates
-import  android.graphics.Path
 import com.microbus.announcer.R
+import kotlin.properties.Delegates
 
 
 @Suppress("DEPRECATION")
@@ -77,9 +80,6 @@ class ESView : View {
             cornerRadius = getDimension(R.styleable.HeaderTextView_cornerRadius, 0F)
             fontFamily = getString(R.styleable.HeaderTextView_android_fontFamily)
         }
-//        Log.d(tag, "onDraw: $text")
-//        Log.d(tag, "onDraw: $textSize")
-//        Log.d(tag, "onDraw: $maxWidth")
     }
 
 
@@ -177,21 +177,20 @@ class ESView : View {
             Path.Direction.CW
         )
 
-        scrollX = measuredWidth.toFloat() - paddingEnd
     }
 
     var frameCount = 0
     var allFrameCount = 0
     var minShowTimeMs = Int.MAX_VALUE
-    val fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+    var fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         context.display.refreshRate
     } else {
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         windowManager.defaultDisplay.refreshRate
     }
-    var pixelMovePerSecond = 100
+    var pixelMovePerSecond = 150
     var isShowFinish = false
-    var scrollX = 0F
+    var scrollX = Float.MAX_VALUE
     val shaderWidth = 20f
 
 
@@ -218,7 +217,6 @@ class ESView : View {
         }
         // View宽度不足够容纳文本，轮播显示，羽化水平边缘
         else {
-//            scrollX = width - (frameCount * speedPixelPerSecond / fps) - paddingEnd
             scrollX -= pixelMovePerSecond / fps
             canvas.drawText(
                 text,
@@ -253,69 +251,33 @@ class ESView : View {
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
         if (visibility == VISIBLE) {
-            if (!mainThread.isAlive) {
-                mainThread.start()
-            }
-            mainThreadRunning = true
+            startAnimation()
         } else {
-            mainThreadRunning = false
+            stopAnimation()
         }
     }
 
-    var finishPositionOfLastWord =
-        0.5F     // 文字滚动完毕的时机（通过最后一个字的位置来判定）。0：最后一个字进入屏幕时；0.5：最后一个字到达屏幕中央时；1：最后一个字离开屏幕时。
-    var mainThreadRunning = true
-    val mainThread = Thread {
-        while (true) {
-            if (mainThreadRunning) {
-                if (paint.measureText(text) > width) {
-                    postInvalidate()
-                }
-                if (paint.measureText(text) <= width) {
-                    isShowFinish = if (allFrameCount / fps * 1000 > minShowTimeMs) {
-                        true
-                    } else {
-                        false
-                    }
-                } else {
-                    if (scrollX < -paint.measureText(text) + width * finishPositionOfLastWord &&
-                        allFrameCount / fps * 1000 > minShowTimeMs
-                    ) {
-                        isShowFinish = true
-                    } else if (loopCount == 0) {
-                        isShowFinish = false
-                    }
-                    if (scrollX < -paint.measureText(text) + width * finishPositionOfLastWord * 0.95) {
-                        frameCount = 0
-                        scrollX = width.toFloat() - paddingEnd
-                        loopCount++
-                    }
-
-                }
-                frameCount = (frameCount + 1) % Int.MAX_VALUE
-                allFrameCount = (allFrameCount + 1) % Int.MAX_VALUE
-            }
-
-            Thread.sleep((1000 / fps).toLong())
-        }
-    }
-    //                        if (this@HeaderTextView::scrollFinishCallback.isInitialized)
-    //                            scrollFinishCallback.onScrollFinish()
+    // 文字滚动完毕的时机（通过最后一个字的位置来判定）。0：最后一个字进入屏幕时；0.5：最后一个字到达屏幕中央时；1：最后一个字离开屏幕时。
+    var finishPositionOfLastWord = 0.5F
 
     fun showText(textNew: String, playId: Int) {
 
-        mainThreadRunning = false
+        stopAnimation()
 
         this.playId = playId
+
+        post {
+            scrollX = width - paddingEnd
+        }
+
+        isShowFinish = false
+
         frameCount = 0
         allFrameCount = 0
         loopCount = 0
-        scrollX = width - paddingEnd
-        isShowFinish = false
 
         setText(textNew)
-        mainThreadRunning = true
-
+        startAnimation()
     }
 
     fun setText(textNew: String) {
@@ -323,15 +285,69 @@ class ESView : View {
         postInvalidate()
     }
 
+    private lateinit var frameCallback: FrameCallback
 
-    lateinit var scrollFinishCallback: ScrollFinishCallback
+    fun startAnimation() {
+        if (!this::frameCallback.isInitialized) {
+            frameCallback = object : FrameCallback {
+                override fun doFrame(frameTimeNanos: Long) {
 
-    interface ScrollFinishCallback {
-        fun onScrollFinish()
+                    // 动态刷新率
+                    fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        context.display.refreshRate
+                    } else {
+                        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                        windowManager.defaultDisplay.refreshRate
+                    }
+
+//                    Log.d("ES", "$text $isShowFinish")
+
+                    //  文字宽度超出屏幕时（滚动）
+                    if (paint.measureText(text) > width) {
+                        postInvalidate()
+
+                        // 文字滚动完毕时
+                        if (scrollX < -paint.measureText(text) + width * finishPositionOfLastWord &&
+                            allFrameCount / fps * 1000 > minShowTimeMs
+                        ) {
+                            isShowFinish = true
+                        } else if (loopCount == 0) {
+                            isShowFinish = false
+                        }
+
+                        if (scrollX < -paint.measureText(text) + width * finishPositionOfLastWord * 0.95) {
+                            frameCount = 0
+                            scrollX = width.toFloat() - paddingEnd
+                            loopCount++
+                        }
+
+                    }
+                    // 文字宽度不足以超出屏幕时（静止）
+                    else if (paint.measureText(text) <= width) {
+//                        Log.d("ES", "${text} ${allFrameCount / fps * 1000}/${minShowTimeMs}")
+                        isShowFinish = if (allFrameCount / fps * 1000 > minShowTimeMs) {
+                            true
+                        } else {
+                            false
+                        }
+                    }
+
+                    frameCount = (frameCount + 1) % Int.MAX_VALUE
+                    allFrameCount = (allFrameCount + 1) % Int.MAX_VALUE
+
+                    Choreographer.getInstance().postFrameCallback(this)
+                }
+            }
+
+        }
+        Choreographer.getInstance().postFrameCallback(frameCallback)
+
     }
 
-    fun getText(): String {
-        return text
+    fun stopAnimation() {
+        if (this::frameCallback.isInitialized) {
+            Choreographer.getInstance().removeFrameCallback(frameCallback)
+        }
     }
 
 }

@@ -99,6 +99,9 @@ class LocationAndMapSettingsFragment : Fragment() {
             mutableIntStateOf(utils.getLocationInterval())
         }
 
+        val (mapEditLineMode, setMapEditLineMode) = remember {
+            mutableStateOf(utils.getIsMapEditLineMode())
+        }
         val (autoSwitchLineDirection, setAutoSwitchLineDirection) = remember {
             mutableStateOf(utils.getIsAutoSwitchLineDirection())
         }
@@ -128,8 +131,9 @@ class LocationAndMapSettingsFragment : Fragment() {
                     "BLineStationRange" -> setBLineStationRange(utils.getStationRangeByLineType("B"))
                     "ULineStationRange" -> setULineStationRange(utils.getStationRangeByLineType("U"))
                     "TLineStationRange" -> setTLineStationRange(utils.getStationRangeByLineType("T"))
-                    "locationInterval" -> setLocationInterval(utils.getLocationInterval())
 
+                    "locationInterval" -> setLocationInterval(utils.getLocationInterval())
+                    "mapEditLineMode" -> setMapEditLineMode(utils.getIsMapEditLineMode())
                     "autoSwitchLineDirection" -> setAutoSwitchLineDirection(utils.getIsAutoSwitchLineDirection())
                     "clickMapToCopyLngLat" -> setClickMapToCopyLngLat(utils.getIsClickMapToCopyLngLat())
                     "clickMapToAddStation" -> setClickMapToAddStation(utils.getIsClickMapToAddStation())
@@ -170,6 +174,20 @@ class LocationAndMapSettingsFragment : Fragment() {
                             text = "检测到您折回站点时，切换上/下行",
                             icon = painterResource(id = R.drawable.switch2),
                             key = "autoSwitchLineDirection"
+                        )
+
+                        Text(
+                            "地图",
+                            fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
+                            modifier = Modifier.padding(16.dp, 8.dp, 0.dp, 4.dp)
+                        )
+                        SwitchItem(
+                            mapEditLineMode,
+                            setMapEditLineMode,
+                            title = "地图编辑路线模式",
+                            text = "开启该模式并且运行全站路线，\n可以在地图上便捷地编辑路线",
+                            icon = painterResource(id = R.drawable.line),
+                            key = "mapEditLineMode"
                         )
                         SwitchItem(
                             clickMapToCopyLngLat,
@@ -262,7 +280,7 @@ class LocationAndMapSettingsFragment : Fragment() {
                     requireContext(),
                     R.style.CustomAlertDialogStyle
                 ).setTitle("设置${title}进站范围半径").setView(binding.root)
-                    .setPositiveButton("确定", null)
+                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 binding.slider.contentDescription = "拖动以调整${title}进站范围半径"
@@ -310,7 +328,7 @@ class LocationAndMapSettingsFragment : Fragment() {
                     requireContext(),
                     R.style.CustomAlertDialogStyle
                 ).setTitle("设置定位间隔").setView(binding.root)
-                    .setPositiveButton("确定", null)
+                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 binding.slider.contentDescription = "拖动以调整定位间隔"

@@ -3,6 +3,7 @@ package com.microbus.announcer.database
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
+import android.database.SQLException
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import com.microbus.announcer.bean.Line
@@ -16,7 +17,8 @@ class LineDatabaseHelper(
     private val tableName = "line"
 
     override fun onCreate(db: SQLiteDatabase?) {
-        val sql = "CREATE TABLE IF NOT EXISTS $tableName" + " (" +
+
+        var sql = "CREATE TABLE IF NOT EXISTS $tableName" + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
                 "name VARCHAR NOT NULL," +
                 "upLineStation VARCHAR NOT NULL," +
@@ -24,6 +26,9 @@ class LineDatabaseHelper(
                 "isUpAndDownInvert BOOLEAN NOT NULL," +
                 "type VARCHAR DEFAULT 'B');"
         db!!.execSQL(sql)
+
+
+
         Log.d(tag, "已创建表 $tableName")
     }
 
@@ -164,7 +169,17 @@ class LineDatabaseHelper(
     }
 
     fun updateById(id: Int, line: Line) {
-        val sql =
+
+        var sql =
+            "ALTER TABLE $tableName ADD COLUMN type VARCHAR DEFAULT 'B';"
+        try {
+            writableDatabase.execSQL(sql)
+        } catch (e: SQLException) {
+            // 列已存在时的处理
+            e.printStackTrace()
+        }
+
+        sql =
             "update $tableName set name = '${line.name}', upLineStation = '${line.upLineStation}', " +
                     "downLineStation = '${line.downLineStation}', isUpAndDownInvert = '${line.isUpAndDownInvert}', type = '${line.type}' " +
                     "where id = $id;"

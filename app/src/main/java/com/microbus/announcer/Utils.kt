@@ -58,6 +58,8 @@ class Utils(private val context: Context) {
     val tryListeningAnActionName = "com.microbus.announcer.try_listening_an"
     val switchLineActionName = "com.microbus.announcer.switch_line"
 
+    val editLineOnMapActionName = "com.microbus.announcer.edit_line_on_map"
+
     /**
      * Toast提示
      * @param msg 提示内容
@@ -115,6 +117,20 @@ class Utils(private val context: Context) {
     }
 
     /**
+     * 从设置中获取是否启用左侧电显
+     */
+    fun getIsOpenLeftEs(): Boolean {
+        return prefs.getBoolean("isOpenLeftEs", true)
+    }
+
+    /**
+     * 从设置中获取是否启用中部电显
+     */
+    fun getIsOpenMidEs(): Boolean {
+        return prefs.getBoolean("isOpenMidEs", true)
+    }
+
+    /**
      * 从设置中获取界面语言
      * @return zh中文，en英文
      */
@@ -156,6 +172,14 @@ class Utils(private val context: Context) {
      */
     fun getIsClickLocationButtonToCopyLngLat(): Boolean {
         return prefs.getBoolean("clickLocationButtonToCopyLngLat", false)
+    }
+
+
+    /**
+     * 从设置中获取是否启用地图规划路线模式
+     */
+    fun getIsMapEditLineMode(): Boolean {
+        return prefs.getBoolean("mapEditLineMode", false)
     }
 
 
@@ -218,19 +242,12 @@ class Utils(private val context: Context) {
     }
 
 
-    /**
-     * 从设置中获取地图站点显示方式
-     */
-    fun getMapStationShowType(): Int {
-        return prefs.getString("mapStationShowType", "1")?.toInt() ?: 1
-    }
-
-    /**
-     * 从设置中获取超过秒数自动跟随定位
-     */
-    fun getAutoFollowNavigationWhenAboveSecond(): Long {
-        return prefs.getString("autoFollowNavigationWhenAboveSecond", "10")?.toLong() ?: 10L
-    }
+//    /**
+//     * 从设置中获取超过秒数自动跟随定位
+//     */
+//    fun getAutoFollowNavigationWhenAboveSecond(): Long {
+//        return prefs.getString("autoFollowNavigationWhenAboveSecond", "10")?.toLong() ?: 10L
+//    }
 
     /**
      * 从设置中获取地图模式
@@ -513,6 +530,16 @@ class Utils(private val context: Context) {
                     val latLng = binding.editTextLongitude.text.toString().split(' ')
                     binding.editTextLongitude.setText(latLng[0])
                     binding.editTextLatitude.setText(latLng[1])
+                }
+
+                if (stationType == "") {
+                    this.showMsg("请填写站点类型")
+                    return@setOnClickListener
+                }
+
+                if(!listOf("C", "B", "U", "T").contains(stationType)){
+                    showMsg("站点类型应为CBUT之一")
+                    return@setOnClickListener
                 }
 
                 val longitude: Double = binding.editTextLongitude.text.toString().toDouble()

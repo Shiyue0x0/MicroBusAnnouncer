@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">Announcer</string>
     <string name="line_name">路线名称</string>
-    <string name="up_stations">上行站点</string>
-    <string name="down_stations">下行站点</string>
+    <string name="up_stations">上行站点序列</string>
+    <string name="down_stations">下行站点序列</string>
     <string name="down_stations_helper">填入站点id，以空格分隔</string>
     <string name="line_type">路线类型(C社区|B公交|U地铁|T火车)</string>
 

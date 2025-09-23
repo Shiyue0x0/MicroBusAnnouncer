@@ -92,20 +92,12 @@ class LineFragment : Fragment() {
             lineDatabaseHelper
         )
 
+
         //点击路线切换到主控并运行
         adapter.setOnItemClickListener(object : LineAdapter.OnItemClickListener {
             override fun onItemClick(line: Line, position: Int) {
                 if (position == 0)
                     return
-
-//                val activity = requireActivity() as MainActivity
-//                activity.binding.viewPager.currentItem = 0
-//                val mainFragment = activity.fragmentList[0] as MainFragment
-//                utils.showMsg("已切换至 ${line.name} 运行")
-//                mainFragment.originLine = line
-//                mainFragment.initLineInterval()
-//                mainFragment.binding.lineDirectionBtnGroup.check(mainFragment.binding.lineDirectionBtnUp.id)
-//                mainFragment.loadLine(line)
 
                 val intent = Intent()
                     .setAction(utils.switchLineActionName)
@@ -116,6 +108,9 @@ class LineFragment : Fragment() {
             }
         })
         binding!!.lineRecyclerView.setAdapter(adapter)
+
+        adapter.notifyDataSetChanged()
+
     }
 
     private fun addLine() {

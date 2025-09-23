@@ -9,7 +9,6 @@ kotlinxSerializationJson = "1.9.0"
 activity = "1.11.0"
 constraintlayout = "2.2.1"
 materialVersion = "1.14.0-alpha04"
-preferenceDataCore = "1.2.8"
 recyclerviewVersion = "1.4.0"
 swiperefreshlayout = "1.1.0"
 viewpager2Version = "1.1.0"
@@ -34,9 +33,6 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 material = { module = "com.google.android.material:material", version.ref = "materialVersion" }
-preference-data-core = { module = "com.github.Knightwood.ComposePreference:preference-data-core", version.ref = "preferenceDataCore" }
-preference-ui-compose = { module = "com.github.Knightwood.ComposePreference:preference-ui-compose", version.ref = "preferenceDataCore" }
-preference-util = { module = "com.github.Knightwood.ComposePreference:preference-util", version.ref = "preferenceDataCore" }
 recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerviewVersion" }
 viewpager2 = { module = "androidx.viewpager2:viewpager2", version.ref = "viewpager2Version" }
 androidx-legacy-support-v4 = { group = "androidx.legacy", name = "legacy-support-v4", version.ref = "legacySupportV4" }

@@ -190,7 +190,10 @@
                 android:id="@+id/headerLeftNew"
                 android:layout_width="0dp"
                 android:layout_height="20sp"
+                android:layout_marginEnd="12dp"
                 android:layout_weight="1"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
                 android:text="@string/main_staring_station_name"
                 android:textColor="@color/md_theme_onSurface"
                 android:textSize="20sp"
@@ -203,8 +206,6 @@
                 android:id="@+id/headerMiddleNew"
                 android:layout_width="wrap_content"
                 android:layout_height="20sp"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
                 android:maxWidth="80dp"
                 android:paddingStart="8dp"
                 android:paddingTop="8dp"
@@ -215,14 +216,17 @@
                 android:textSize="20sp"
                 android:textStyle="bold"
                 app:background="@color/md_theme_surface"
-                app:cornerRadius="8dp" />
+                app:cornerRadius="16dp" />
 
             <!--            app:background="?attr/cardBackgroundColor"-->
             <com.microbus.announcer.view.ESView
                 android:id="@+id/headerRightNew"
                 android:layout_width="0dp"
                 android:layout_height="20sp"
+                android:layout_marginStart="12dp"
                 android:layout_weight="1"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
                 android:text="@string/main_terminal_name"
                 android:textColor="@color/md_theme_onSurface"
                 android:textSize="20sp"
@@ -521,15 +525,15 @@
                     <!--                        app:switchPadding="8dp"-->
                     <!--                        app:thumbIcon="@drawable/baseline_location_on_24" />-->
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchFollowLocation"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="16dp"
-                        android:checked="true"
-                        android:visibility="gone"
-                        app:switchPadding="8dp"
-                        app:thumbIcon="@drawable/follow" />
+<!--                    <com.google.android.material.materialswitch.MaterialSwitch-->
+<!--                        android:id="@+id/switchFollowLocation"-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_marginEnd="16dp"-->
+<!--                        android:checked="true"-->
+<!--                        android:visibility="gone"-->
+<!--                        app:switchPadding="8dp"-->
+<!--                        app:thumbIcon="@drawable/follow" />-->
 
                     <!--                    <com.google.android.material.materialswitch.MaterialSwitch-->
                     <!--                        android:id="@+id/switchMap"-->
@@ -826,6 +830,23 @@
         app:iconTint="@color/md_theme_primary"
         app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
         app:layout_constraintStart_toStartOf="@id/mapContainer"
+        app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/finishEditLine"
+        style="?attr/materialIconButtonFilledStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="60dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginBottom="4dp"
+        android:contentDescription="@string/starting_station"
+        android:visibility="gone"
+        app:backgroundTint="@color/md_theme_surface"
+        app:icon="@drawable/finish"
+        app:iconGravity="textTop"
+        app:iconTint="@color/md_theme_primary"
+        app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
+        app:layout_constraintStart_toEndOf="@+id/mapLocation"
         app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
 
 

@@ -125,6 +125,14 @@ class SysAndEsSettingsFragment : Fragment() {
             mutableFloatStateOf(utils.getEsFinishPositionOfLastWord())
         }
 
+        val (isOpenLeftEs, setIsOpenLeftEs) = remember {
+            mutableStateOf(utils.getIsOpenLeftEs())
+        }
+
+        val (isMidLeftEs, setIsMidLeftEs) = remember {
+            mutableStateOf(utils.getIsOpenMidEs())
+        }
+
         DisposableEffect(prefs) {
             val listener = OnSharedPreferenceChangeListener { prefs, key ->
                 when (key) {
@@ -143,6 +151,9 @@ class SysAndEsSettingsFragment : Fragment() {
                             0.5F
                         )
                     )
+                    "isOpenLeftEs" -> setIsOpenLeftEs(prefs.getBoolean(key, true))
+                    "isMidLeftEs" -> setIsMidLeftEs(prefs.getBoolean(key, true))
+
                 }
             }
             prefs.registerOnSharedPreferenceChangeListener(listener)
@@ -163,13 +174,25 @@ class SysAndEsSettingsFragment : Fragment() {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        Text(
+                            "系统",
+                            fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
+                            modifier = Modifier.padding(16.dp, 8.dp, 0.dp, 4.dp)
+                        )
                         UiLangItem(lang)
                         CityNameItem(city)
                         NavItem(nav, setNav)
                         IsSeedNoticeItem(isSeedNotice, setIsSeedNotice)
+                        Text(
+                            "电显基础",
+                            fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
+                            modifier = Modifier.padding(16.dp, 8.dp, 0.dp, 4.dp)
+                        )
                         ESTextItem(esText)
                         ESSpeedItem(esSpeed)
                         ESFinishPositionOfLastWordItem(esFinishPositionOfLastWord)
+                        IsOpenLeftEsItem(isOpenLeftEs, setIsOpenLeftEs)
+                        IsOpenMidEsItem(isMidLeftEs, setIsMidLeftEs)
                         EsKeywordItemGroup(esNextWord, esWillArriveWord, esArriveWord)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -212,7 +235,7 @@ class SysAndEsSettingsFragment : Fragment() {
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
-                ).setTitle("设置城市").setView(binding.root).setPositiveButton("确定", null)
+                ).setTitle("设置城市").setView(binding.root).setPositiveButton(requireContext().getString(android.R.string.ok), null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 dialog.setCanceledOnTouchOutside(false)
@@ -265,9 +288,13 @@ class SysAndEsSettingsFragment : Fragment() {
     @Composable
     fun IsSeedNoticeItem(value: Boolean, setValue: (Boolean) -> Unit) {
         BaseSettingItem(
-            "路线运行通知", "出站/即将到站/到站时发送通知", painterResource(id = R.drawable.notice), {
+            "路线运行通知",
+            "出站/即将到站/到站时发送通知",
+            painterResource(id = R.drawable.notice),
+            {
                 toggleIsSeedNotice(value, setValue, !value)
-            }, rightContain = {
+            },
+            rightContain = {
                 SwitchSettingItem(value) {
                     toggleIsSeedNotice(value, setValue, it)
                 }
@@ -285,6 +312,52 @@ class SysAndEsSettingsFragment : Fragment() {
     }
 
     @Composable
+    fun IsOpenLeftEsItem(value: Boolean, setValue: (Boolean) -> Unit) {
+        BaseSettingItem(
+            "左侧电显",
+            "",
+            painterResource(id = R.drawable.left_align),
+            {
+                toggleIsOpenLeftEs(value, setValue, !value)
+            },
+            rightContain = {
+                SwitchSettingItem(value) {
+                    toggleIsOpenLeftEs(value, setValue, it)
+                }
+            })
+    }
+
+    fun toggleIsOpenLeftEs(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
+        setValue(it)
+        prefs.edit {
+            putBoolean("isOpenLeftEs", it)
+        }
+    }
+
+    @Composable
+    fun IsOpenMidEsItem(value: Boolean, setValue: (Boolean) -> Unit) {
+        BaseSettingItem(
+            "中部电显",
+            "",
+            painterResource(id = R.drawable.mid_align),
+            {
+                toggleIsOpenMidEs(value, setValue, !value)
+            },
+            rightContain = {
+                SwitchSettingItem(value) {
+                    toggleIsOpenMidEs(value, setValue, it)
+                }
+            })
+    }
+
+    fun toggleIsOpenMidEs(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
+        setValue(it)
+        prefs.edit {
+            putBoolean("isOpenMidEs", it)
+        }
+    }
+
+    @Composable
     fun ESTextItem(eSText: String) {
         BaseSettingItem(
             "电显内容", eSText, painterResource(id = R.drawable.text), {
@@ -292,7 +365,7 @@ class SysAndEsSettingsFragment : Fragment() {
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
-                ).setTitle("编辑电显内容").setView(binding.root).setPositiveButton("确定", null)
+                ).setTitle("编辑电显内容").setView(binding.root).setPositiveButton(requireContext().getString(android.R.string.ok), null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 binding.editText.isSingleLine = false
@@ -369,7 +442,7 @@ class SysAndEsSettingsFragment : Fragment() {
                     R.style.CustomAlertDialogStyle
                 ).setTitle("设置${title}提示词")
                     .setView(binding.root)
-                    .setPositiveButton("确定", null)
+                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
                     .setNegativeButton(getString(android.R.string.cancel), null)
                     .show()
 
@@ -403,7 +476,7 @@ class SysAndEsSettingsFragment : Fragment() {
                     requireContext(),
                     R.style.CustomAlertDialogStyle
                 ).setTitle("设置电显文字滚动速度").setView(binding.root)
-                    .setPositiveButton("确定", null)
+                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 binding.slider.contentDescription = "拖动以调整电显文字滚动速度"
@@ -414,7 +487,7 @@ class SysAndEsSettingsFragment : Fragment() {
 
                 binding.es.pixelMovePerSecond = eSSpeed
                 binding.es.finishPositionOfLastWord = utils.getEsFinishPositionOfLastWord()
-                binding.es.setText("请有序排队 文明乘车 桂林公交欢迎您 K99 开往 汽车客运南站")
+                binding.es.showText("请有序排队 文明乘车 桂林公交欢迎您 K99 开往 汽车客运南站", -1)
 
 
                 binding.text.visibility = ViewGroup.VISIBLE
@@ -437,6 +510,10 @@ class SysAndEsSettingsFragment : Fragment() {
                     dialog.dismiss()
                 }
 
+                dialog.setOnDismissListener {
+                    binding.es.stopAnimation()
+                }
+
             })
     }
 
@@ -453,7 +530,7 @@ class SysAndEsSettingsFragment : Fragment() {
                     requireContext(),
                     R.style.CustomAlertDialogStyle
                 ).setTitle("电显文字滚动结束时机").setView(binding.root)
-                    .setPositiveButton("确定", null)
+                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 binding.slider.contentDescription = "拖动以调整"
@@ -483,6 +560,10 @@ class SysAndEsSettingsFragment : Fragment() {
                     }
                     utils.showMsg("设置成功")
                     dialog.dismiss()
+                }
+
+                dialog.setOnDismissListener {
+                    binding.es.stopAnimation()
                 }
 
             })

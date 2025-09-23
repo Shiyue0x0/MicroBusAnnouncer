@@ -1,13 +1,18 @@
 package com.microbus.announcer.adapter
 
-import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Rect
 import android.graphics.Typeface
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import android.view.Choreographer
+import android.view.Choreographer.FrameCallback
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.microbus.announcer.R
@@ -15,6 +20,7 @@ import com.microbus.announcer.Utils
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.databinding.ItemStationOfLineBinding
 import java.util.Locale
+import kotlin.math.ceil
 
 
 internal class StationOfLineAdapter(
@@ -78,54 +84,55 @@ internal class StationOfLineAdapter(
         holder.stationNameNestedScrollView.layoutParams.width = (lineHeight * 1.1).toInt()
         holder.stationNameNestedScrollView.layoutParams.height =
             lineHeight * 4 + utils.dp2px(2F) * 2
-        //设置站点名称竖直滚动
-        val runnable = object : Runnable {
-            var timeCount = 0
-            override fun run() {
-
-                mHandler.postDelayed(this, 25)
-
-
-//                if (holder.stationName.text.length <= 4) {
-//                    timeCount = 0
-//                    return
-//                }
-
-                if (!isScroll)
-                    return
-
-//                Log.d("runnable", lineName)
-                val scrollY = holder.stationNameNestedScrollView.scrollY
-                val maxScrollY =
-                    holder.stationNameNestedScrollView.getChildAt(0).height - holder.stationNameNestedScrollView.height
-                if (scrollY >= maxScrollY) {
-                    timeCount++
-                    if (timeCount > 50) {
-                        timeCount = 0
-                        holder.stationNameNestedScrollView.scrollBy(0, -maxScrollY)
-                    }
-                } else if (scrollY == 0) {
-                    timeCount++
-                    if (timeCount > 50) {
-                        timeCount = 0
-                        holder.stationNameNestedScrollView.smoothScrollBy(0, 1)
-                    }
-                } else {
-                    holder.stationNameNestedScrollView.smoothScrollBy(0, 1)
-                }
-
-            }
-        }
 
         holder.stationNameNestedScrollView.post {
-            mHandler.postDelayed(runnable, 25)
-        }
 
+            val pixelMovePerSecond = 50
+            val frameCallback = object : FrameCallback {
+
+                val delay = 100
+                var frameCount = 0
+                var scrollY = -delay
+
+                override fun doFrame(frameTimeNanos: Long) {
+
+                    Choreographer.getInstance().postFrameCallback(this)
+
+                    if (!isScroll)
+                        return
+
+//                    Log.d("Station", "$lineName ${holder.stationName.text}")
+
+                    // 动态刷新率
+                    val fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        context.display.refreshRate
+                    } else {
+                        val windowManager =
+                            context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                        windowManager.defaultDisplay.refreshRate
+                    }
+
+                    scrollY += ceil((pixelMovePerSecond.toFloat() / fps).toDouble()).toInt()
+
+                    val maxScrollY =
+                        holder.stationNameNestedScrollView.getChildAt(0).height - holder.stationNameNestedScrollView.height
+
+                    if (scrollY > maxScrollY + delay)
+                        scrollY = -delay
+
+                    holder.stationNameNestedScrollView.scrollTo(0, scrollY)
+
+
+                    frameCount++
+
+                }
+            }
+            Choreographer.getInstance().postFrameCallback(frameCallback)
+        }
 
         return holder
     }
 
-    @SuppressLint("SetTextI18n", "ResourceType")
     override fun onBindViewHolder(holder: StationOfLineViewHolder, position: Int) {
 
         when (position) {
@@ -147,20 +154,6 @@ internal class StationOfLineAdapter(
 
 
         holder.stationName.text = stationList[position].cnName
-
-//        val typedArray = context.obtainStyledAttributes(
-//            intArrayOf(
-//                android.R.attr.colorPrimary,
-//                com.google.android.material.R.attr.colorSurface,
-//                android.R.attr.colorPrimary,
-//                com.google.android.material.R.attr.colorOnSurface,
-//            )
-//        )
-//        val bg2 = typedArray.getColor(0, 0)
-//        val color2 = typedArray.getColor(1, 0)
-//        val color1 = typedArray.getColor(2, 0)
-//        val color3 = typedArray.getColor(3, 0)
-//        typedArray.recycle()
 
         //当前站点样式
         val color: Int
@@ -224,6 +217,7 @@ internal class StationOfLineAdapter(
         return stationList.size
     }
 
+
     interface OnItemClickListener {
         fun onItemClick(view: View?, position: Int)
     }
@@ -233,5 +227,6 @@ internal class StationOfLineAdapter(
             this.mClickListener = listener
         }
     }
+
 
 }

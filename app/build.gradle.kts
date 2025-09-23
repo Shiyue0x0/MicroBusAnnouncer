@@ -16,9 +16,9 @@ android {
         applicationId = "com.microbus.announcer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 242
+        versionCode = 243
         versionName =
-            "2.4.2-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
+            "2.4.3-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
     }
 
     buildTypes {
@@ -78,20 +78,14 @@ dependencies {
     implementation(libs.easypermissions)
     implementation(libs.viewpager2)
     implementation(libs.recyclerview)
-//    implementation(files("libs/AMap3DMap_10.1.200_AMapSearch_9.7.4_AMapLocation_6.4.9_20241226_reIcon.jar"))
     implementation(files("libs/AMap3DMap_10.1.302_AMapSearch_9.7.4_AMapLocation_6.5.0_20250804.jar"))
     implementation(libs.androidx.legacy.support.v4)
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.preference)
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.core)
-//    testImplementation(libs.junit)
-//    implementation(libs.rxjava)
     implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.kotlinx.serialization.json)
-//    androidTestImplementation(libs.androidx.junit)
-//    androidTestImplementation(libs.androidx.espresso.core)
-//    androidTestImplementation(libs.design)
     implementation(libs.gson)
     implementation(libs.material)
 
