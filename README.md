@@ -13,6 +13,8 @@
   <img src="https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/settings.jpg" width="200"  alt=""/>
 </div>
 
+![主控](readme/img/main.jpg)
+
 ![路线](https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/lines.jpg)
 
 
