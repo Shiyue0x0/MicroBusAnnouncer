@@ -279,7 +279,7 @@ class Utils(private val context: Context) {
      * 从设置中获取是否启用线路轨迹纠偏
      */
     fun getIsLineTrajectoryCorrection(): Boolean {
-        return prefs.getBoolean("lineTrajectoryCorrection", true)
+        return prefs.getBoolean("lineTrajectoryCorrection", false)
     }
 
     /**

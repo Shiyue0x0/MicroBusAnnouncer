@@ -6,14 +6,10 @@
 
 [演示视频](https://bilibili.com)
 
-<div>
-  <img src="https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/main.jpg" width="200"  alt=""/>
-  <img src="https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/lines.jpg" width="200"  alt=""/>
-  <img src="https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/stations.jpg" width="200"  alt=""/>
-  <img src="https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/settings.jpg" width="200"  alt=""/>
-</div>
-
 ![主控](readme/img/main.jpg)
+![路线](readme/img/lines.jpg)
+![站点](readme/img/stations.jpg)
+![设置](readme/img/settings.jpg)
 
 ![路线](https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/lines.jpg)
 
