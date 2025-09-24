@@ -11,9 +11,6 @@
 ![站点](readme/img/stations.jpg)
 ![设置](readme/img/settings.jpg)
 
-![路线](https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/lines.jpg)
-
-
 ### 快速开始
 
 无需过多配置，只需要一些步骤即可体验Announcer的基本功能。
