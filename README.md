@@ -48,15 +48,9 @@
 
 要继续了解`Announcer`？请按需参阅这些文档：
 
-1. 语音播报
-   [GitHub](https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/语音播报.md)
-   [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/语音播报.md)
+1.[语音播报](readme/语音播报.md)
 
-2. 模拟电显
-   [GitHub](https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/模拟电显.md)
-   [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/模拟电显.md)
+2.[模拟电显](readme/模拟电显.md)
 
-3. 自定义站点与路线
-   [GitHub](https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/自定义站点与路线.md)
-   [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/自定义站点与路线.md)
+3.[自定义站点与路线](readme/自定义站点与路线.md)
 
