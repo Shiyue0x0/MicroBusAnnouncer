@@ -6,10 +6,7 @@
 
 [演示视频](https://bilibili.com)
 
-![主控](readme/img/main.jpg)
-![路线](readme/img/lines.jpg)
-![站点](readme/img/stations.jpg)
-![设置](readme/img/settings.jpg)
+![UI预览](readme/img/uiPreview.jpg)
 
 ### 快速开始
 
