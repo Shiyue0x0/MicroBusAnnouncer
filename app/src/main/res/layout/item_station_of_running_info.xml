@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="24dp"
+    android:layout_marginEnd="24dp"
+    android:layout_marginBottom="8dp">
+
+    <TextView
+        android:id="@+id/lineName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:text="K99 开往 汽车客运南站"
+        android:textSize="16sp"
+        android:visibility="visible"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/stationCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="@color/an_contain_bg"
+        app:layout_constraintTop_toBottomOf="@+id/lineName">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/stationName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="十字街（中心广场）"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/stationNext"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="12:00:00 下一站"
+                android:textColor="@color/an_text_0" />
+
+            <TextView
+                android:id="@+id/stationWillIn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="12:00:10 即将到达"
+                android:textColor="@color/an_text_0" />
+
+            <TextView
+                android:id="@+id/stationIn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="12:00:30 到达" />
+
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

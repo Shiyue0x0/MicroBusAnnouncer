@@ -18,7 +18,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        app:strokeWidth="0dp">
+        app:cardBackgroundColor="@color/an_contain_bg">
 
         <TextView
             android:id="@+id/name"

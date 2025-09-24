@@ -272,7 +272,7 @@ class Utils(private val context: Context) {
      * 从设置中获取地图模式
      */
     fun getMapType(): Int {
-        return prefs.getString("mapType", "1")?.toInt() ?: 1
+        return prefs.getString("mapType", "0")?.toInt() ?: 0
     }
 
     /**
@@ -583,19 +583,10 @@ class Utils(private val context: Context) {
         val anList = ArrayList<String>()
         val itemRegex = Regex("^(?!(.*[|<>])).*$")
 
-        val keywordList = ArrayList<String>(listOf("<time>", "<speed>", "<line>"))
-
-        for (lang in getAnnouncementLangList()) {
-            keywordList.add("<ns$lang>")
-            keywordList.add("<ss$lang>")
-            keywordList.add("<ts$lang>")
-            keywordList.add("<ms$lang>")
-        }
-//        Log.d(tag, exp)
+        val anKeywordList = getDefaultKeywordList()
 
         for (item in itemList) {
-//            Log.d(tag, item)
-            if (keywordList.contains(item)) {
+            if (anKeywordList.contains(item)) {
                 anList.add(item)
             } else {
                 if ((itemRegex.matches(item) && item != "") ||
@@ -608,10 +599,6 @@ class Utils(private val context: Context) {
             }
         }
 
-//        for (an in anList) {
-//            Log.d(tag, an)
-//        }
-
         return anList
     }
 
@@ -620,8 +607,10 @@ class Utils(private val context: Context) {
      * */
     fun getAnnouncementLangList(): ArrayList<String> {
 
+        val langList = ArrayList<String>(listOf("cn", "en"))
+
         if (!isGrantManageFilesAccessPermission()) {
-            return ArrayList()
+            return langList
         }
 
         val dir = File("$appRootPath/Media/${getAnnouncementLibrary()}")
@@ -640,7 +629,6 @@ class Utils(private val context: Context) {
             .filter { it.isDirectory && it.path.split("/").size == dir.path.split("/").size + 1 }
             .toList()
 
-        val langList = ArrayList<String>(listOf("cn", "en"))
         for (langFolder in langFolderList) {
             if (!langList.contains(langFolder.name))
                 langList.add(langFolder.name)
@@ -855,7 +843,7 @@ class Utils(private val context: Context) {
 
         val lines = text.split('\n')
 
-        val keywordList = getEsKeywordList()
+        val keywordList = getDefaultKeywordList()
         val numReg = Regex("^[1-9]\\d*$")
 
         for (i in lines.indices) {
@@ -906,13 +894,27 @@ class Utils(private val context: Context) {
         return esList
     }
 
-    fun getEsKeywordList(): ArrayList<String> {
+    fun getDefaultKeywordList(): ArrayList<String> {
         val keywordList =
-            ArrayList<String>(listOf("<next>", "<will>", "<arrive>", "<time>", "<speed>", "<line>"))
+            ArrayList<String>(
+                listOf(
+                    "<line>",
+                    "<time>",
+                    "<year>",
+                    "<years>",
+                    "<month>",
+                    "<date>",
+                    "<hour>",
+                    "<minute>",
+                    "<second>",
+                    "<speed>"
+                )
+            )
         for (lang in getAnnouncementLangList()) {
             keywordList.add("<ns$lang>")
             keywordList.add("<ss$lang>")
             keywordList.add("<ts$lang>")
+            keywordList.add("<ms$lang>")
         }
         return keywordList
     }
@@ -1026,7 +1028,7 @@ class Utils(private val context: Context) {
                 }
             }
             .show()
-
     }
+
 }
 

@@ -104,12 +104,15 @@ import com.microbus.announcer.SensorHelper
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.LineOfSearchAdapter
 import com.microbus.announcer.adapter.StationOfLineAdapter
+import com.microbus.announcer.adapter.StationOfRunningInfoAdapter
 import com.microbus.announcer.bean.EsItem
 import com.microbus.announcer.bean.Line
+import com.microbus.announcer.bean.RunningInfo
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogLineSwitchBinding
+import com.microbus.announcer.databinding.DialogRunningInfoBinding
 import com.microbus.announcer.databinding.FragmentMainBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -119,6 +122,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.time.LocalTime
 import java.util.Date
 import java.util.Locale
@@ -303,6 +307,7 @@ class MainFragment : Fragment() {
     var userLocationOpen = false
     var userMapOpen = false
 
+    val runningInfoList = ArrayList<RunningInfo>()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -669,7 +674,7 @@ class MainFragment : Fragment() {
     fun initButtonClickListener() {
 
         binding.mapBtnGroup.check(binding.mapBtn.id)
-        binding.locationBtnGroup.check(binding.locationBtn.id)
+        binding.locationBtnGroup.uncheck(binding.locationBtn.id)
         binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
 
 
@@ -936,15 +941,29 @@ class MainFragment : Fragment() {
                 utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
                 return@setOnClickListener
             }
-            val textView = TextView(requireContext())
-            textView.text = binding.lineStationChangeInfo.text
-            textView.setLineSpacing(100f, 0f)
-            textView.setPadding(100, 50, 100, 50)
-            val scrollView = ScrollView(requireContext())
-            scrollView.addView(textView)
+//            val textView = TextView(requireContext())
+//            textView.text = binding.lineStationChangeInfo.text
+//            textView.setLineSpacing(100f, 0f)
+//            textView.setPadding(100, 50, 100, 50)
+//            val scrollView = ScrollView(requireContext())
+//            scrollView.addView(textView)
+//            MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
+//                .setTitle(getString(R.string.running_info))
+//                .setView(scrollView).create()
+//                .show()
+
+            val dialogBinding = DialogRunningInfoBinding.inflate(LayoutInflater.from(context))
+
+            for (info in runningInfoList) {
+                Log.d(tag, info.stationName)
+            }
+
+            dialogBinding.recyclerView.adapter =
+                StationOfRunningInfoAdapter(requireContext(), runningInfoList)
+
             MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
                 .setTitle(getString(R.string.running_info))
-                .setView(scrollView).create()
+                .setView(dialogBinding.root)
                 .show()
         }
 
@@ -959,6 +978,7 @@ class MainFragment : Fragment() {
             true
         }
 
+        // 启用定位按钮
         binding.locationBtn.addOnCheckedChangeListener { button, isChecked ->
 
             if (isOperationLock) {
@@ -1319,6 +1339,7 @@ class MainFragment : Fragment() {
         val esRefreshHandler = Handler(mLooper)
         var isRefreshing = false
         val esRefreshRunnable = object : Runnable {
+
             override fun run() {
                 val isLeftFinish = binding.headerLeftNew.isShowFinish || !utils.getIsOpenLeftEs()
                 val isRightFinish = binding.headerRightNew.isShowFinish
@@ -1331,18 +1352,8 @@ class MainFragment : Fragment() {
                 if (binding.headerMiddleNew.isShowFinish) {
                     binding.headerMiddleNew.showText(currentLine.name)
                 }
-                esRefreshHandler.postDelayed(this, 100L)
-            }
-        }
-        esRefreshHandler.postDelayed(esRefreshRunnable, 0L)
 
-
-//        var speedRefreshCount = 0
-        val speedRefreshRunnable = object : Runnable {
-            override fun run() {
-//                currentSpeedKmH = speedRefreshCount.toDouble()
-//                speedRefreshCount++
-                if (esPlayIndex > 0 && esPlayIndex < esList.size && esList[esPlayIndex].type.contains(
+                if (esPlayIndex >= 0 && esPlayIndex < esList.size && esList[esPlayIndex].type.contains(
                         "R"
                     )
                 ) {
@@ -1359,10 +1370,23 @@ class MainFragment : Fragment() {
                 binding.headerRightNew.finishPositionOfLastWord = pos
                 binding.headerMiddleNew.finishPositionOfLastWord = pos
 
-                speedRefreshHandler.postDelayed(this, 1000L)
+                esRefreshHandler.postDelayed(this, 100L)
             }
         }
-        speedRefreshHandler.postDelayed(speedRefreshRunnable, 0L)
+        esRefreshHandler.postDelayed(esRefreshRunnable, 0L)
+
+////        var speedRefreshCount = 0
+//        val speedRefreshRunnable = object : Runnable {
+//            override fun run() {
+////                currentSpeedKmH = speedRefreshCount.toDouble()
+////                speedRefreshCount++
+//
+//
+//
+//                speedRefreshHandler.postDelayed(this, 1000L)
+//            }
+//        }
+//        speedRefreshHandler.postDelayed(speedRefreshRunnable, 0L)
 
         binding.headerLeftNew.minShowTimeMs = 500
         binding.headerRightNew.minShowTimeMs = 500
@@ -1532,7 +1556,6 @@ class MainFragment : Fragment() {
         aMapView.onCreate(null)
         aMap = aMapView.map
 
-        setMapMode(utils.getMapType())
         aMap.isMyLocationEnabled = false
         aMap.isTrafficEnabled = true
 
@@ -1814,6 +1837,7 @@ class MainFragment : Fragment() {
         }
         mMapHandler.postDelayed(mapRunnable, 1000L)
 
+        setMapMode(utils.getMapType())
     }
 
 
@@ -2087,6 +2111,8 @@ class MainFragment : Fragment() {
     }
 
     fun onMyLocationChange(location: Location) {
+
+        binding.locationBtnGroup.check(binding.locationBtn.id)
 
         //更新位置与时间
         lastTimeMillis = currentTimeMillis
@@ -2773,6 +2799,8 @@ class MainFragment : Fragment() {
      */
     private fun refreshLineStationChangeInfo() {
 
+        // De
+
         var newInfo = ""
 
         val dateFormat = SimpleDateFormat("[HH:mm:ss] ", Locale.getDefault())
@@ -2791,6 +2819,33 @@ class MainFragment : Fragment() {
 
         binding.lineStationChangeInfo.text =
             binding.lineStationChangeInfo.text as String + newInfo
+
+
+        val stationName = if (utils.getUILang() == "zh")
+            currentLineStation.cnName
+        else
+            currentLineStation.enName
+
+        val terminalName = if (currentLineStationList.isNotEmpty()) {
+            if (utils.getUILang() == "zh")
+                currentLineStationList.last().cnName
+            else
+                currentLineStationList.last().enName
+        } else {
+            ""
+        }
+
+        runningInfoList.add(
+            RunningInfo(
+                LocalTime.now(),
+                currentLine.id ?: -1,
+                currentLineStation.id ?: -1,
+                currentLine.name,
+                terminalName,
+                stationName,
+                currentLineStationState
+            )
+        )
 
     }
 
@@ -2850,6 +2905,31 @@ class MainFragment : Fragment() {
                 return
             } else if (item[0] == '<') {
                 when (item) {
+                    in listOf(
+                        "<line>",
+                        "<year>",
+                        "<years>",
+                        "<month>",
+                        "<date>",
+                        "<hour>",
+                        "<minute>",
+                        "<second>"
+                    ) -> {
+                        val str = when (item) {
+                            "<line>" -> currentLine.name
+                            "<year>" -> LocalDate.now().year.toString()
+                            "<years>" -> (LocalDate.now().year % 100).toString()
+                            "<month>" -> LocalDate.now().monthValue.toString()
+                            "<date>" -> LocalDate.now().dayOfMonth.toString()
+                            "<hour>" -> LocalTime.now().hour.toString()
+                            "<minute>" -> LocalTime.now().minute.toString()
+                            "<second>" -> LocalTime.now().second.toString()
+                            else -> ""
+                        }
+                        mediaList.addAll(utils.getNumOrLetterVoiceList(str))
+                    }
+
+
                     "<time>" -> {
                         mediaList.addAll(utils.getTimeVoiceList())
                     }
@@ -2861,10 +2941,6 @@ class MainFragment : Fragment() {
                                 "cn/number/"
                             )
                         )
-                    }
-
-                    "<line>" -> {
-                        mediaList.addAll(utils.getNumOrLetterVoiceList(currentLine.name))
                     }
 
                     else -> {
@@ -3516,6 +3592,7 @@ class MainFragment : Fragment() {
     /**
      * 更改地图模式
      * @param mode 地图模式标识
+     * 根据系统UI选择普通或黑夜普通地图，值为0；
      * MAP_TYPE_NORMAL：普通地图，值为1；
      * MAP_TYPE_SATELLITE：卫星地图，值为2；
      * MAP_TYPE_NIGHT 黑夜地图，夜间模式，值为3；
@@ -3619,26 +3696,41 @@ class MainFragment : Fragment() {
                         frontDefaultItemIndex = i
                     }
 
-                    // 寻找当前运行站点状态对应内容
+                    // 寻找当前运行站点状态及位置对应内容
                     val currentMatchType = utils.extractNWA(Regex("[NWA]"), esList[i].type)
                     val currentPosType = utils.extractNWA(Regex("[SCT]"), esList[i].type)
 
+                    // 状态及位置类型都有
                     if (currentMatchType != "" && currentPosType != "") {
                         if (getStationStateTypeMap()[currentMatchType] == currentLineStationState &&
                             getStationPositionTypeMap()[currentPosType] == currentLineStationCount
                         ) {
+                            // C：即不是`起点站`也不是`终点站`
+                            if (currentPosType == "C" &&
+                                (currentLineStationCount == 0 || currentLineStationCount == currentLineStationList.size - 1)
+                            ) {
+                                continue
+                            }
                             esPlayIndex = i
                             hasMatchCurrentState = true
                             hasMatchCurrentPos = true
                             break
                         }
+                        // 只有状态类型
                     } else if (currentMatchType != "") {
                         if (getStationStateTypeMap()[currentMatchType] == currentLineStationState) {
                             esPlayIndex = i
                             hasMatchCurrentState = true
                             break
                         }
+                        // 只有位置类型
                     } else if (currentPosType != "") {
+                        // C：即不是`起点站`也不是`终点站`
+                        if (currentPosType == "C" &&
+                            (currentLineStationCount == 0 || currentLineStationCount == currentLineStationList.size - 1)
+                        ) {
+                            continue
+                        }
                         if (getStationPositionTypeMap()[currentPosType] == currentLineStationCount) {
                             esPlayIndex = i
                             hasMatchCurrentPos = true
@@ -3700,25 +3792,52 @@ class MainFragment : Fragment() {
         valueMap["<will>"] = utils.getEsWillArriveWord()
         valueMap["<arrive>"] = utils.getEsArriveWord()
 
-        valueMap["<time>"] = LocalTime.now().toString()
+        valueMap["<line>"] = currentLine.name
+
+
+        valueMap["<year>"] = LocalDate.now().year.toString()
+        valueMap["<years>"] = (LocalDate.now().year % 100).toString()
+        valueMap["<month>"] = LocalDate.now().monthValue.toString()
+        valueMap["<date>"] = LocalDate.now().dayOfMonth.toString()
+
+        valueMap["<hour>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().hour)
+        valueMap["<minute>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().minute)
+        valueMap["<second>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().second)
+
+        valueMap["<time>"] = "${valueMap["<hour>"]}:${valueMap["<minute>"]}"
+
+
         valueMap["<speed>"] =
             if (currentSpeedKmH >= 0) String.format(Locale.CHINA, "%.1f", currentSpeedKmH) else "-"
-        valueMap["<line>"] = currentLine.name
+
 
         valueMap["<nscn>"] = currentLineStation.cnName
         valueMap["<nsen>"] = currentLineStation.enName
 
         valueMap["<sscn>"] =
-            if (currentLineStationList.isEmpty()) "" else currentLineStationList.first().cnName
+            if (currentLineStationList.isEmpty())
+                getString(R.string.starting_station)
+            else currentLineStationList.first().cnName
+
         valueMap["<ssen>"] =
-            if (currentLineStationList.isEmpty()) "" else currentLineStationList.first().enName
+            if (currentLineStationList.isEmpty())
+                getString(R.string.starting_station)
+            else
+                currentLineStationList.first().enName
 
         valueMap["<tscn>"] =
-            if (currentLineStationList.isEmpty()) "" else currentLineStationList.last().cnName
-        valueMap["<tsen>"] =
-            if (currentLineStationList.isEmpty()) "" else currentLineStationList.last().enName
+            if (currentLineStationList.isEmpty())
+                getString(R.string.terminal)
+            else
+                currentLineStationList.last().cnName
 
-        val keywordList = utils.getEsKeywordList()
+        valueMap["<tsen>"] =
+            if (currentLineStationList.isEmpty())
+                getString(R.string.terminal)
+            else
+                currentLineStationList.last().enName
+
+        val keywordList = utils.getDefaultKeywordList()
         for (keyword in keywordList) {
             leftText = leftText.replace(keyword, valueMap[keyword] ?: "", true)
             rightText = rightText.replace(keyword, valueMap[keyword] ?: "", true)
