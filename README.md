@@ -7,10 +7,10 @@
 [演示视频](https://bilibili.com)
 
 <div>
-  <img src="https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/img/main.jpg" width="200"  alt=""/>
-  <img src="https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/img/lines.jpg" width="200"  alt=""/>
-  <img src="https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/img/stations.jpg" width="200"  alt=""/>
-  <img src="https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/img/settings.jpg" width="200"  alt=""/>
+  <img src="https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/main.jpg" width="200"  alt=""/>
+  <img src="https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/lines.jpg" width="200"  alt=""/>
+  <img src="https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/stations.jpg" width="200"  alt=""/>
+  <img src="https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/settings.jpg" width="200"  alt=""/>
 </div>
 
 ### 快速开始
@@ -20,11 +20,13 @@
 1. 准备一台Android 8.0+的手机，从下列渠道下载最新版，然后安装。
 
    [Github](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
+   [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/releases)
    [蓝奏云](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
-   
+
 2. 下载体验语音库。
 
    [Github](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
+   [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/releases)
    [蓝奏云](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
 
 3. 将其中的`Announcer`文件夹解压到手机的根目录。
@@ -51,9 +53,15 @@
 
 要继续了解`Announcer`？请按需参阅这些文档：
 
-1. [语音播报](https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/语音播报.md)
+1. 语音播报
+   [GitHub](https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/语音播报.md)
+   [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/语音播报.md)
 
-2. [模拟电显](https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/模拟电显.md)
+2. 模拟电显
+   [GitHub](https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/模拟电显.md)
+   [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/模拟电显.md)
 
-3. [自定义站点与路线](https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/自定义站点与路线.md)
+3. 自定义站点与路线
+   [GitHub](https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/readme/自定义站点与路线.md)
+   [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/自定义站点与路线.md)
 
