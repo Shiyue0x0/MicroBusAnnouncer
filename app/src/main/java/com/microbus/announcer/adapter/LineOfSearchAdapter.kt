@@ -5,16 +5,18 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.microbus.announcer.R
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.ItemLineOfSearchBinding
 
-class LineOfSearchAdapter(context: Context, private val lineList: ArrayList<Line>) :
+class LineOfSearchAdapter(private var context: Context, private val lineList: ArrayList<Line>) :
     RecyclerView.Adapter<LineOfSearchAdapter.ViewHolder>() {
 
     private lateinit var mClickListener: OnItemClickListener
 
     private var stationDatabaseHelper = StationDatabaseHelper(context)
+
 
     class ViewHolder(
         var binding: ItemLineOfSearchBinding, clickListener: OnItemClickListener
@@ -70,8 +72,9 @@ class LineOfSearchAdapter(context: Context, private val lineList: ArrayList<Line
             if (lineTerminal.isNotEmpty()) lineTerminal.first().cnName
             else "-"
 
+
         holder.name.text = lineList[position].name
-        holder.text.text = "$lineStartingStationCnName - $lineTerminalCnName"
+        holder.text.text = context.getString(R.string.S2T, lineStartingStationCnName, lineTerminalCnName)
     }
 
     override fun getItemCount() = lineList.size

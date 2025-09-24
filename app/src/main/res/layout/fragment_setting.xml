@@ -4,7 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/an_window_bg"
     app:layout_constraintBottom_toBottomOf="parent">
 
     <!--  状态栏填充  -->
@@ -32,32 +31,32 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:tag="sysAndEs"
-            android:text="系统与电显" />
+            android:tag="SysAndEs"
+            android:text="@string/SysAndEs" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:tag="Announcement"
-            android:text="语音播报库" />
+            android:text="@string/Announcement" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:tag="mapAndLocation"
-            android:text="定位与地图" />
+            android:tag="MapAndLocation"
+            android:text="@string/MapAndLocation" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:tag="dateAndAbout"
-            android:text="数据与关于" />
+            android:tag="DateAndAbout"
+            android:text="@string/DateAndAbout" />
 
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:tag="oldSetting"
-            android:text="旧版设置" />
+<!--        <com.google.android.material.tabs.TabItem-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:tag="oldSetting"-->
+<!--            android:text="旧版设置" />-->
 
     </com.google.android.material.tabs.TabLayout>
 

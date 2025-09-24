@@ -3,12 +3,12 @@ package com.microbus.announcer
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Build
-import android.os.CountDownTimer
 import android.os.Environment
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -21,6 +21,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.core.os.LocaleListCompat
 import androidx.preference.PreferenceManager
 import com.amap.api.maps.model.LatLng
@@ -33,11 +34,8 @@ import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogStationInfoBinding
 import com.microbus.announcer.fragment.StationFragment
 import java.io.BufferedReader
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileWriter
-import java.io.IOException
-import java.io.InputStream
 import java.io.InputStreamReader
 import java.time.LocalTime
 import java.util.Locale
@@ -108,11 +106,18 @@ class Utils(private val context: Context) {
         return prefs.getBoolean("showBottomBar", true)
     }
 
+    /**
+     * 从设置中获取是否退出后保留后台
+     */
+    fun getIsSaveBackAfterExit(): Boolean {
+        return prefs.getBoolean("saveBackAfterExit", false)
+    }
+
 
     /**
      * 从设置中获取是否发送运行通知
      */
-    fun getIsSeedNotice(): Boolean {
+    fun getNotice(): Boolean {
         return prefs.getBoolean("notice", true)
     }
 
@@ -174,6 +179,13 @@ class Utils(private val context: Context) {
         return prefs.getBoolean("clickLocationButtonToCopyLngLat", false)
     }
 
+    /**
+     * 从设置中获取是否启用路线规划
+     */
+    fun getIsLinePlanning(): Boolean {
+        return prefs.getBoolean("linePlanning", true)
+    }
+
 
     /**
      * 从设置中获取是否启用地图规划路线模式
@@ -230,6 +242,13 @@ class Utils(private val context: Context) {
         return prefs.getInt("locationInterval", 2500)
     }
 
+    /**
+     * 从设置中获取是否当上行从终点站出站时切换反向
+     */
+    fun getSwitchDirectionWhenOutFromTerminalWithOnUp(): Boolean {
+        return prefs.getBoolean("switchDirectionWhenOutFromTerminalWithOnUp", true)
+    }
+
 
     /**
      * 从设置中获取头屏显示信息
@@ -274,6 +293,10 @@ class Utils(private val context: Context) {
         return prefs.getBoolean("stationChangeVibrator", true)
     }
 
+    fun getServiceLanguageStr(): String {
+        return prefs.getString("serviceLanguageStr", "") ?: ""
+    }
+
     /**
      * 从设置中获取播报语音库
      */
@@ -308,23 +331,6 @@ class Utils(private val context: Context) {
         vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, repeatIndex))
     }
 
-
-    /**
-     * 从InputStream中读取Byte[]
-     */
-    @Throws(IOException::class)
-    fun convertToByteArray(inputStream: InputStream): ByteArray? {
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        val buffer = ByteArray(1024) // 定义缓冲区
-        var length: Int
-
-        // 持续读取直到流结束
-        while ((inputStream.read(buffer).also { length = it }) != -1) {
-            byteArrayOutputStream.write(buffer, 0, length)
-        }
-
-        return byteArrayOutputStream.toByteArray() // 转换为字节数组
-    }
 
     /**
      * 将3位及以下整数转换为中文读法字符串列表
@@ -420,7 +426,6 @@ class Utils(private val context: Context) {
         latLng: LatLng = LatLng(0.0, 0.0),
         isOrderLatLng: Boolean = false,
         stationFragment: StationFragment = StationFragment(),
-        isOrderGetCurLatLng: Boolean = false,
         onDone: () -> Unit = {},
 
         ) {
@@ -444,24 +449,6 @@ class Utils(private val context: Context) {
 
         if (type == "new") {
             alertDialog.show()
-            if (isOrderGetCurLatLng) {
-                alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).text =
-                    "获取当前位置"
-                alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
-                    .setOnClickListener {
-                        stationFragment.initLocation()
-                        stationFragment.mLocationClient.startLocation()
-                        object : CountDownTimer(4 * 1000, 10000) {
-                            override fun onTick(millisUntilFinished: Long) {
-                            }
-
-                            override fun onFinish() {
-                                stationFragment.mLocationClient.stopLocation()
-                            }
-                        }.start()
-                    }
-            }
-
             if (isOrderLatLng) {
                 binding.editTextLongitude.setText(latLng.longitude.toString())
                 binding.editTextLatitude.setText(latLng.latitude.toString())
@@ -537,7 +524,7 @@ class Utils(private val context: Context) {
                     return@setOnClickListener
                 }
 
-                if(!listOf("C", "B", "U", "T").contains(stationType)){
+                if (!listOf("C", "B", "U", "T").contains(stationType)) {
                     showMsg("站点类型应为CBUT之一")
                     return@setOnClickListener
                 }
@@ -611,7 +598,9 @@ class Utils(private val context: Context) {
             if (keywordList.contains(item)) {
                 anList.add(item)
             } else {
-                if ((itemRegex.matches(item) && item != "") || item.substring(1, 3) == "ms") {
+                if ((itemRegex.matches(item) && item != "") ||
+                    (item.length >= 3 && item.substring(1, 3) == "ms")
+                ) {
                     anList.add(item)
                 } else {
                     return ArrayList(listOf("ERROR", item))
@@ -692,11 +681,6 @@ class Utils(private val context: Context) {
                 }.setNegativeButton(context.getString(android.R.string.cancel), null).create()
                 .show()
         }
-    }
-
-    fun requestNormalPermission(activity: Activity): Boolean {
-        val permissionManager = PermissionManager(context, activity)
-        return permissionManager.requestNormalPermission()
     }
 
     fun isGrantManageFilesAccessPermission(): Boolean {
@@ -847,10 +831,13 @@ class Utils(private val context: Context) {
 
 
     fun getEsText(): String {
-        val default = "<nscn>|到了|5|A\n" +
-                "下一站|<nscn>|5|N\n" +
-                "全国文明城市 桂林欢迎您|攻坚十四五 奋进新征程 建设壮美广西|5|C\n" +
-                "速度|<speed>|5|S"
+        val default =
+            "<sscn>|<tscn>|5|B\n" +
+                    "<nscn>|到了|5|A\n" +
+                    "<nscn>|就要到了|5|W\n" +
+                    "下一站|<nscn>|5|N\n" +
+                    "全国文明城市 桂林欢迎您|攻坚十四五 奋进新征程 建设壮美广西|5|D\n" +
+                    "速度|<speed>|5|R"
         return prefs.getString("esText", default) ?: default
     }
 
@@ -1019,6 +1006,27 @@ class Utils(private val context: Context) {
     fun extractNWA(reg: Regex, input: String): String {
         return reg.findAll(input)
             .joinToString("") { it.value }
+    }
+
+    fun openHelperDialog(title: String, githubUrl: String, secondUrl: String) {
+        val urlList = listOf("Github", "XX文档")
+        MaterialAlertDialogBuilder(context)
+            .setTitle(title)
+            .setSingleChoiceItems(urlList.toTypedArray(), -1) { dialog, which ->
+                val uriStr = when (which) {
+                    0 -> githubUrl
+                    1 -> secondUrl
+                    else -> secondUrl
+                }
+                val intent = Intent(Intent.ACTION_VIEW, uriStr.toUri())
+                if (intent.resolveActivity(context.packageManager) != null) {
+                    context.startActivity(intent)
+                } else {
+                    showMsg("打开失败")
+                }
+            }
+            .show()
+
     }
 }
 

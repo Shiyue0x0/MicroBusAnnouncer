@@ -7,7 +7,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
-import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
@@ -18,12 +17,10 @@ import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogLineInfoBinding
 import com.microbus.announcer.databinding.ItemLineBinding
-import androidx.core.content.edit
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.databinding.ItemLineHeaderBinding
-import com.microbus.announcer.fragment.MainFragment
 
 class LineAdapter(
     private val context: Context,
@@ -34,12 +31,18 @@ class LineAdapter(
     private lateinit var mClickListener: OnItemClickListener
     private var stationDatabaseHelper = StationDatabaseHelper(context)
 
-    private var stationOfLineAdapterList = ArrayList<StationOfLineAdapter>()
+//    private var stationOfLineAdapterList = ArrayList<StationOfLineAdapter>()
+
+    private var stationOfLineAdapterMap = HashMap<Int, StationOfLineAdapter>()
 
     val commonView = 0
     val headerView = 1
 
     var allLineList = lineDatabaseHelper.queryAll()
+
+//    var firstVisibleItem = -1
+//
+//    var lastVisibleItem = -1
 
     init {
         setHasStableIds(true)
@@ -52,13 +55,11 @@ class LineAdapter(
         ViewHolder(binding.root), View.OnClickListener {
         private var mListener: OnItemClickListener? = null // 声明自定义监听接口
         var line = Line()
-        var lineId = 0
         var lineCard = binding.lineCard
         var lineName = binding.lineName
         var lineStartingStation = binding.lineStartingStation
         var lineTerminal = binding.lineTerminal
         var lineStationList = binding.lineStationList
-
 
         init {
             mListener = clickListener
@@ -68,7 +69,7 @@ class LineAdapter(
         }
 
         override fun onClick(v: View?) {
-            mListener!!.onItemClick(line, position)
+            mListener!!.onItemClick(line, layoutPosition)
         }
     }
 
@@ -91,7 +92,7 @@ class LineAdapter(
         }
 
         override fun onClick(v: View?) {
-            mListener!!.onItemClick(line, position)
+            mListener!!.onItemClick(line, layoutPosition)
         }
     }
 
@@ -119,7 +120,6 @@ class LineAdapter(
     ) {
         val utils = Utils(context)
 
-
         // LineViewHolder
         if (position == 0) {
             val holder = holder as LineHeaderViewHolder
@@ -128,9 +128,11 @@ class LineAdapter(
         // ItemLineHeaderHolder
         else {
 
+
             val holder = holder as LineViewHolder
             val position = position - 1
             val line = lineDatabaseHelper.queryById(allLineList[position].id ?: -1).first()
+
 
             //获取路线起点站、终点站下标
             val stationStrIndexList = line.upLineStation.split(" ").toMutableList()
@@ -150,7 +152,6 @@ class LineAdapter(
             }
 
             holder.line = line
-            holder.lineId = line.id!!
             holder.lineName.text = line.name
 
             if (stationList.isNotEmpty()) {
@@ -166,9 +167,29 @@ class LineAdapter(
             holder.lineStationList.setHasFixedSize(true)
             holder.lineStationList.layoutManager = linearLayoutManager
             val stationOfLineAdapter =
-                StationOfLineAdapter(context, stationList, -1, holder.lineName.text.toString())
+                StationOfLineAdapter(context, stationList, -1)
+
+            holder.lineStationList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+
+                    val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                    val firstVisibleItem = layoutManager.findFirstVisibleItemPosition()
+                    val lastVisibleItem = layoutManager.findLastVisibleItemPosition()
+
+//                    Log.d("", "station now show ${firstVisibleItem}-${lastVisibleItem}")
+                    stationOfLineAdapter.firstVisibleItem = firstVisibleItem
+                    stationOfLineAdapter.lastVisibleItem = lastVisibleItem
+                }
+            })
+
+//            Log.d("", "stationOfLineAdapter ${position + 1} in ${firstVisibleItem}/${lastVisibleItem}")
+//            stationOfLineAdapter.isShown = position + 1 in firstVisibleItem..lastVisibleItem
+
             holder.lineStationList.adapter = stationOfLineAdapter
-            stationOfLineAdapterList.add(stationOfLineAdapter)
+
+            stationOfLineAdapterMap[position + 1] = stationOfLineAdapter
+//            stationOfLineAdapterList.add(stationOfLineAdapter)
 
             //点击站点显示信息，并播报中英文
             stationOfLineAdapter.setOnItemClickListener(object :
@@ -219,7 +240,7 @@ class LineAdapter(
                                     LocalBroadcastManager.getInstance(context)
                                         .sendBroadcast(intent)
                                 }
-                                .setPositiveButton("下行"){ _, _ ->
+                                .setPositiveButton("下行") { _, _ ->
                                     val intent = Intent()
                                         .setAction(utils.editLineOnMapActionName)
                                         .putExtra("id", line.id)
@@ -332,11 +353,16 @@ class LineAdapter(
         }
     }
 
-    fun setStationItemsIsScroll(isScroll: Boolean) {
-        stationOfLineAdapterList.forEach { adapter ->
-            adapter.isScroll = isScroll
+    fun updateItemShown(firstVisibleItem: Int, lastVisibleItem: Int) {
+        for (i in 1 until itemCount) {
+            stationOfLineAdapterMap[i]?.isShown = i in firstVisibleItem .. lastVisibleItem
         }
     }
 
+    fun updateAllItemShown(value: Boolean){
+        for (i in 1 until itemCount) {
+            stationOfLineAdapterMap[i]?.isShown = value
+        }
+    }
 
 }

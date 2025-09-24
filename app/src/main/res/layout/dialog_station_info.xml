@@ -52,7 +52,7 @@
             android:ems="10"
             android:hint="@string/line_type"
             android:inputType="text"
-            android:text="B" />
+            android:text="@string/stationTypeDefault" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout

@@ -13,7 +13,6 @@ import android.graphics.Shader
 import android.graphics.Typeface
 import android.os.Build
 import android.util.AttributeSet
-import android.util.Log
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.View
@@ -43,7 +42,6 @@ class ESView : View {
     private var cornerRadius by Delegates.notNull<Float>()
     private var fontFamily: String? = ""
 
-    var playId = 0
 
     var loopCount = 0
 
@@ -260,11 +258,9 @@ class ESView : View {
     // 文字滚动完毕的时机（通过最后一个字的位置来判定）。0：最后一个字进入屏幕时；0.5：最后一个字到达屏幕中央时；1：最后一个字离开屏幕时。
     var finishPositionOfLastWord = 0.5F
 
-    fun showText(textNew: String, playId: Int) {
+    fun showText(textNew: String) {
 
         stopAnimation()
-
-        this.playId = playId
 
         post {
             scrollX = width - paddingEnd

@@ -143,6 +143,10 @@ class AnSettingsFragment : Fragment() {
             mutableStateOf(utils.getIsStationChangeVibrator())
         }
 
+        val (serviceLanguageStr, setServiceLanguageStr) = remember {
+            mutableStateOf(utils.getServiceLanguageStr())
+        }
+
         val anFormatArrayOri = Array(3) { Array(4) { "" } }
 
         val stationStateList = utils.getStationStateList()
@@ -176,12 +180,19 @@ class AnSettingsFragment : Fragment() {
                         customLangList.remove("en")
                         setCustomLangListStr(customLangList.joinToString(" "))
                     }
+
                     "useTTS" -> {
                         setUseTTS(utils.getIsUseTTS())
                     }
+
                     "stationChangeVibrator" -> {
                         setStationChangeVibrator(utils.getIsStationChangeVibrator())
                     }
+
+                    "serviceLanguageStr" -> {
+                        setServiceLanguageStr(utils.getServiceLanguageStr())
+                    }
+
                     else -> {
                         val anFormatArrayOri = Array(3) { Array(4) { "" } }
                         anFormatArrayOri.forEachIndexed { rowIndex, row ->
@@ -224,6 +235,7 @@ class AnSettingsFragment : Fragment() {
                         )
                         TTSItem(useTTS, setUseTTS)
                         StationChangeVibratorItem(stationChangeVibrator, setStationChangeVibrator)
+                        ServiceLanguageItem(serviceLanguageStr)
                         AnFormatGroup(anFormatArray)
                         Spacer(modifier = Modifier.height(1.dp))
                     }
@@ -366,7 +378,7 @@ class AnSettingsFragment : Fragment() {
             "出站/即将进站/进站时振动提醒",
             painterResource(id = R.drawable.vibrator),
             {
-                toggleTTS(setValue, !value)
+                toggleStationChangeVibrator(setValue, !value)
             },
             rightContain = {
                 SwitchSettingItem(value) {
@@ -380,6 +392,61 @@ class AnSettingsFragment : Fragment() {
         prefs.edit {
             putBoolean("stationChangeVibrator", it)
         }
+    }
+
+    @Composable
+    fun ServiceLanguageItem(value: String) {
+        BaseSettingItem(
+            "服务语", value, painterResource(id = R.drawable.service), {
+                val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
+                val dialog = MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                ).setTitle("设置服务语").setView(binding.root)
+                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
+                    .setNegativeButton(getString(android.R.string.cancel), null).show()
+
+                binding.editText.setText(value)
+
+                dialog.setCanceledOnTouchOutside(false)
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+
+                    val newValue = binding.editText.text.toString()
+
+                    if (newValue == "") {
+                        utils.showMsg("请输入服务语")
+                        return@setOnClickListener
+                    }
+
+                    val serviceLanguageList = newValue.split("\n")
+
+                    var hasError = false
+                    serviceLanguageList.forEachIndexed { index, langStr ->
+
+                        val ans = utils.getAnnouncements(langStr)
+                        if (ans[0] == "ERROR") {
+                            utils.showMsg("${ans[1]}不正确，请修改")
+                            hasError = true
+                            return@forEachIndexed
+                        }
+                    }
+
+                    if (!hasError) {
+                        prefs.edit {
+                            putString("serviceLanguageStr", newValue)
+                        }
+                        utils.showMsg("服务语设置成功")
+                        dialog.dismiss()
+                    }
+
+                }
+
+                binding.editText.isSingleLine = false
+                binding.textInputLayout.hint = "请输入文本"
+                binding.textInputLayout.requestFocus()
+                WindowCompat.getInsetsController(requireActivity().window, binding.editText)
+                    .show(WindowInsetsCompat.Type.ime())
+            })
     }
 
     @Composable
@@ -399,7 +466,7 @@ class AnSettingsFragment : Fragment() {
                 Text(
                     "${stateStr}格式",
                     fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
-                    modifier = Modifier.padding(16.dp, 8.dp, 0.dp, 4.dp)
+                    modifier = Modifier.padding(16.dp, 4.dp, 0.dp, 4.dp)
                 )
                 for (type in stationTypeList) {
                     val typeStr = when (type) {
@@ -426,7 +493,10 @@ class AnSettingsFragment : Fragment() {
                                 R.style.CustomAlertDialogStyle
                             ).setTitle("设置${stateStr}${typeStr}播报")
                                 .setView(binding.root)
-                                .setPositiveButton(requireContext().getString(android.R.string.ok), null)
+                                .setPositiveButton(
+                                    requireContext().getString(android.R.string.ok),
+                                    null
+                                )
                                 .setNegativeButton(getString(android.R.string.cancel), null)
                                 .setNeutralButton("试听", null)
                                 .show()

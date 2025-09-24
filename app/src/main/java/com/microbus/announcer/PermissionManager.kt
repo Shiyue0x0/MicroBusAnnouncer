@@ -20,8 +20,6 @@ class PermissionManager(private val context: Context, private val activity: Acti
         const val REQUEST_NOTICE = 3
     }
 
-    private var utils: Utils = Utils(context)
-
     /**
      * 动态请求权限
      */

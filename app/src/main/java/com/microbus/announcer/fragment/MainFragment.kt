@@ -10,7 +10,6 @@ import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Context.LOCATION_SERVICE
 import android.content.Context.MODE_PRIVATE
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Context.UI_MODE_SERVICE
@@ -21,7 +20,6 @@ import android.content.SharedPreferences
 import android.content.res.Resources
 import android.graphics.Color
 import android.location.Location
-import android.location.LocationManager
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioFormat
@@ -65,6 +63,7 @@ import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.location.AMapLocationClientOption
 import com.amap.api.maps.AMap
@@ -147,9 +146,6 @@ class MainFragment : Fragment() {
 
     /**路线下行标志*/
     val onDown = 1
-
-    /**路线卡显示下一站或到站信息标志*/
-    private val onNextOrArrive = 0
 
     val lastDistanceToStationList = ArrayList<Double>()
     val currentDistanceToStationList = ArrayList<Double>()
@@ -248,28 +244,12 @@ class MainFragment : Fragment() {
     //路线电显当前显示下标
     private var lineHeadCardCurrentShowIndex = 0
 
-    //路线电显当前显示
-    private var lineHeadCardCurrentShow = onNextOrArrive
-
-    private val autoFollowNavigationHandler = Handler(mLooper)
-    private var autoFollowNavigationRunnable: Runnable? = null
-
-    //路线电显刷新计时
-//    private var lineHeadCardRefreshTime = 0
-
-    //路线电显立即刷新标识
-    private var lineHeadCardImmediatelyRefresh = false
 
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
 
     private lateinit var notificationManager: NotificationManager
     private lateinit var notification: NotificationCompat.Builder
-
-    private lateinit var locationManager: LocationManager
-
-    //是否跟随定位
-    //private var isFollowNavigation = true
 
     // 当前上行线路区间始发站下标（-1为未设置）
     private var currentUpLineStartingIndex = -1
@@ -339,8 +319,6 @@ class MainFragment : Fragment() {
 
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
 
-        locationManager = (requireActivity().getSystemService(LOCATION_SERVICE) as LocationManager)
-
         lineDatabaseHelper = LineDatabaseHelper(context)
         stationDatabaseHelper = StationDatabaseHelper(context)
 
@@ -354,10 +332,9 @@ class MainFragment : Fragment() {
         wakeLock = powerManager.newWakeLock(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, tag)
 
         //设置状态栏填充高度
+        @SuppressLint("InternalInsetResource", "DiscouragedApi")
         val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
         binding.bar.layoutParams.height = resources.getDimensionPixelSize(resourceId)
-
-
 
         permissionManager = PermissionManager(requireContext(), requireActivity())
 
@@ -368,7 +345,7 @@ class MainFragment : Fragment() {
         initMap()
 
         //初始化通知
-        if (utils.getIsSeedNotice()) {
+        if (utils.getNotice()) {
             initNotification()
         }
 
@@ -413,7 +390,7 @@ class MainFragment : Fragment() {
         if (userLocationOpen)
             binding.locationBtnGroup.check(binding.locationBtn.id)
 
-        (binding.lineStationList.adapter as StationOfLineAdapter).isScroll = true
+        (binding.lineStationList.adapter as StationOfLineAdapter).isShown = true
 
     }
 
@@ -428,7 +405,7 @@ class MainFragment : Fragment() {
 
         binding.locationBtnGroup.uncheck(binding.locationBtn.id)
 
-        (binding.lineStationList.adapter as StationOfLineAdapter).isScroll = false
+        (binding.lineStationList.adapter as StationOfLineAdapter).isShown = false
 
         // 保存历史位置
         val sharedPreferences: SharedPreferences =
@@ -476,7 +453,7 @@ class MainFragment : Fragment() {
 
         //加载路线名称
 //        binding.headerMiddle.text = currentLine.name
-        binding.headerMiddleNew.showText(currentLine.name, esPlayIndex)
+        binding.headerMiddleNew.showText(currentLine.name)
         binding.headerMiddleNew.requestLayout()
 
 
@@ -554,27 +531,16 @@ class MainFragment : Fragment() {
             reverseCurrentDistanceToStationList.add(Double.MAX_VALUE)
         }
 
-
-        //加载终点站卡片
         if (currentLineStationList.isNotEmpty()) {
+
+            //更新终点站卡片
             binding.terminalName.text = if (utils.getUILang() == "zh")
                 currentLineStationList.last().cnName
             else
                 currentLineStationList.last().enName
 
-//            binding.headerLeftNew.showText(
-//                if (utils.getUILang() == "zh") currentLineStationList.first().cnName
-//                else currentLineStationList.first().enName
-//            )
-//
-//            binding.headerRightNew.showText(
-//                if (utils.getUILang() == "zh") currentLineStationList.last().cnName
-//                else
-//                    currentLineStationList.last().enName
-//            )
-
-            //加载路线站点变更卡片
-
+            //更新路线站点变更卡片
+            //todo 待重构
             binding.lineStationChangeInfo.text =
                 binding.lineStationChangeInfo.text.toString() + "【"
             if (currentLine.name != resources.getString(R.string.line_all)) {
@@ -611,7 +577,7 @@ class MainFragment : Fragment() {
                 R.string.main_line_0
             )
         ) {
-            Log.d(tag, "出现")
+//            Log.d(tag, "出现")
             val fadeIn = AnimationUtils.loadAnimation(requireContext(), R.anim.fade_in)
             fadeIn.setAnimationListener(object : Animation.AnimationListener {
                 override fun onAnimationStart(animation: Animation?) {
@@ -630,7 +596,7 @@ class MainFragment : Fragment() {
                 view.visibility = VISIBLE
             }
         } else {
-            Log.d(tag, "隐藏")
+//            Log.d(tag, "隐藏")
             val fadeOut = AnimationUtils.loadAnimation(requireContext(), R.anim.fade_out)
             fadeOut.setAnimationListener(object : Animation.AnimationListener {
                 override fun onAnimationStart(animation: Animation?) {
@@ -650,53 +616,18 @@ class MainFragment : Fragment() {
             }
         }
 
-        // 自动切换站点判定距离
-        // 社区线：20m
-//        if (line.name.length >= 2 && ArrayList<String>(
-//                listOf(
-//                    "U1", "U2"
-//                )
-//            ).contains(line.name.substring(0, 2))
-//        ) {
-//            prefs.edit { putString("arriveStationDistance", "20") }
-//        }
-//        // 火车：500m
-//        else if (line.name.isNotEmpty() && ArrayList<String>(
-//                listOf(
-//                    "C", "D", "G", "S", "T", "Y", "Z"
-//                )
-//            ).contains(line.name.substring(0, 1))
-//        ) {
-//            prefs.edit { putString("arriveStationDistance", "500") }
-//            // 轨交：500m
-//        } else if (line.name.length >= 3 && line.name.isNotEmpty() && ArrayList<String>(
-//                listOf(
-//                    "NNU",
-//                )
-//            ).contains(line.name.substring(0, 3))
-//        ) {
-//            prefs.edit { putString("arriveStationDistance", "50") }
-//            // 其他（公交）：30m
-//        } else {
-//            prefs.edit { putString("arriveStationDistance", "30") }
-//        }
-
         //更新路线站点卡片
         val adapter = binding.lineStationList.adapter as StationOfLineAdapter
         adapter.stationList = currentLineStationList
         adapter.stationCount = currentLineStationCount
         adapter.stationState = currentLineStationState
-        adapter.lineName = currentLine.name
         adapter.mHandler.removeCallbacksAndMessages(null)
+
+        @SuppressLint("NotifyDataSetChanged")
         adapter.notifyDataSetChanged()
 
-        //更新路线站点显示、小卡片和通知
-        refreshLineStationList()
+        refreshUI(refreshEs = false)
 
-        //刷新站点标点
-        refreshStationMarker()
-
-        // 刷新电显
         refreshEsToStaringAndTerminal()
 
     }
@@ -1104,17 +1035,7 @@ class MainFragment : Fragment() {
                 }
             }
 
-            //更新路线站点显示、小卡片和通知
-            refreshLineStationList()
-
-            //刷新路线头屏
-            refreshEsToStation()
-
-            //更新路线站点更新信息
-            //updateLineStationChangeInfoAndNotice()
-
-            //刷新站点标点
-            refreshStationMarker()
+            refreshUI()
         }
 
 
@@ -1314,14 +1235,20 @@ class MainFragment : Fragment() {
                     val oldLine = lineDatabaseHelper.queryById(lineEditorLineId).first()
 
                     val directionStr: String
-                    if (lineEditorLineDirection == onUp) {
-                        oldLine.upLineStation = stationIdListStr
-                        directionStr = "上行"
-                    } else if (lineEditorLineDirection == onDown) {
-                        oldLine.downLineStation = stationIdListStr
-                        directionStr = "下行"
-                    } else {
-                        directionStr = ""
+                    when (lineEditorLineDirection) {
+                        onUp -> {
+                            oldLine.upLineStation = stationIdListStr
+                            directionStr = "上行"
+                        }
+
+                        onDown -> {
+                            oldLine.downLineStation = stationIdListStr
+                            directionStr = "下行"
+                        }
+
+                        else -> {
+                            directionStr = ""
+                        }
                     }
 
                     lineDatabaseHelper.updateById(oldLine.id ?: -1, oldLine)
@@ -1339,6 +1266,27 @@ class MainFragment : Fragment() {
                 dialog.dismiss()
             }
 
+        }
+
+        binding.serviceBtn.setOnClickListener {
+
+            //如果没有管理外部存储的权限，请求授予
+            if (!utils.isGrantManageFilesAccessPermission()) {
+                utils.requestManageFilesAccessPermission(requireActivity())
+                return@setOnClickListener
+            }
+
+            val serviceLangList = utils.getServiceLanguageStr().split("\n")
+
+            MaterialAlertDialogBuilder(
+                requireContext(),
+                R.style.CustomAlertDialogStyle
+            ).setTitle("播报服务语").setSingleChoiceItems(
+                serviceLangList.toTypedArray(), -1
+            ) { dialog, which ->
+                announce(serviceLangList[which])
+                dialog.cancel()
+            }.show()
 
         }
     }
@@ -1367,8 +1315,6 @@ class MainFragment : Fragment() {
         //路线电显当前显示下标
         lineHeadCardCurrentShowIndex = 0
         //路线电显当前显示
-        lineHeadCardCurrentShow =
-            lineHeadCardShowList!!.elementAt(lineHeadCardCurrentShowIndex).toInt()
 
         val esRefreshHandler = Handler(mLooper)
         var isRefreshing = false
@@ -1383,7 +1329,7 @@ class MainFragment : Fragment() {
                     isRefreshing = false
                 }
                 if (binding.headerMiddleNew.isShowFinish) {
-                    binding.headerMiddleNew.showText(currentLine.name, esPlayIndex)
+                    binding.headerMiddleNew.showText(currentLine.name)
                 }
                 esRefreshHandler.postDelayed(this, 100L)
             }
@@ -1790,8 +1736,8 @@ class MainFragment : Fragment() {
                 utils.showStationDialog("new", latLng = it, isOrderLatLng = true)
             }
 
-            // 单击地图，设置路线规划起点/终点（关闭“单击地图添加站点”时可用）
-            if (!utils.getIsClickMapToAddStation()) {
+            // 单击地图，设置路线规划起点/终点
+            if (utils.getIsLinePlanning()) {
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
                     .setTitle("")
                     .setNegativeButton("从这出发") { p0, p1 ->
@@ -1922,11 +1868,26 @@ class MainFragment : Fragment() {
         val adapter = StationOfLineAdapter(
             requireContext(),
             ArrayList(),
-            0,
-            ""
+            0
         )
+
+        binding.lineStationList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                val firstVisibleItem = layoutManager.findFirstVisibleItemPosition()
+                val lastVisibleItem = layoutManager.findLastVisibleItemPosition()
+
+//                Log.d("", "line now show ${firstVisibleItem}-${lastVisibleItem}")
+                adapter.firstVisibleItem = firstVisibleItem
+                adapter.lastVisibleItem = lastVisibleItem
+
+            }
+        })
+
         binding.lineStationList.adapter = adapter
-        adapter.isScroll = true
+//        adapter.isScroll = true
 
         //单击切换区间起点/终点
         adapter.setOnItemClickListener(object : StationOfLineAdapter.OnItemClickListener {
@@ -1999,7 +1960,7 @@ class MainFragment : Fragment() {
 
                             loadLine(newLine)
                             utils.haptic(binding.headerMiddleNew)
-                            adapter.isScroll = true
+//                            adapter.isScroll = true
                         }
                     })
                     .setNegativeButton("区间终点", object : DialogInterface.OnClickListener {
@@ -2243,7 +2204,8 @@ class MainFragment : Fragment() {
             )
         }
 
-        //遍历当前方向路线所有站点，先遍历正向，如果没有符合的站点，再遍历反向（实验性）
+        // todo 遍历当前方向路线所有站点，先遍历正向，如果没有符合的站点，再遍历反向（实验性）
+        @Suppress("ControlFlowWithEmptyBody")
         if (!findMatchStation(false)) {
 //            findMatchStation(true)
         }
@@ -2255,7 +2217,7 @@ class MainFragment : Fragment() {
      * 遍历站点列表，检查是否符合进站、出站、即将到站条件，并切换站点然后报站
      * @return 当前站点是否更改
      */
-    private fun findMatchStation(isReverseLine: Boolean): Boolean {
+    private fun findMatchStation(@Suppress("SameParameterValue") isReverseLine: Boolean): Boolean {
 
         matchCount = (matchCount + 1) % Int.MAX_VALUE
         if (matchCount < 2) return false
@@ -2368,7 +2330,7 @@ class MainFragment : Fragment() {
                 }
 
                 // 上行终点站出站
-                else if (currentLineDirection == onUp && i >= lineStationList.size - 1) {
+                else if (currentLineDirection == onUp && i >= lineStationList.size - 1 && utils.getSwitchDirectionWhenOutFromTerminalWithOnUp()) {
                     reverseLineDirection()
                     setStationAndState(1, onNext)
                     announce()
@@ -2764,7 +2726,7 @@ class MainFragment : Fragment() {
 
 
         //更新通知
-        if (utils.getIsSeedNotice()) {
+        if (utils.getNotice()) {
 
             initNotification()
 
@@ -2836,7 +2798,6 @@ class MainFragment : Fragment() {
      * 立即刷新电显，并切换到站点状态和位置（如果有）
      */
     private fun refreshEsToStation() {
-        lineHeadCardImmediatelyRefresh = true
         refreshEs(toStation = true)
     }
 
@@ -2844,7 +2805,6 @@ class MainFragment : Fragment() {
      * 立即刷新电显，并切换到首末站显示（如果有）
      */
     private fun refreshEsToStaringAndTerminal() {
-        lineHeadCardImmediatelyRefresh = true
         refreshEs(toStaringAndTerminal = true)
     }
 
@@ -2995,13 +2955,11 @@ class MainFragment : Fragment() {
                 File("$tempFilePath/tts").mkdirs()
 
                 tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String) {
-//                        Log.d(tag, "tts onStart: ${utteranceId}")
 
+                    override fun onStart(utteranceId: String?) {
                     }
 
                     override fun onDone(utteranceId: String) {
-//                        Log.d(tag, "tts finished: ${utteranceId}")
                         utteranceIdDoneList.add(utteranceId)
                     }
 
@@ -3160,7 +3118,10 @@ class MainFragment : Fragment() {
 
                 audioTrack.play()
 
+                @Suppress("DEPRECATION")
                 val inputBuffers = decoder.inputBuffers
+
+                @Suppress("DEPRECATION")
                 val outputBuffers = decoder.outputBuffers
                 val info = MediaCodec.BufferInfo()
                 var eosReceived = false
@@ -3216,6 +3177,7 @@ class MainFragment : Fragment() {
                     audioManager?.requestAudioFocus(audioFocusRequest!!)
                     val outIndex = decoder.dequeueOutputBuffer(info, 10 * 10000)
                     when (outIndex) {
+                        @Suppress("DEPRECATION")
                         MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED -> {
                             // 输出缓冲区已更改
                             Log.d(tag, "INFO_OUTPUT_BUFFERS_CHANGED")
@@ -3374,6 +3336,7 @@ class MainFragment : Fragment() {
             RouteSearch.FromAndTo(fromPoint, toPoint),
         )
         CoroutineScope(Dispatchers.IO).launch {
+            @Suppress("DEPRECATION")
             mRouteSearch.calculateRideRouteAsyn(query)
         }
     }
@@ -3492,7 +3455,7 @@ class MainFragment : Fragment() {
         }
 
 
-        val res = ArrayList(lineDatabaseHelper.quertByKey(key).sortedWith(comparator))
+        val res = ArrayList(lineDatabaseHelper.queryByKey(key).sortedWith(comparator))
 
 
 //        val lineNameList = res.map { it.name }
@@ -3592,7 +3555,6 @@ class MainFragment : Fragment() {
 
 //        speedRefreshHandler.removeCallbacksAndMessages(null)
 
-        lineHeadCardImmediatelyRefresh = false
 
 //        if (esPlayIndex >= 0 && esPlayIndex < esList.size)
 //            Log.d(tag, "refreshEs: $esPlayIndex / ${esList.size} ${esList[esPlayIndex].leftText}")
@@ -3606,7 +3568,36 @@ class MainFragment : Fragment() {
 
 
         if (esList.isNotEmpty()) {
-            if (esList[esPlayIndex].type.contains(Regex("[NWASCT]")) || toStation) {
+            // 切换到首末站显示
+            if (toStaringAndTerminal) {
+                var frontDefaultItemIndex = -1
+                var hasB = false
+                for (i in 0 until esList.size) {
+                    // 寻找非特定状态显示内容
+                    if (utils.extractNWA(
+                            Regex("[NWASCT]"),
+                            esList[i].type
+                        ) == "" && frontDefaultItemIndex == -1
+                    ) {
+                        frontDefaultItemIndex = i
+                    }
+                    // 寻找首末站内容
+                    if (esList[i].type.contains("B")) {
+                        esPlayIndex = i
+                        hasB = true
+                        break
+                    }
+                }
+                if (!hasB) {
+                    esPlayIndex = if (frontDefaultItemIndex >= 0) {
+                        frontDefaultItemIndex
+                    } else {
+                        -1
+                    }
+                }
+            }
+            // 仅某状态显示，或切换到当前状态显示
+            else if (esList[esPlayIndex].type.contains(Regex("[NWASCT]")) || toStation) {
 
                 var hasMatchCurrentState = false
                 var hasMatchCurrentPos = false
@@ -3619,7 +3610,7 @@ class MainFragment : Fragment() {
 
                 for (i in start until esList.size) {
 
-                    // 寻找Default内容
+                    // 寻找非特定状态显示内容（从之后的内容）
                     if (utils.extractNWA(
                             Regex("[NWASCT]"),
                             esList[i].type
@@ -3656,39 +3647,24 @@ class MainFragment : Fragment() {
                     }
                 }
                 if (!hasMatchCurrentState && !hasMatchCurrentPos) {
-                    esPlayIndex = if (frontDefaultItemIndex >= 0) {
-                        frontDefaultItemIndex
+                    if (frontDefaultItemIndex >= 0) {
+                        esPlayIndex = frontDefaultItemIndex
                     } else {
-                        -1
-                    }
-                }
-            } else if (toStaringAndTerminal) {
-                var frontDefaultItemIndex = -1
-                var hasB = false
-                for (i in 0 until esList.size) {
-                    // 寻找Default内容
-                    if (utils.extractNWA(
-                            Regex("B"),
-                            esList[i].type
-                        ) == "" && frontDefaultItemIndex == -1
-                    ) {
-                        frontDefaultItemIndex = i
-                    }
-                    // 寻找首末站内容
-                    if (esList[i].type.contains("B")) {
-                        esPlayIndex = i
-                        hasB = true
-                        break
-                    }
-                }
-                if (!hasB) {
-                    esPlayIndex = if (frontDefaultItemIndex >= 0) {
-                        frontDefaultItemIndex
-                    } else {
-                        -1
+                        var resIndex = -1
+                        for (i in 0 until esList.size) {
+                            // 寻找非特定状态显示内容（从所有的内容）
+                            if (utils.extractNWA(Regex("[NWASCT]"), esList[i].type) == ""
+                            ) {
+                                resIndex = i
+                                break
+                            }
+                        }
+                        esPlayIndex = resIndex
                     }
                 }
             }
+
+
         }
 
 
@@ -3715,7 +3691,7 @@ class MainFragment : Fragment() {
         }
 
         if (binding.headerMiddleNew.isShowFinish) {
-            binding.headerMiddleNew.showText(currentLine.name, esPlayIndex)
+            binding.headerMiddleNew.showText(currentLine.name)
         }
 
         val valueMap = HashMap<String, String>()
@@ -3752,8 +3728,8 @@ class MainFragment : Fragment() {
             binding.headerLeftNew.setText(leftText)
             binding.headerRightNew.setText(rightText)
         } else {
-            binding.headerLeftNew.showText(leftText, esPlayIndex)
-            binding.headerRightNew.showText(rightText, esPlayIndex)
+            binding.headerLeftNew.showText(leftText)
+            binding.headerRightNew.showText(rightText)
         }
 
 
@@ -3812,16 +3788,17 @@ class MainFragment : Fragment() {
         }
     }
 
-    fun refreshUI() {
+    fun refreshUI(refreshEs: Boolean = true) {
 
         //更新路线站点显示、小卡片和通知
         refreshLineStationList()
 
-        //刷新路线头屏
-        refreshEsToStation()
-
         //更新路线站点更新信息和系统通知
         refreshLineStationChangeInfo()
+
+        //刷新路线头屏
+        if (refreshEs)
+            refreshEsToStation()
 
         //刷新站点标点
         refreshStationMarker()

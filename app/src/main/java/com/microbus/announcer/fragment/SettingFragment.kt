@@ -1,16 +1,13 @@
 package com.microbus.announcer.fragment
 
 import android.annotation.SuppressLint
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.preference.PreferenceManager
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
-import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.FragFragAdapter
 import com.microbus.announcer.databinding.FragmentSettingBinding
 import com.microbus.announcer.fragment.settings.AnSettingsFragment
@@ -24,9 +21,6 @@ class SettingFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val tag = javaClass.simpleName
-    private lateinit var utils: Utils
-
-    private lateinit var prefs: SharedPreferences
 
     val fragmentList: MutableList<Fragment> = ArrayList()
 
@@ -38,11 +32,6 @@ class SettingFragment : Fragment() {
 
         _binding = FragmentSettingBinding.inflate(inflater, container, false)
 
-        utils = Utils(requireContext())
-
-        prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
-
-
         //设置状态栏填充高度
         val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
         binding.bar.layoutParams.height = resources.getDimensionPixelSize(resourceId)
@@ -51,7 +40,7 @@ class SettingFragment : Fragment() {
         fragmentList.add(AnSettingsFragment())
         fragmentList.add(LocationAndMapSettingsFragment())
         fragmentList.add(DataAndAboutSettingsFragment())
-        fragmentList.add(SettingPreferenceFragment())
+//        fragmentList.add(SettingPreferenceFragment())
 
         binding.viewPager.adapter = FragFragAdapter(this, fragmentList)
         binding.viewPager.offscreenPageLimit = binding.viewPager.adapter!!.itemCount

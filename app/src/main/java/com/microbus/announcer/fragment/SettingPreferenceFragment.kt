@@ -38,7 +38,7 @@ import kotlin.math.min
 import androidx.core.content.edit
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
-
+@Deprecated("旧版Setting已弃用")
 open class SettingPreferenceFragment : PreferenceFragmentCompat() {
 
     private val requestRestoreStation = 0
@@ -58,22 +58,6 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
         utils = Utils(requireContext())
 
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
-
-
-//        //默认路线名称
-//        val defaultLinePreference: EditTextPreference? = findPreference("defaultLineName")
-//        defaultLinePreference?.setOnPreferenceChangeListener { _, newValue ->
-//            val lineDatabaseHelper = LineDatabaseHelper(requireContext())
-//            if (lineDatabaseHelper.quertByName(newValue.toString())
-//                    .isNotEmpty() || newValue == ""
-//            ) {
-//                utils.showMsg("设置成功")
-//                true
-//            } else {
-//                utils.showMsg("路线不存在")
-//                false
-//            }
-//        }
 
         //显示底部导航栏
         val showBottomBarPreference: SwitchPreferenceCompat? = findPreference("showBottomBar")

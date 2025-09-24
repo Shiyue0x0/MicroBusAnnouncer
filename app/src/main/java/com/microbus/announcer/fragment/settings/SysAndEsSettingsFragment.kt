@@ -93,12 +93,16 @@ class SysAndEsSettingsFragment : Fragment() {
             mutableStateOf(utils.getCity())
         }
 
-        val (nav, setNav) = remember {
+        val (showBottomBar, setShowBottomBar) = remember {
             mutableStateOf(utils.getIsShowBottomBar())
         }
 
-        val (isSeedNotice, setIsSeedNotice) = remember {
-            mutableStateOf(utils.getIsSeedNotice())
+        val (saveBackAfterExit, setSaveBackAfterExit) = remember {
+            mutableStateOf(utils.getIsSaveBackAfterExit())
+        }
+
+        val (notice, setNotice) = remember {
+            mutableStateOf(utils.getNotice())
         }
 
         val (esText, setEsText) = remember {
@@ -138,8 +142,9 @@ class SysAndEsSettingsFragment : Fragment() {
                 when (key) {
                     "lang" -> setLang(prefs.getString(key, "") ?: "")
                     "city" -> setCity(prefs.getString(key, "") ?: "")
-                    "showBottomBar" -> setNav(prefs.getBoolean(key, true))
-                    "setIsSeedNotice" -> setNav(prefs.getBoolean(key, true))
+                    "showBottomBar" -> setShowBottomBar(prefs.getBoolean(key, true))
+                    "saveBackAfterExit" -> setSaveBackAfterExit(prefs.getBoolean(key, true))
+                    "notice" -> setNotice(prefs.getBoolean(key, true))
                     "esText" -> setEsText(prefs.getString(key, "") ?: "")
                     "esNextWord" -> setEsNextWord(prefs.getString(key, "") ?: "")
                     "esWillArriveWord" -> setEsWillArriveWord(prefs.getString(key, "") ?: "")
@@ -181,8 +186,9 @@ class SysAndEsSettingsFragment : Fragment() {
                         )
                         UiLangItem(lang)
                         CityNameItem(city)
-                        NavItem(nav, setNav)
-                        IsSeedNoticeItem(isSeedNotice, setIsSeedNotice)
+                        BottomBarItem(showBottomBar, setShowBottomBar)
+                        SaveBackAfterExitItem(saveBackAfterExit, setSaveBackAfterExit)
+                        NoticeItem(notice, setNotice)
                         Text(
                             "电显基础",
                             fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
@@ -260,19 +266,19 @@ class SysAndEsSettingsFragment : Fragment() {
     }
 
     @Composable
-    fun NavItem(nav: Boolean, setNav: (Boolean) -> Unit) {
+    fun BottomBarItem(value: Boolean, setValue: (Boolean) -> Unit) {
         BaseSettingItem(
             "导航栏", "底部导航栏", painterResource(id = R.drawable.bottom_nav), {
-                toggleNav(nav, setNav, !nav)
+                toggleBottomBar(value, setValue, !value)
             }, rightContain = {
-                SwitchSettingItem(nav) {
-                    toggleNav(nav, setNav, it)
+                SwitchSettingItem(value) {
+                    toggleBottomBar(value, setValue, it)
                 }
             })
     }
 
-    fun toggleNav(nav: Boolean, setNav: (Boolean) -> Unit, it: Boolean) {
-        setNav(it)
+    fun toggleBottomBar(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
+        setValue(it)
         prefs.edit {
             putBoolean("showBottomBar", it)
         }
@@ -286,7 +292,26 @@ class SysAndEsSettingsFragment : Fragment() {
     }
 
     @Composable
-    fun IsSeedNoticeItem(value: Boolean, setValue: (Boolean) -> Unit) {
+    fun SaveBackAfterExitItem(value: Boolean, setValue: (Boolean) -> Unit) {
+        BaseSettingItem(
+            "退出后保留后台", "暂时保留后台，以便下次返回\n快速加载，但不会继续定位", painterResource(id = R.drawable.exit), {
+                toggleSaveBackAfterExit(value, setValue, !value)
+            }, rightContain = {
+                SwitchSettingItem(value) {
+                    toggleSaveBackAfterExit(value, setValue, it)
+                }
+            })
+    }
+
+    fun toggleSaveBackAfterExit(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
+        setValue(it)
+        prefs.edit {
+            putBoolean("saveBackAfterExit", it)
+        }
+    }
+
+    @Composable
+    fun NoticeItem(value: Boolean, setValue: (Boolean) -> Unit) {
         BaseSettingItem(
             "路线运行通知",
             "出站/即将到站/到站时发送通知",
@@ -487,7 +512,7 @@ class SysAndEsSettingsFragment : Fragment() {
 
                 binding.es.pixelMovePerSecond = eSSpeed
                 binding.es.finishPositionOfLastWord = utils.getEsFinishPositionOfLastWord()
-                binding.es.showText("请有序排队 文明乘车 桂林公交欢迎您 K99 开往 汽车客运南站", -1)
+                binding.es.showText("请有序排队 文明乘车 桂林公交欢迎您 K99 开往 汽车客运南站")
 
 
                 binding.text.visibility = ViewGroup.VISIBLE
@@ -541,7 +566,7 @@ class SysAndEsSettingsFragment : Fragment() {
 
                 binding.es.finishPositionOfLastWord = esFinishPositionOfLastWord
                 binding.es.pixelMovePerSecond = utils.getEsSpeed()
-                binding.es.showText("请有序排队 文明乘车 桂林公交欢迎您", -1)
+                binding.es.showText("请有序排队 文明乘车 桂林公交欢迎您")
 
                 binding.text.visibility = ViewGroup.VISIBLE
                 binding.text.text = text

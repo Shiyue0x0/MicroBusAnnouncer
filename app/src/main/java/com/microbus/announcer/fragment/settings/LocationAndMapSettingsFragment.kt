@@ -99,9 +99,14 @@ class LocationAndMapSettingsFragment : Fragment() {
             mutableIntStateOf(utils.getLocationInterval())
         }
 
+        val (switchDirectionWhenOutFromTerminalWithOnUp, setSwitchDirectionWhenOutFromTerminalWithOnUp) = remember {
+            mutableStateOf(utils.getSwitchDirectionWhenOutFromTerminalWithOnUp())
+        }
+
         val (mapEditLineMode, setMapEditLineMode) = remember {
             mutableStateOf(utils.getIsMapEditLineMode())
         }
+
         val (autoSwitchLineDirection, setAutoSwitchLineDirection) = remember {
             mutableStateOf(utils.getIsAutoSwitchLineDirection())
         }
@@ -116,6 +121,10 @@ class LocationAndMapSettingsFragment : Fragment() {
 
         val (clickLocationButtonToCopyLngLat, setClickLocationButtonToCopyLngLat) = remember {
             mutableStateOf(utils.getIsClickLocationButtonToCopyLngLat())
+        }
+
+        val (linePlanning, setLinePlanning) = remember {
+            mutableStateOf(utils.getIsLinePlanning())
         }
 
         val (lineTrajectoryCorrection, setLineTrajectoryCorrection) = remember {
@@ -133,11 +142,14 @@ class LocationAndMapSettingsFragment : Fragment() {
                     "TLineStationRange" -> setTLineStationRange(utils.getStationRangeByLineType("T"))
 
                     "locationInterval" -> setLocationInterval(utils.getLocationInterval())
-                    "mapEditLineMode" -> setMapEditLineMode(utils.getIsMapEditLineMode())
                     "autoSwitchLineDirection" -> setAutoSwitchLineDirection(utils.getIsAutoSwitchLineDirection())
+                    "switchDirectionWhenOutFromTerminalWithOnUp" -> setSwitchDirectionWhenOutFromTerminalWithOnUp(utils.getIsAutoSwitchLineDirection())
+
+                    "mapEditLineMode" -> setMapEditLineMode(utils.getIsMapEditLineMode())
                     "clickMapToCopyLngLat" -> setClickMapToCopyLngLat(utils.getIsClickMapToCopyLngLat())
                     "clickMapToAddStation" -> setClickMapToAddStation(utils.getIsClickMapToAddStation())
                     "clickLocationButtonToCopyLngLat" -> setClickLocationButtonToCopyLngLat(utils.getIsClickLocationButtonToCopyLngLat())
+                    "linePlanning" -> setLinePlanning(utils.getIsLinePlanning())
                     "lineTrajectoryCorrection" -> setLineTrajectoryCorrection(utils.getIsLineTrajectoryCorrection())
 
                 }
@@ -174,6 +186,14 @@ class LocationAndMapSettingsFragment : Fragment() {
                             text = "检测到您折回站点时，切换上/下行",
                             icon = painterResource(id = R.drawable.switch2),
                             key = "autoSwitchLineDirection"
+                        )
+                        SwitchItem(
+                            switchDirectionWhenOutFromTerminalWithOnUp,
+                            setSwitchDirectionWhenOutFromTerminalWithOnUp,
+                            title = "从上行终点站出站时切换下行",
+                            text = "检测到您从上行终点站出站时，\n自动切换到下行",
+                            icon = painterResource(id = R.drawable.switch2),
+                            key = "switchDirectionWhenOutFromTerminalWithOnUp"
                         )
 
                         Text(
@@ -214,6 +234,14 @@ class LocationAndMapSettingsFragment : Fragment() {
                             key = "clickLocationButtonToCopyLngLat"
                         )
                         SwitchItem(
+                            linePlanning,
+                            setLinePlanning,
+                            title = "路线规划",
+                            text = "根据本地站点规划路线",
+                            icon = painterResource(id = R.drawable.line),
+                            key = "linePlanning"
+                        )
+                        SwitchItem(
                             lineTrajectoryCorrection,
                             setLineTrajectoryCorrection,
                             title = "线路轨迹纠偏（实验性）",
@@ -221,7 +249,6 @@ class LocationAndMapSettingsFragment : Fragment() {
                             icon = painterResource(id = R.drawable.road),
                             key = "lineTrajectoryCorrection"
                         )
-
 
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -304,10 +331,10 @@ class LocationAndMapSettingsFragment : Fragment() {
                 binding.es.visibility = ViewGroup.GONE
 
                 binding.text.visibility = ViewGroup.VISIBLE
-                binding.text.text = "当前半径 ${value.toInt()}m"
+                binding.text.text = getString(R.string.currentRange, value.toInt())
 
                 binding.slider.addOnChangeListener { slider, value, fromUser ->
-                    binding.text.text = "当前半径 ${value.toInt()}m"
+                    binding.text.text = getString(R.string.currentRange, value.toInt())
                 }
 
                 dialog.setCanceledOnTouchOutside(false)
@@ -340,10 +367,10 @@ class LocationAndMapSettingsFragment : Fragment() {
                 binding.es.visibility = ViewGroup.GONE
 
                 binding.text.visibility = ViewGroup.VISIBLE
-                binding.text.text = "每 $interval 毫秒定位一次"
+                binding.text.text = getString(R.string.locationPerSecond, interval)
 
                 binding.slider.addOnChangeListener { slider, value, fromUser ->
-                    binding.text.text = "每 ${value.toInt()} 毫秒定位一次"
+                    binding.text.text = getString(R.string.locationPerSecond, value.toInt())
                 }
 
                 dialog.setCanceledOnTouchOutside(false)

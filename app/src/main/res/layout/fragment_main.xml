@@ -6,7 +6,6 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/an_window_bg"
     android:fillViewport="true"
     tools:context=".fragment.MainFragment">
 
@@ -33,149 +32,32 @@
     <LinearLayout
         android:id="@+id/bar"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="10dp"
         android:orientation="horizontal"
-        tools:ignore="MissingConstraints" />
-
-    <!-- 头牌 -->
-    <!--    <com.google.android.material.card.MaterialCardView-->
-    <!--        android:id="@+id/header"-->
-    <!--        android:layout_width="match_parent"-->
-    <!--        android:layout_height="wrap_content"-->
-    <!--        android:layout_marginStart="16dp"-->
-    <!--        android:layout_marginTop="8dp"-->
-    <!--        android:layout_marginEnd="16dp"-->
-    <!--        android:layout_marginBottom="4dp"-->
-    <!--        android:clickable="true"-->
-    <!--        android:focusable="true"-->
-    <!--        app:cardBackgroundColor="?attr/cardBackgroundColor"-->
-    <!--        app:cardCornerRadius="24dp"-->
-    <!--        app:layout_constraintTop_toBottomOf="@+id/bar"-->
-    <!--        tools:layout_editor_absoluteX="16dp">-->
-
-    <!--        <androidx.constraintlayout.widget.ConstraintLayout-->
-    <!--            android:layout_width="match_parent"-->
-    <!--            android:layout_height="match_parent"-->
-    <!--            android:layout_margin="12dp">-->
+        app:layout_constraintTop_toTopOf="parent" />
 
 
-    <!--            <com.microbus.announcer.view.ScrollingTextView-->
-    <!--                android:id="@+id/header_middle"-->
-    <!--                android:layout_width="wrap_content"-->
-    <!--                android:layout_height="wrap_content"-->
-    <!--                android:ellipsize="marquee"-->
-    <!--                android:gravity="center"-->
-    <!--                android:marqueeRepeatLimit="marquee_forever"-->
-    <!--                android:maxWidth="80dp"-->
-    <!--                android:paddingStart="4dp"-->
-    <!--                android:paddingEnd="4dp"-->
-    <!--                android:singleLine="true"-->
-    <!--                android:text="@string/main_line_0"-->
-    <!--                android:textColor="@color/textColor1"-->
-    <!--                android:textSize="@dimen/largeFontSize"-->
-
-    <!--                android:textStyle="bold"-->
-    <!--                app:layout_constraintEnd_toEndOf="parent"-->
-    <!--                app:layout_constraintStart_toStartOf="parent"-->
-    <!--                app:layout_constraintTop_toTopOf="parent" />-->
-
-    <!--            <com.microbus.announcer.view.ScrollingTextView-->
-
-    <!--                android:id="@+id/header_left"-->
-    <!--                android:layout_width="0dp"-->
-    <!--                android:layout_height="wrap_content"-->
-    <!--                android:ellipsize="marquee"-->
-    <!--                android:gravity="center"-->
-    <!--                android:marqueeRepeatLimit="marquee_forever"-->
-    <!--                android:singleLine="true"-->
-    <!--                android:text="@string/main_staring_station_name"-->
-    <!--                android:textColor="@color/textColor2"-->
-    <!--                android:textSize="@dimen/largeFontSize"-->
-    <!--                android:textStyle="bold"-->
-    <!--                app:layout_constraintBottom_toBottomOf="@+id/header_middle"-->
-    <!--                app:layout_constraintEnd_toStartOf="@+id/header_middle"-->
-    <!--                app:layout_constraintHorizontal_bias="1.0"-->
-    <!--                app:layout_constraintStart_toStartOf="parent"-->
-    <!--                app:layout_constraintTop_toTopOf="parent"-->
-    <!--                app:layout_constraintVertical_bias="1.0" />-->
-
-    <!--            <com.microbus.announcer.view.ScrollingTextView-->
-    <!--                android:id="@+id/header_right"-->
-    <!--                android:layout_width="0dp"-->
-    <!--                android:layout_height="wrap_content"-->
-    <!--                android:ellipsize="marquee"-->
-    <!--                android:gravity="center"-->
-    <!--                android:marqueeRepeatLimit="marquee_forever"-->
-    <!--                android:singleLine="true"-->
-    <!--                android:text="@string/main_terminal_name"-->
-    <!--                android:textColor="@color/textColor2"-->
-    <!--                android:textSize="@dimen/largeFontSize"-->
-    <!--                android:textStyle="bold"-->
-    <!--                app:layout_constraintBottom_toBottomOf="@+id/header_middle"-->
-    <!--                app:layout_constraintEnd_toEndOf="parent"-->
-    <!--                app:layout_constraintHorizontal_bias="0.0"-->
-    <!--                app:layout_constraintStart_toEndOf="@+id/header_middle"-->
-    <!--                app:layout_constraintTop_toTopOf="parent" />-->
-
-    <!--        </androidx.constraintlayout.widget.ConstraintLayout>-->
-
-    <!--    </com.google.android.material.card.MaterialCardView>-->
-
-    <!--  路线站点卡  -->
-    <!--    android:foreground="?attr/selectableItemBackground"-->
+    <!-- 电显 新 -->
     <!--    app:cardBackgroundColor="?attr/cardBackgroundColor"-->
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/lineStationCard"
+    <LinearLayout
+        android:id="@+id/topFill"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:paddingBottom="12dp"
-        app:cardBackgroundColor="@color/an_contain_bg"
-        app:cardCornerRadius="24dp"
-        app:layout_constraintTop_toBottomOf="@+id/headerNew"
-        app:strokeWidth="0dp">
-
-        <com.microbus.announcer.view.NestedScrollableHost
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginLeft="12dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginRight="12dp"
-            android:layout_marginBottom="8dp"
-            app:sameDirectionWithParent="true">
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/lineStationList"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-        </com.microbus.announcer.view.NestedScrollableHost>
-
-
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- 头牌 新 -->
-    <!--    app:cardBackgroundColor="?attr/cardBackgroundColor"-->
+        android:layout_height="8dp"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@+id/bar" />
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/headerNew"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="4dp"
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="@color/an_contain_bg"
         app:cardCornerRadius="24dp"
-        app:layout_constraintTop_toBottomOf="@+id/bar"
+        app:layout_constraintTop_toBottomOf="@+id/topFill"
         app:strokeWidth="0dp">
 
         <LinearLayout
@@ -190,7 +72,8 @@
                 android:id="@+id/headerLeftNew"
                 android:layout_width="0dp"
                 android:layout_height="20sp"
-                android:layout_marginEnd="12dp"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp"
                 android:layout_weight="1"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"
@@ -200,7 +83,6 @@
                 android:textStyle="bold"
                 app:background="@color/an_contain_bg" />
 
-            <!--            android:textColor="?attr/cardBackgroundColor"-->
 
             <com.microbus.announcer.view.ESView
                 android:id="@+id/headerMiddleNew"
@@ -218,12 +100,12 @@
                 app:background="@color/md_theme_surface"
                 app:cornerRadius="16dp" />
 
-            <!--            app:background="?attr/cardBackgroundColor"-->
             <com.microbus.announcer.view.ESView
                 android:id="@+id/headerRightNew"
                 android:layout_width="0dp"
                 android:layout_height="20sp"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp"
                 android:layout_weight="1"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"
@@ -233,6 +115,43 @@
                 android:textStyle="bold"
                 app:background="@color/an_contain_bg" />
         </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <LinearLayout
+        android:id="@+id/fill2"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@+id/headerNew" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/lineStationCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:cardBackgroundColor="@color/an_contain_bg"
+        app:cardCornerRadius="24dp"
+        app:layout_constraintTop_toBottomOf="@+id/fill2"
+        app:strokeWidth="0dp">
+
+        <com.microbus.announcer.view.NestedScrollableHost
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="8dp"
+            app:sameDirectionWithParent="true">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/lineStationList"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </com.microbus.announcer.view.NestedScrollableHost>
+
 
     </com.google.android.material.card.MaterialCardView>
 
@@ -254,22 +173,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
-                android:gravity="center"
-                android:orientation="horizontal">
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
                 android:layout_marginBottom="8dp"
                 android:gravity="center"
                 android:orientation="horizontal">
 
-                <!--                                    android:foreground="?attr/selectableItemBackground"
-                                    app:cardBackgroundColor="?attr/cardBackgroundColor"-->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/terminalCard"
                     android:layout_width="0dp"
@@ -315,8 +222,6 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!--                                    android:foreground="?attr/selectableItemBackground"
-                                    app:cardBackgroundColor="?attr/cardBackgroundColor"-->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/currentStationCard"
                     android:layout_width="0dp"
@@ -365,8 +270,6 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!--                                    android:foreground="?attr/selectableItemBackground"
-                                    app:cardBackgroundColor="?attr/cardBackgroundColor"-->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/currentDistanceToCurrentStationCard"
                     android:layout_width="0dp"
@@ -429,8 +332,6 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!--                                  android:foreground="?attr/selectableItemBackground"
-                                    app:cardBackgroundColor="?attr/cardBackgroundColor"  -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/speedCard"
                     android:layout_width="0dp"
@@ -493,9 +394,6 @@
 
             </LinearLayout>
 
-
-            <!--                         app:cardBackgroundColor="?attr/cardBackgroundColor"
-               -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -513,49 +411,6 @@
                     android:gravity="center"
                     android:orientation="horizontal"
                     android:padding="4dp">
-
-                    <!--                    <com.google.android.material.materialswitch.MaterialSwitch-->
-                    <!--                        android:id="@+id/locationSwitch"-->
-                    <!--                        android:layout_width="wrap_content"-->
-                    <!--                        android:layout_height="wrap_content"-->
-                    <!--                        android:layout_marginEnd="16dp"-->
-                    <!--                        android:checked="true"-->
-                    <!--                        android:text="@string/switch_location"-->
-                    <!--                        android:visibility="gone"-->
-                    <!--                        app:switchPadding="8dp"-->
-                    <!--                        app:thumbIcon="@drawable/baseline_location_on_24" />-->
-
-<!--                    <com.google.android.material.materialswitch.MaterialSwitch-->
-<!--                        android:id="@+id/switchFollowLocation"-->
-<!--                        android:layout_width="wrap_content"-->
-<!--                        android:layout_height="wrap_content"-->
-<!--                        android:layout_marginEnd="16dp"-->
-<!--                        android:checked="true"-->
-<!--                        android:visibility="gone"-->
-<!--                        app:switchPadding="8dp"-->
-<!--                        app:thumbIcon="@drawable/follow" />-->
-
-                    <!--                    <com.google.android.material.materialswitch.MaterialSwitch-->
-                    <!--                        android:id="@+id/switchMap"-->
-                    <!--                        android:layout_width="wrap_content"-->
-                    <!--                        android:layout_height="wrap_content"-->
-                    <!--                        android:layout_marginEnd="16dp"-->
-                    <!--                        android:checked="true"-->
-                    <!--                        android:text="@string/switch_map"-->
-                    <!--                        android:visibility="gone"-->
-                    <!--                        app:switchPadding="8dp"-->
-                    <!--                        app:thumbIcon="@drawable/map" />-->
-
-                    <!--                    <com.google.android.material.materialswitch.MaterialSwitch-->
-                    <!--                        android:id="@+id/lineDirectionSwitch"-->
-                    <!--                        android:layout_width="wrap_content"-->
-                    <!--                        android:layout_height="wrap_content"-->
-                    <!--                        android:checked="true"-->
-                    <!--                        android:text="@string/up_line"-->
-                    <!--                        android:visibility="gone"-->
-                    <!--                        app:switchPadding="8dp"-->
-                    <!--                        app:thumbIcon="@drawable/line" />-->
-
 
                     <com.google.android.material.button.MaterialButtonToggleGroup
                         android:id="@+id/locationBtnGroup"
@@ -701,61 +556,8 @@
                     app:iconTint="@color/md_theme_primary"
                     app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
 
-                <!--                <ImageButton-->
-                <!--                    android:id="@+id/startingStation"-->
-                <!--                    android:layout_width="0dp"-->
-                <!--                    android:layout_height="48dp"-->
-                <!--                    android:layout_marginEnd="8dp"-->
-                <!--                    android:layout_weight="1"-->
-                <!--                    android:background="@drawable/rounded_rectangle_button"-->
-                <!--                    android:contentDescription="@string/starting_station"-->
-                <!--                    android:src="@drawable/baseline_start_24" />-->
-
-                <!--                <ImageButton-->
-                <!--                    android:id="@+id/lastStation"-->
-                <!--                    android:layout_width="0dp"-->
-                <!--                    android:layout_height="48dp"-->
-                <!--                    android:layout_marginEnd="8dp"-->
-                <!--                    android:layout_weight="1"-->
-                <!--                    android:background="@drawable/rounded_rectangle_button"-->
-                <!--                    android:contentDescription="@string/last_station"-->
-                <!--                    android:padding="8dp"-->
-                <!--                    android:src="@drawable/baseline_keyboard_arrow_left_24" />-->
-
-                <!--                <ImageButton-->
-                <!--                    android:id="@+id/voiceAnnouncement"-->
-                <!--                    android:layout_width="0dp"-->
-                <!--                    android:layout_height="48dp"-->
-                <!--                    android:layout_marginEnd="8dp"-->
-                <!--                    android:layout_weight="1"-->
-                <!--                    android:background="@drawable/rounded_rectangle_button"-->
-                <!--                    android:contentDescription="@string/announce_current_station"-->
-                <!--                    android:padding="8dp"-->
-                <!--                    android:src="@drawable/baseline_notifications_24" />-->
-
-                <!--                <ImageButton-->
-                <!--                    android:id="@+id/nextStation"-->
-                <!--                    android:layout_width="0dp"-->
-                <!--                    android:layout_height="48dp"-->
-                <!--                    android:layout_marginEnd="8dp"-->
-                <!--                    android:layout_weight="1"-->
-                <!--                    android:background="@drawable/rounded_rectangle_button"-->
-                <!--                    android:contentDescription="@string/next_station"-->
-                <!--                    android:padding="8dp"-->
-                <!--                    android:src="@drawable/baseline_keyboard_arrow_right_24" />-->
-
-                <!--                <ImageButton-->
-                <!--                    android:id="@+id/terminal"-->
-                <!--                    android:layout_width="0dp"-->
-                <!--                    android:layout_height="48dp"-->
-                <!--                    android:layout_weight="1"-->
-                <!--                    android:background="@drawable/rounded_rectangle_button"-->
-                <!--                    android:contentDescription="@string/terminal"-->
-                <!--                    android:src="@drawable/baseline_start_24" />-->
-
             </LinearLayout>
 
-            <!--                 app:cardBackgroundColor="?attr/cardBackgroundColor" -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -795,33 +597,29 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!--            <TextView-->
-            <!--                android:layout_width="match_parent"-->
-            <!--                android:layout_height="0dp"-->
-            <!--                app:layout_constraintTop_toBottomOf="@id/location_info_card" />-->
-
         </LinearLayout>
 
 
     </androidx.core.widget.NestedScrollView>
 
 
-    <TextView
+    <LinearLayout
         android:id="@+id/bottomFill"
         android:layout_width="match_parent"
         android:layout_height="44dp"
         android:clickable="true"
         android:focusable="true"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent">
 
-    </TextView>
+    </LinearLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/mapLocation"
         style="?attr/materialIconButtonFilledStyle"
         android:layout_width="wrap_content"
         android:layout_height="60dp"
-        android:layout_marginLeft="16dp"
+        android:layout_marginStart="16dp"
         android:layout_marginBottom="4dp"
         android:contentDescription="@string/starting_station"
         app:backgroundTint="@color/md_theme_surface"
@@ -837,7 +635,7 @@
         style="?attr/materialIconButtonFilledStyle"
         android:layout_width="wrap_content"
         android:layout_height="60dp"
-        android:layout_marginLeft="8dp"
+        android:layout_marginStart="8dp"
         android:layout_marginBottom="4dp"
         android:contentDescription="@string/starting_station"
         android:visibility="gone"
@@ -855,7 +653,7 @@
         style="?attr/materialIconButtonFilledStyle"
         android:layout_width="60dp"
         android:layout_height="60dp"
-        android:layout_marginRight="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginBottom="4dp"
         android:contentDescription="@string/starting_station"
         app:backgroundTint="@color/md_theme_surface"
@@ -865,39 +663,19 @@
         app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!--    <ImageView-->
-    <!--        android:id="@+id/mapLocation"-->
-    <!--        android:layout_width="60dp"-->
-    <!--        android:layout_height="60dp"-->
-    <!--        android:layout_margin="12dp"-->
-    <!--        android:contentDescription="@string/now_location"-->
-    <!--        android:padding="8dp"-->
-    <!--        android:scaleType="centerCrop"-->
-    <!--        android:src="@drawable/map_location_button"-->
-    <!--        app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"-->
-    <!--        app:layout_constraintStart_toStartOf="@id/mapContainer" />-->
-
-    <!--    <ImageView-->
-    <!--        android:id="@+id/runningInfo"-->
-    <!--        android:layout_width="60dp"-->
-    <!--        android:layout_height="60dp"-->
-    <!--        android:layout_margin="12dp"-->
-    <!--        android:contentDescription="@string/running_info"-->
-    <!--        android:padding="8dp"-->
-    <!--        android:scaleType="centerCrop"-->
-    <!--        android:src="@mipmap/list"-->
-    <!--        app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"-->
-    <!--        app:layout_constraintEnd_toEndOf="parent" />-->
-
-
-    <!--    <SeekBar-->
-    <!--        android:id="@+id/seekBar2"-->
-    <!--        android:layout_width="200dp"-->
-    <!--        android:layout_height="wrap_content"-->
-    <!--        android:rotation="270"-->
-    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
-    <!--        app:layout_constraintStart_toStartOf="parent"-->
-    <!--        app:layout_constraintTop_toTopOf="parent" />-->
-
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/serviceBtn"
+        style="?attr/materialIconButtonFilledStyle"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_marginEnd="4dp"
+        android:layout_marginBottom="4dp"
+        android:contentDescription="@string/starting_station"
+        app:backgroundTint="@color/md_theme_surface"
+        app:icon="@drawable/service"
+        app:iconGravity="textTop"
+        app:iconTint="@color/md_theme_primary"
+        app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
+        app:layout_constraintEnd_toStartOf="@+id/runningInfo" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

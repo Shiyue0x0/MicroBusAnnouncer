@@ -11,6 +11,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
@@ -85,13 +87,13 @@ class LineFragment : Fragment() {
      * 刷新路线列表
      */
     private fun refreshLineList() {
+
         binding!!.lineRecyclerView.setHasFixedSize(true)
         //获取所有路线，加载到界面
         adapter = LineAdapter(
             requireContext(),
             lineDatabaseHelper
         )
-
 
         //点击路线切换到主控并运行
         adapter.setOnItemClickListener(object : LineAdapter.OnItemClickListener {
@@ -107,8 +109,27 @@ class LineFragment : Fragment() {
 
             }
         })
+
         binding!!.lineRecyclerView.setAdapter(adapter)
 
+        binding!!.lineRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                val firstVisibleItem = layoutManager.findFirstVisibleItemPosition()
+                val lastVisibleItem = layoutManager.findLastVisibleItemPosition()
+
+//                Log.d("", "line now show ${firstVisibleItem}-${lastVisibleItem}")
+//                adapter.firstVisibleItem = firstVisibleItem
+//                adapter.lastVisibleItem = lastVisibleItem
+                adapter.updateItemShown(firstVisibleItem, lastVisibleItem)
+
+            }
+        })
+
+
+        @SuppressLint("NotifyDataSetChanged")
         adapter.notifyDataSetChanged()
 
     }
@@ -195,24 +216,30 @@ class LineFragment : Fragment() {
     private fun initSwipeRefreshLayout() {
         binding!!.swipeRefreshLayout.setOnRefreshListener {
             //refreshLineList()
+            @SuppressLint("NotifyDataSetChanged")
             binding!!.lineRecyclerView.adapter!!.notifyDataSetChanged()
             binding!!.swipeRefreshLayout.isRefreshing = false
             utils.haptic(binding!!.swipeRefreshLayout)
         }
     }
 
-    // 与用户交互时
-    override fun onResume() {
-        super.onResume()
-        Log.d(tag, "onResume")
-        adapter.setStationItemsIsScroll(true)
-    }
+//    // 与用户交互时
+//    override fun onResume() {
+//        super.onResume()
+//        Log.d(tag, "onResume")
+//        adapter.updateAllItemShown(true)
+//    }
+//
+//    // 不再与用户交互时
+//    override fun onPause() {
+//        Log.d(tag, "onPause")
+//        adapter.updateAllItemShown(false)
+//        super.onPause()
+//    }
 
-    // 不再与用户交互时
-    override fun onPause() {
-        super.onPause()
-        Log.d(tag, "onPause")
-        adapter.setStationItemsIsScroll(false)
+    fun updateAllItemShown(value: Boolean) {
+        if (this::adapter.isInitialized)
+            adapter.updateAllItemShown(value)
     }
 
 }

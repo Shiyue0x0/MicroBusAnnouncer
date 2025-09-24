@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var binding: ActivityMainBinding
 
-    private var exitTime: Long = 0
+    private var backPressedTime: Long = 0
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,13 +53,9 @@ class MainActivity : AppCompatActivity() {
 
         //设置低亮度1h屏幕唤醒锁
         powerManager = this.getSystemService(POWER_SERVICE) as PowerManager
+        @Suppress("DEPRECATION")
         wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, tag)
         wakeLock.acquire(60 * 60 * 1000L)
-
-        //点亮状态栏，控制状态栏字体颜色变黑
-//        val controller =
-//            WindowInsetsControllerCompat(window, this.decorView)
-//        controller.isAppearanceLightStatusBars = true
 
         fragmentList.add(MainFragment())
         fragmentList.add(LineFragment())
@@ -102,6 +98,16 @@ class MainActivity : AppCompatActivity() {
                 }
 
 
+                // LineFragment
+                val lineFragment = fragmentList[1] as LineFragment
+                if (position == 1) {
+                    lineFragment.updateAllItemShown(true)
+                }
+                // Not LineFragment
+                else {
+                    lineFragment.updateAllItemShown(false)
+                }
+
                 super.onPageSelected(position)
                 val mainFragment = fragmentList[0] as MainFragment
                 if (mainFragment.isOperationLock) {
@@ -110,6 +116,8 @@ class MainActivity : AppCompatActivity() {
                     return
                 }
                 binding.bottomNavigationView.menu[position].isChecked = true
+
+
             }
         })
 
@@ -119,21 +127,13 @@ class MainActivity : AppCompatActivity() {
             binding.bottomNavigationView.visibility = View.GONE
 
         onBackPressedDispatcher.addCallback(this) {
-            if (binding.viewPager.currentItem == 0) {
-                moveTaskToBack(true)
-            } else {
-                binding.viewPager.currentItem = 0
-            }
+            onBack()
         }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_DOWN) {
-            if (binding.viewPager.currentItem == 0) {
-                moveTaskToBack(true)
-            } else {
-                binding.viewPager.currentItem = 0
-            }
+            onBack()
         }
         return super.onKeyDown(keyCode, event)
     }
@@ -152,25 +152,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-//    override fun onRequestPermissionsResult(
-//        requestCode: Int,
-//        permissions: Array<out String?>,
-//        grantResults: IntArray,
-//        deviceId: Int
-//    ) {
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults, deviceId)
-//        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this)
-//        when (requestCode) {
-//            PermissionManager.REQUEST_LOCATION -> {
-//                Log.d(tag, "per2 code: REQUEST_LOCATION")
-//            }
-//
-//            PermissionManager.REQUEST_MANAGE_FILES_ACCESS -> {
-//                Log.d(tag, "per2 code: REQUEST_MANAGE_FILES_ACCESS")
-//            }
-//        }
-//
-//    }
+    override fun onResume() {
+        super.onResume()
+        val lineFragment = fragmentList[1] as LineFragment
+        lineFragment.updateAllItemShown(true)
+    }
 
+    override fun onPause() {
+        val lineFragment = fragmentList[1] as LineFragment
+        lineFragment.updateAllItemShown(false)
+        super.onPause()
+    }
+
+
+    fun onBack() {
+        // 主控
+        if (binding.viewPager.currentItem == 0) {
+            if (utils.getIsSaveBackAfterExit()) {
+                moveTaskToBack(true)
+            } else {
+                if (backPressedTime + 2000 > System.currentTimeMillis()) {
+                    finish()
+                } else {
+                    utils.showMsg(getString(R.string.press_again_exit_app))
+                }
+                backPressedTime = System.currentTimeMillis()
+            }
+
+        }
+        // 其他页
+        else {
+            binding.viewPager.currentItem = 0
+        }
+    }
 
 }

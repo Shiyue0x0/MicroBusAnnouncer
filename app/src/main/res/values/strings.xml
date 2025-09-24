@@ -89,6 +89,19 @@
 
     <string name="search_station_not_have_voice_finish">已将缺失音频的站点复制到剪切板</string>
     <string name="xPixelPerSecond">%1$d 像素/秒</string>
-
+    <string name="online_search">在线搜索</string>
+    <string name="setAsLineName">设为名称</string>
+    <string name="stationTypeDefault">B</string>
+    <string name="SysAndEs">系统与电显</string>
+    <string name="Announcement">语音播报库</string>
+    <string name="MapAndLocation">定位与地图</string>
+    <string name="DateAndAbout">数据与关于</string>
+    <string name="lineNameDefault">K99</string>
+    <string name="SAndTText">起点站 - 终点站</string>
+    <string name="lineTypeDefault">B</string>
+    <string name="split">|</string>
+    <string name="S2T">%1$s - %2$s</string>
+    <string name="currentRange">当前半径 %1$dm</string>
+    <string name="locationPerSecond">每 %1$d 毫秒定位一次</string>
 
 </resources>

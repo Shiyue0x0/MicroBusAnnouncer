@@ -43,25 +43,12 @@
                     android:id="@+id/station_type"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="B"
+                    android:text="@string/lineTypeDefault"
                     android:textSize="18sp" />
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
-
-        <!--        <TextView-->
-        <!--            android:id="@+id/station_type"-->
-        <!--            android:layout_width="wrap_content"-->
-        <!--            android:layout_height="wrap_content"-->
-        <!--            android:layout_margin="4dp"-->
-        <!--            android:background="@drawable/item_line_of_station_button"-->
-        <!--            android:padding="4dp"-->
-        <!--            android:text="@string/station_type_value"-->
-        <!--            android:textColor="@color/white"-->
-        <!--            app:layout_constraintBottom_toBottomOf="@+id/station_id"-->
-        <!--            app:layout_constraintStart_toEndOf="@+id/station_id"-->
-        <!--            app:layout_constraintTop_toTopOf="parent" />-->
 
         <TextView
             android:id="@+id/station_cn_name"
@@ -80,7 +67,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:text="|"
+            android:text="@string/split"
             android:textColor="@color/md_theme_surfaceVariant"
             android:textSize="18sp"
             app:layout_constraintBottom_toBottomOf="@+id/station_type_card"

@@ -4,7 +4,6 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?android:attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:paddingTop="4dp"
     android:paddingBottom="4dp">
@@ -26,7 +25,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="8dp"
-            android:text="K99"
+            android:text="@string/lineNameDefault"
             android:textColor="@color/md_theme_onSurface"
             android:textStyle="bold" />
 
@@ -37,7 +36,7 @@
         android:id="@+id/text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="起点站 - 终点站"
+        android:text="@string/SAndTText"
         android:textStyle="bold" />
 
 

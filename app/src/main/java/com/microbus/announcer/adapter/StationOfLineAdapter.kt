@@ -1,12 +1,10 @@
 package com.microbus.announcer.adapter
 
 import android.content.Context
-import android.graphics.Rect
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.LayoutInflater
@@ -27,7 +25,6 @@ internal class StationOfLineAdapter(
     private val context: Context,
     mStationList: ArrayList<Station>,
     mStationCount: Int,
-    mLineName: String,
     mStationState: Int = -1     // onNext 0, onWillArrive 1, onArrive, 2
 ) :
     RecyclerView.Adapter<StationOfLineAdapter.StationOfLineViewHolder>() {
@@ -36,17 +33,19 @@ internal class StationOfLineAdapter(
 
     val mHandler = Handler(Looper.getMainLooper())
 
-    var isScroll = false
+    var isShown = false
 
     var lineHeight = 0
 
     var stationList = mStationList
 
     var stationCount = mStationCount
-    var lineName = mLineName
     var stationState = mStationState
 
     val utils = Utils(context)
+
+    var firstVisibleItem = -1
+    var lastVisibleItem = -1
 
     internal class StationOfLineViewHolder(
         binding: ItemStationOfLineBinding,
@@ -98,10 +97,12 @@ internal class StationOfLineAdapter(
 
                     Choreographer.getInstance().postFrameCallback(this)
 
-                    if (!isScroll)
+                    if (!isShown)
                         return
 
-//                    Log.d("Station", "$lineName ${holder.stationName.text}")
+                    if (holder.layoutPosition !in firstVisibleItem..lastVisibleItem)
+                        return
+
 
                     // 动态刷新率
                     val fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -109,6 +110,7 @@ internal class StationOfLineAdapter(
                     } else {
                         val windowManager =
                             context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                        @Suppress("DEPRECATION")
                         windowManager.defaultDisplay.refreshRate
                     }
 
@@ -117,8 +119,10 @@ internal class StationOfLineAdapter(
                     val maxScrollY =
                         holder.stationNameNestedScrollView.getChildAt(0).height - holder.stationNameNestedScrollView.height
 
-                    if (scrollY > maxScrollY + delay)
+                    if (scrollY > maxScrollY + delay) {
+//                        Log.d("Station", "$lineName ${holder.layoutPosition} ${holder.stationName.text}")
                         scrollY = -delay
+                    }
 
                     holder.stationNameNestedScrollView.scrollTo(0, scrollY)
 
@@ -187,7 +191,7 @@ internal class StationOfLineAdapter(
             style
         )
         holder.main.setCardBackgroundColor(bg)
-        holder.constraintLayout.setPadding(padding, utils.dp2px(2F), padding, utils.dp2px(2F))
+        holder.constraintLayout.setPadding(padding, utils.dp2px(8F), padding, utils.dp2px(8F))
 
         when (holder.stationName.text.length) {
             2 -> {

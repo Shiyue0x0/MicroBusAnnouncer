@@ -8,11 +8,12 @@
 
         <item name="android:fontFamily">@font/galano_grotesque_bold</item>
 
+        <item name="android:windowBackground">@color/an_window_bg</item>
+
         <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/an_window_bg</item>
         <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">@color/an_window_bg</item>
         <item name="android:windowSplashScreenAnimationDuration" tools:targetApi="31">99999</item>
         <item name="android:windowSplashScreenBehavior" tools:targetApi="33">icon_preferred</item>
-
 
         <item name="colorPrimary">@color/md_theme_primary</item>
         <item name="colorOnPrimary">@color/md_theme_onPrimary</item>

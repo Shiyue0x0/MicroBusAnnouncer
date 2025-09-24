@@ -2,8 +2,6 @@ package com.microbus.announcer.fragment.settings
 
 import android.app.Activity.RESULT_OK
 import android.content.Intent
-import android.content.SharedPreferences
-import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.os.Bundle
 import android.os.Environment
 import android.provider.DocumentsContract
@@ -23,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.ComposeView
@@ -35,9 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
-import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.compose.BaseSettingItem
@@ -58,8 +53,6 @@ import kotlin.math.min
 class DataAndAboutSettingsFragment : Fragment() {
 
     lateinit var utils: Utils
-    private lateinit var prefs: SharedPreferences
-    private lateinit var permissionManager: PermissionManager
 
     private val requestRestoreStation = 0
 
@@ -71,8 +64,6 @@ class DataAndAboutSettingsFragment : Fragment() {
     ): View? {
 
         utils = Utils(requireContext())
-        prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
-        permissionManager = PermissionManager(requireContext(), requireActivity())
 
         val composeView = ComposeView(requireContext())
 

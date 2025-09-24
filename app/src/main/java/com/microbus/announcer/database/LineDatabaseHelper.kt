@@ -186,7 +186,7 @@ class LineDatabaseHelper(
         writableDatabase.execSQL(sql)
     }
 
-    fun quertByKey(key: String): List<Line> {
+    fun queryByKey(key: String): List<Line> {
         val list: MutableList<Line> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
