@@ -13,6 +13,9 @@
   <img src="https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/settings.jpg" width="200"  alt=""/>
 </div>
 
+![路线](https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/readme/img/lines.jpg)
+
+
 ### 快速开始
 
 无需过多配置，只需要一些步骤即可体验Announcer的基本功能。
