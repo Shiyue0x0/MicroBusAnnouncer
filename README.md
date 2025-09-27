@@ -16,9 +16,22 @@
 
    [Github](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
    [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/releases)
-   [蓝奏云](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
 
-2. 将其中的`Announcer`文件夹解压到手机的根目录。
+   音色来源：
+
+   Firefly：《崩坏：星穹铁道》流萤
+
+   桂林公交：`@ZK6858HAA` `@机场闪电359`
+
+   鸣谢：
+
+   GPT-SoVITS开发者：`@花儿不哭`
+
+   模型训练者：@红血球AE3803 & `@白菜工厂1145号员工`
+
+   推理特化包适配 & 在线推理：`@AI-Hobbyist`
+
+2. 将体验语音库的`Announcer`文件夹解压到手机的根目录。
 
 3. 安装并启动应用，并授予所需的权限。
 
