@@ -17,7 +17,7 @@
    [Github](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
    [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/releases)
 
-   音色来源：
+   语音来源：
 
    Firefly：《崩坏：星穹铁道》流萤
 
