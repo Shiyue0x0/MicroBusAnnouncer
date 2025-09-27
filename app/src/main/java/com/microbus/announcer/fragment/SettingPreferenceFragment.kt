@@ -365,7 +365,7 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
             if (intent.resolveActivity(requireContext().packageManager) != null) {
                 startActivity(intent)
             } else {
-                utils.showMsg("打开失败")
+                utils.showMsg("打开失败，请检查设备是否安装浏览器")
             }
             true
         }
@@ -378,7 +378,7 @@ open class SettingPreferenceFragment : PreferenceFragmentCompat() {
             if (intent.resolveActivity(requireContext().packageManager) != null) {
                 startActivity(intent)
             } else {
-                utils.showMsg("打开失败")
+                utils.showMsg("打开失败，请检查设备是否安装浏览器")
             }
             true
         }

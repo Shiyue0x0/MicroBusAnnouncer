@@ -156,6 +156,7 @@ class SysAndEsSettingsFragment : Fragment() {
                             0.5F
                         )
                     )
+
                     "isOpenLeftEs" -> setIsOpenLeftEs(prefs.getBoolean(key, true))
                     "isMidLeftEs" -> setIsMidLeftEs(prefs.getBoolean(key, true))
 
@@ -241,7 +242,8 @@ class SysAndEsSettingsFragment : Fragment() {
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
-                ).setTitle("设置城市").setView(binding.root).setPositiveButton(requireContext().getString(android.R.string.ok), null)
+                )
+                    .setTitle("设置城市").setView(binding.root).setPositiveButton("保存", null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 dialog.setCanceledOnTouchOutside(false)
@@ -294,9 +296,13 @@ class SysAndEsSettingsFragment : Fragment() {
     @Composable
     fun SaveBackAfterExitItem(value: Boolean, setValue: (Boolean) -> Unit) {
         BaseSettingItem(
-            "退出后保留后台", "暂时保留后台，以便下次返回\n快速加载，但不会继续定位", painterResource(id = R.drawable.exit), {
+            "退出后保留后台",
+            "暂时保留后台，以便下次返回\n快速加载，但不会继续定位",
+            painterResource(id = R.drawable.exit),
+            {
                 toggleSaveBackAfterExit(value, setValue, !value)
-            }, rightContain = {
+            },
+            rightContain = {
                 SwitchSettingItem(value) {
                     toggleSaveBackAfterExit(value, setValue, it)
                 }
@@ -390,12 +396,19 @@ class SysAndEsSettingsFragment : Fragment() {
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
-                ).setTitle("编辑电显内容").setView(binding.root).setPositiveButton(requireContext().getString(android.R.string.ok), null)
+                ).setTitle("编辑电显内容").setView(binding.root)
+                    .setNeutralButton("帮助", null)
+                    .setPositiveButton("保存", null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 binding.editText.isSingleLine = false
                 binding.editText.setText(eSText)
                 dialog.setCanceledOnTouchOutside(false)
+
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                    utils.openHelperDialog("查看模拟电显文档", "readme/模拟电显.md")
+                }
+
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
 
                     val newValue = binding.editText.text.toString()
@@ -467,7 +480,7 @@ class SysAndEsSettingsFragment : Fragment() {
                     R.style.CustomAlertDialogStyle
                 ).setTitle("设置${title}提示词")
                     .setView(binding.root)
-                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
+                    .setPositiveButton("保存", null)
                     .setNegativeButton(getString(android.R.string.cancel), null)
                     .show()
 
@@ -501,7 +514,7 @@ class SysAndEsSettingsFragment : Fragment() {
                     requireContext(),
                     R.style.CustomAlertDialogStyle
                 ).setTitle("设置电显文字滚动速度").setView(binding.root)
-                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
+                    .setPositiveButton("保存", null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 binding.slider.contentDescription = "拖动以调整电显文字滚动速度"
@@ -555,7 +568,7 @@ class SysAndEsSettingsFragment : Fragment() {
                     requireContext(),
                     R.style.CustomAlertDialogStyle
                 ).setTitle("电显文字滚动结束时机").setView(binding.root)
-                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
+                    .setPositiveButton("保存", null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 binding.slider.contentDescription = "拖动以调整"

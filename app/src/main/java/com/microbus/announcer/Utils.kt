@@ -58,12 +58,20 @@ class Utils(private val context: Context) {
 
     val editLineOnMapActionName = "com.microbus.announcer.edit_line_on_map"
 
+    lateinit var toast: Toast
+
     /**
      * Toast提示
      * @param msg 提示内容
      */
-    fun showMsg(msg: String) {
-        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+    fun showMsg(msg: String, isCannel: Boolean = false) {
+
+        if (isCannel && ::toast.isInitialized)
+            toast.cancel()
+
+        toast = Toast.makeText(context, msg, Toast.LENGTH_LONG)
+        toast.show()
+
     }
 
 
@@ -205,6 +213,7 @@ class Utils(private val context: Context) {
     /**
      * 从设置中获取站点判定距离
      */
+    @Deprecated("请使用getStationRangeByLineType()替代")
     fun getArriveStationDistance(): Double {
         return prefs.getString("arriveStationDistance", "30.0")!!.toDouble()
     }
@@ -293,8 +302,13 @@ class Utils(private val context: Context) {
         return prefs.getBoolean("stationChangeVibrator", true)
     }
 
+    fun getAnSubtitle(): Boolean {
+        return prefs.getBoolean("anSubtitle", true)
+    }
+
     fun getServiceLanguageStr(): String {
-        return prefs.getString("serviceLanguageStr", "") ?: ""
+        val default = "请问还有乘客要下车吗？关门了，请注意。关门了。"
+        return prefs.getString("serviceLanguageStr", default) ?: default
     }
 
     /**
@@ -603,9 +617,9 @@ class Utils(private val context: Context) {
     }
 
     /**
-     * 获取报站语种列表
+     * 获取语种列表
      * */
-    fun getAnnouncementLangList(): ArrayList<String> {
+    fun getLangList(): ArrayList<String> {
 
         val langList = ArrayList<String>(listOf("cn", "en"))
 
@@ -677,8 +691,7 @@ class Utils(private val context: Context) {
         } else {
             val perms = listOf(
                 Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_PHONE_STATE
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
             )
             for (p in perms) {
                 if (ContextCompat.checkSelfPermission(
@@ -778,7 +791,7 @@ class Utils(private val context: Context) {
         }
 
         if (!outputFile.exists()) {
-            outputFile.mkdirs()
+            outputFile.createNewFile()
         }
 
         val defaultJsonIS = context.resources.openRawResource(R.raw.announcement_default_config)
@@ -821,6 +834,7 @@ class Utils(private val context: Context) {
     fun getEsText(): String {
         val default =
             "<sscn>|<tscn>|5|B\n" +
+                    "<ssen>|<tsen>|5|B\n" +
                     "<nscn>|到了|5|A\n" +
                     "<nscn>|就要到了|5|W\n" +
                     "下一站|<nscn>|5|N\n" +
@@ -910,7 +924,7 @@ class Utils(private val context: Context) {
                     "<speed>"
                 )
             )
-        for (lang in getAnnouncementLangList()) {
+        for (lang in getLangList()) {
             keywordList.add("<ns$lang>")
             keywordList.add("<ss$lang>")
             keywordList.add("<ts$lang>")
@@ -1010,24 +1024,83 @@ class Utils(private val context: Context) {
             .joinToString("") { it.value }
     }
 
-    fun openHelperDialog(title: String, githubUrl: String, secondUrl: String) {
-        val urlList = listOf("Github", "XX文档")
-        MaterialAlertDialogBuilder(context)
+    fun openHelperDialog(title: String, url: String) {
+        val urlList = listOf("GitHub", "Gitee")
+        val dialog = MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
             .setTitle(title)
             .setSingleChoiceItems(urlList.toTypedArray(), -1) { dialog, which ->
+                dialog.dismiss()
                 val uriStr = when (which) {
-                    0 -> githubUrl
-                    1 -> secondUrl
-                    else -> secondUrl
+                    0 -> "https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/$url"
+                    1 -> "https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/$url"
+                    else -> "https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/$url"
                 }
                 val intent = Intent(Intent.ACTION_VIEW, uriStr.toUri())
                 if (intent.resolveActivity(context.packageManager) != null) {
                     context.startActivity(intent)
                 } else {
-                    showMsg("打开失败")
+                    showMsg("打开失败，请检查设备是否安装浏览器")
                 }
             }
             .show()
+    }
+
+    /**
+     * 根据站点中文名称获取对应语言名称
+     * @param cnName 要查找的中文名
+     * @param lang 要获取的语言
+     * @return cn返回中文名本身，en返回站点在本地数据库的英文名称，其他的从stationLangTable.json查找
+     * 查找失败，则返回中文名本身
+     * */
+    fun getStationNameFromCn(cnName: String, lang: String): String {
+
+        if (lang == "cn") {
+            return cnName
+        }
+
+        if (lang == "en") {
+            val stationDatabaseHelper = StationDatabaseHelper(context)
+            val queryStationList = stationDatabaseHelper.queryByCnName(cnName)
+            return if (queryStationList.isNotEmpty())
+                queryStationList.first().enName
+            else
+                cnName
+        }
+
+
+        if (!isGrantManageFilesAccessPermission()) {
+            return cnName
+        }
+
+        val langTableFile = File("$appRootPath/Media/stationLangTable.json")
+
+        if (!langTableFile.exists()) {
+            showMsg("langTable.json文件不存在，请先创建")
+            return cnName
+        }
+
+        val element = JsonParser.parseString(langTableFile.readText())
+
+        if (!element.isJsonArray)
+            return cnName
+
+        val stationList = element.asJsonArray
+
+        for (station in stationList) {
+
+            val obj = station.asJsonObject
+
+            if (obj.get("cn") == null || obj.get("cn").asString != cnName)
+                continue
+
+            return if (obj.get(lang) != null)
+                obj.get(lang).asString
+            else
+                cnName
+        }
+
+        return cnName
+
     }
 
 }

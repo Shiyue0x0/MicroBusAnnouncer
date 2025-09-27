@@ -49,7 +49,6 @@ import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.view.animation.DecelerateInterpolator
-import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -58,6 +57,8 @@ import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.core.view.setPadding
+import androidx.core.widget.NestedScrollView
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -121,12 +122,17 @@ import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
+import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ArrayBlockingQueue
 import java.util.stream.Collectors
+import kotlin.collections.set
+import kotlin.text.substring
 
 
 class MainFragment : Fragment() {
@@ -277,7 +283,9 @@ class MainFragment : Fragment() {
     /**TTS*/
     private lateinit var tts: TextToSpeech
 
-    private lateinit var audioScope: Job
+    private lateinit var audioStreamScope: Job
+
+    private lateinit var audioPlayScope: Job
 
     lateinit var locationClient: AMapLocationClient
 
@@ -289,8 +297,6 @@ class MainFragment : Fragment() {
 
     val lastStationHandler = Handler(mLooper)
     val nextStationHandler = Handler(mLooper)
-
-    private val speedRefreshHandler = Handler(mLooper)
 
     private val audioReleaseHandler = Handler(mLooper)
 
@@ -308,6 +314,8 @@ class MainFragment : Fragment() {
     var userMapOpen = false
 
     val runningInfoList = ArrayList<RunningInfo>()
+
+    val locationInfoList = ArrayList<String>()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -327,8 +335,10 @@ class MainFragment : Fragment() {
         lineDatabaseHelper = LineDatabaseHelper(context)
         stationDatabaseHelper = StationDatabaseHelper(context)
 
-        currentDistanceToCurrentStation = utils.getArriveStationDistance() + 1
-        lastDistanceToCurrentStation = utils.getArriveStationDistance() + 1
+        currentDistanceToCurrentStation =
+            utils.getStationRangeByLineType(currentLine.type).toDouble() + 1
+        lastDistanceToCurrentStation =
+            utils.getStationRangeByLineType(currentLine.type).toDouble() + 1
 
         /**设置屏幕唤醒锁*/
         powerManager =
@@ -378,7 +388,7 @@ class MainFragment : Fragment() {
 //        binding.lineStationListContainer.setScrollView(binding.lineStationList)
 
 
-        announcementLangList = utils.getAnnouncementLangList()
+        announcementLangList = utils.getLangList()
 
         return binding.root
     }
@@ -631,7 +641,7 @@ class MainFragment : Fragment() {
         @SuppressLint("NotifyDataSetChanged")
         adapter.notifyDataSetChanged()
 
-        refreshUI(refreshEs = false)
+        refreshUI(isRefreshEs = false)
 
         refreshEsToStaringAndTerminal()
 
@@ -887,6 +897,10 @@ class MainFragment : Fragment() {
                 busLineQuery.pageSize = 999999
                 val busLineSearch = BusLineSearch(requireContext(), busLineQuery)
                 busLineSearch.setOnBusLineSearchListener { res, rCode ->
+                    if (res.busLines.isEmpty()) {
+                        utils.showMsg("暂时查找不到${utils.getCity()}${dialogBinding.lineNameInput.text}路线")
+                        return@setOnBusLineSearchListener
+                    }
                     findOnlineLine(res, alertDialog)
                 }
                 busLineSearch.searchBusLineAsyn()
@@ -954,9 +968,9 @@ class MainFragment : Fragment() {
 
             val dialogBinding = DialogRunningInfoBinding.inflate(LayoutInflater.from(context))
 
-            for (info in runningInfoList) {
-                Log.d(tag, info.stationName)
-            }
+//            for (info in runningInfoList) {
+//                Log.d(tag, info.stationName)
+//            }
 
             dialogBinding.recyclerView.adapter =
                 StationOfRunningInfoAdapter(requireContext(), runningInfoList)
@@ -1183,11 +1197,9 @@ class MainFragment : Fragment() {
                 utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
                 return@setOnClickListener
             }
+
             //语音播报当前站点
-            if (currentLineStationState == onWillArrive)
-                announce()
-            else
-                announce()
+            announce()
 
             utils.haptic(requireView())
         }
@@ -1207,9 +1219,45 @@ class MainFragment : Fragment() {
             utils.showMsg("${binding.currentDistanceToCurrentStationValue.text}${binding.currentDistanceToCurrentStationUnit.text}")
         }
 
-        // 速度卡片
+        // 单击速度卡片
         binding.speedCard.setOnClickListener {
             utils.showMsg("${binding.speedValue.text}${binding.speedUnit.text}")
+        }
+
+        // 长按速度卡片
+        binding.speedCard.setOnLongClickListener {
+
+            val textView = TextView(requireContext())
+
+            val nestedScrollView = NestedScrollView(requireContext())
+            nestedScrollView.setPadding(utils.dp2px(24F))
+            nestedScrollView.addView(textView)
+
+            val dialog = MaterialAlertDialogBuilder(requireContext())
+                .setTitle("历史定位信息")
+                .setView(nestedScrollView)
+                .show()
+
+            val infoUpdateHandler = Handler(mLooper)
+            val infoUpdateRunnable = object : Runnable {
+                override fun run() {
+                    var listStr = ""
+                    locationInfoList.forEachIndexed { index, locationInfo ->
+                        listStr += locationInfo
+                        if (index < locationInfoList.size - 1)
+                            listStr += "\n"
+                    }
+                    textView.text = listStr
+                    infoUpdateHandler.postDelayed(this, utils.getLocationInterval().toLong())
+                }
+            }
+            infoUpdateHandler.postDelayed(infoUpdateRunnable, 0L)
+
+            dialog.setOnDismissListener {
+                infoUpdateHandler.removeCallbacksAndMessages(null)
+            }
+
+            return@setOnLongClickListener true
         }
 
         // 完成编辑
@@ -1341,6 +1389,27 @@ class MainFragment : Fragment() {
         val esRefreshRunnable = object : Runnable {
 
             override fun run() {
+
+                val esSpeed = utils.getEsSpeed()
+                binding.headerLeftNew.pixelMovePerSecond = esSpeed
+                binding.headerRightNew.pixelMovePerSecond = esSpeed
+                binding.headerMiddleNew.pixelMovePerSecond = esSpeed
+
+                val pos = utils.getEsFinishPositionOfLastWord()
+                binding.headerLeftNew.finishPositionOfLastWord = pos
+                binding.headerRightNew.finishPositionOfLastWord = pos
+                binding.headerMiddleNew.finishPositionOfLastWord = pos
+
+                binding.headerLeftNew.visibility = if (utils.getIsOpenLeftEs())
+                    VISIBLE
+                else
+                    GONE
+
+                binding.headerMiddleNew.visibility = if (utils.getIsOpenMidEs())
+                    VISIBLE
+                else
+                    GONE
+
                 val isLeftFinish = binding.headerLeftNew.isShowFinish || !utils.getIsOpenLeftEs()
                 val isRightFinish = binding.headerRightNew.isShowFinish
                 if (!isRefreshing && isLeftFinish && isRightFinish) {
@@ -1359,16 +1428,6 @@ class MainFragment : Fragment() {
                 ) {
                     refreshEsOnlyText(true)
                 }
-
-                val esSpeed = utils.getEsSpeed()
-                binding.headerLeftNew.pixelMovePerSecond = esSpeed
-                binding.headerRightNew.pixelMovePerSecond = esSpeed
-                binding.headerMiddleNew.pixelMovePerSecond = esSpeed
-
-                val pos = utils.getEsFinishPositionOfLastWord()
-                binding.headerLeftNew.finishPositionOfLastWord = pos
-                binding.headerRightNew.finishPositionOfLastWord = pos
-                binding.headerMiddleNew.finishPositionOfLastWord = pos
 
                 esRefreshHandler.postDelayed(this, 100L)
             }
@@ -1476,7 +1535,7 @@ class MainFragment : Fragment() {
                 // 遍历路线方案
 
                 val path = res.paths[0]
-                Log.d(tag, "size${path.polyline.size}")
+//                Log.d(tag, "size${path.polyline.size}")
 
 
                 for (i in 0 until path.polyline.size) {
@@ -2098,7 +2157,7 @@ class MainFragment : Fragment() {
                 }
             }
         } else {
-            utils.showMsg(localLineList.first().name)
+//            utils.showMsg(localLineList.first().name)
             originLine = localLineList.first()
             initLineInterval()
             currentLineStationState = onNext
@@ -2111,6 +2170,16 @@ class MainFragment : Fragment() {
     }
 
     fun onMyLocationChange(location: Location) {
+
+        val latStr = String.format(Locale.CHINA, "%.8f", location.latitude)
+        val longStr = String.format(Locale.CHINA, "%.8f", location.longitude)
+
+        locationInfoList.add(
+            0,
+            "[${
+                LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+            }] $latStr $longStr"
+        )
 
         binding.locationBtnGroup.check(binding.locationBtn.id)
 
@@ -2278,7 +2347,7 @@ class MainFragment : Fragment() {
 
                 Log.d(
                     tag,
-                    "到达站：${lineStationList[i].cnName} for ${currentDistanceToStationList[i]} <= $arriveStationDistance"
+                    "自动到达站：${lineStationList[i].cnName} for ${currentDistanceToStationList[i]} <= $arriveStationDistance"
                 )
 
                 if (isReverseLine) {
@@ -2320,7 +2389,7 @@ class MainFragment : Fragment() {
 
                 Log.d(
                     tag,
-                    "即将进站：${lineStationList[i].cnName} for ${lastDistanceToStationList[i]} to ${currentDistanceToStationList[i]}"
+                    "即将自动进站：${lineStationList[i].cnName} for ${lastDistanceToStationList[i]} to ${currentDistanceToStationList[i]}"
                 )
 
 
@@ -2348,7 +2417,7 @@ class MainFragment : Fragment() {
 
                 Log.d(
                     tag,
-                    "${lineStationList[i].cnName} 出站：${lineStationList[i].cnName} for ${lastDistanceToStationList[i]} to ${currentDistanceToStationList[i]}"
+                    "${lineStationList[i].cnName} 自动出站：${lineStationList[i].cnName} for ${lastDistanceToStationList[i]} to ${currentDistanceToStationList[i]}"
                 )
 
                 if (isReverseLine) {
@@ -2413,7 +2482,7 @@ class MainFragment : Fragment() {
      */
     private fun showCurrentLineStationMarker() {
 
-        Log.d(tag, "showCurrentLineStationMarker")
+//        Log.d(tag, "showCurrentLineStationMarker")
 
         val latLngList = ArrayList<LatLng>()
 
@@ -2434,13 +2503,17 @@ class MainFragment : Fragment() {
             )
             latLngList.add(latLng)
 
+            val fillColor = if (aMap.mapType == MAP_TYPE_NIGHT)
+                Color.argb(8, 255, 255, 255)
+            else
+                Color.argb(8, 0, 0, 0)
             //绘制站点范围
             val circle = aMap.addCircle(
                 CircleOptions()
                     .center(latLng)
-                    .radius(utils.getArriveStationDistance())
-                    .fillColor(Color.argb(8, 0, 0, 0))
-                    .strokeColor(Color.argb(64, 0, 0, 0))
+                    .radius(utils.getStationRangeByLineType(currentLine.type).toDouble())
+                    .fillColor(fillColor)
+//                    .strokeColor(Color.argb(64, 0, 0, 0))
                     .strokeWidth(0F)
             )
             if (circle != null) circleList.add(circle)
@@ -2863,6 +2936,16 @@ class MainFragment : Fragment() {
         refreshEs(toStaringAndTerminal = true)
     }
 
+    class PcmWithInfo(
+        var data: ByteArray?,
+        var pcmEncoding: Int,
+        var sampleRate: Int,
+        var channelMask: Int,
+        var durationUs: Long,
+        var fileIndex: Int
+    )
+
+
     /**
      * 语音播报
      * @param format 播报格式
@@ -2878,142 +2961,149 @@ class MainFragment : Fragment() {
             return
         }
 
-        if (currentLineStationList.isEmpty())
-            return
+        val filePathList = ArrayList<String>()
 
-        val mediaList = ArrayList<String>()
-        val stationType = when (currentLineStationCount) {
-            0 -> "Starting"
-            1 -> "Second"
-            currentLineStationList.size - 1 -> "Terminal"
-            else -> "Default"
-        }
-        val stationState = when (currentLineStationState) {
-            onArrive -> "Arrive"
-            onNext -> "Next"
-            onWillArrive -> "WillArrive"
-            else -> ""
-        }
+        val pcmQueue = ArrayBlockingQueue<PcmWithInfo>(1024)
 
-        val anExp =
-            if (format == "") utils.getAnnouncementFormat(stationState, stationType)
-            else format
-        val anList = utils.getAnnouncements(anExp)
-        for (item in anList) {
-            if (item == "") {
-                utils.showMsg("请到\"设置\"-\"语音播报库\"设置报站内容")
-                return
-            } else if (item[0] == '<') {
-                when (item) {
-                    in listOf(
-                        "<line>",
-                        "<year>",
-                        "<years>",
-                        "<month>",
-                        "<date>",
-                        "<hour>",
-                        "<minute>",
-                        "<second>"
-                    ) -> {
-                        val str = when (item) {
-                            "<line>" -> currentLine.name
-                            "<year>" -> LocalDate.now().year.toString()
-                            "<years>" -> (LocalDate.now().year % 100).toString()
-                            "<month>" -> LocalDate.now().monthValue.toString()
-                            "<date>" -> LocalDate.now().dayOfMonth.toString()
-                            "<hour>" -> LocalTime.now().hour.toString()
-                            "<minute>" -> LocalTime.now().minute.toString()
-                            "<second>" -> LocalTime.now().second.toString()
-                            else -> ""
-                        }
-                        mediaList.addAll(utils.getNumOrLetterVoiceList(str))
-                    }
+        audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+
+        if (::audioPlayScope.isInitialized)
+            audioPlayScope.cancel()
 
 
-                    "<time>" -> {
-                        mediaList.addAll(utils.getTimeVoiceList())
-                    }
+        // 音频读取与解码
+        audioStreamScope = CoroutineScope(Dispatchers.IO).launch {
 
-                    "<speed>" -> {
-                        mediaList.addAll(
-                            utils.intOrLetterToCnReading(
-                                currentSpeedKmH.toInt().toString(),
-                                "cn/number/"
-                            )
-                        )
-                    }
-
-                    else -> {
-                        val station = when (item.substring(1, 3)) {
-                            "ns" -> currentLineStation
-                            "ss" -> currentLineStationList.first()
-                            "ts" -> currentLineStationList.last()
-                            "ms" -> {
-                                val stationList =
-                                    stationDatabaseHelper.queryById(
-                                        (item.substring(
-                                            5,
-                                            item.length - 1
-                                        )).toInt()
-                                    )
-                                if (stationList.isNotEmpty())
-                                    stationList.first()
-                                else Station(
-                                    id = Int.MAX_VALUE,
-                                    cnName = "未知站点",
-                                    enName = "unknown"
-                                )
-                            }
-
-                            else -> Station()
-                        }
-                        val lang = if (item.substring(1, 3) == "ms") {
-                            item.substring(3, 5)
-                        } else
-                            item.drop(3).dropLast(1)
-                        when (lang) {
-                            "cn" ->
-                                mediaList.add("/${lang}/station/" + station.cnName)
-
-                            "en" ->
-                                mediaList.add("/${lang}/station/" + station.enName)
-
-                            else ->
-                                mediaList.add("/${lang}/station/" + station.cnName)
-                        }
-                    }
-                }
-            } else {
-                var hasLocalVoice = false
-                for (lang in announcementLangList) {
-                    val file =
-                        File("$appRootPath/Media/${utils.getAnnouncementLibrary()}/${lang}/common")
-                    val fileList = file.walk()
-                        .filter { it.isFile && it.nameWithoutExtension == item }
-                        .toList()
-                    if (fileList.isNotEmpty()) {
-                        mediaList.add("/${lang}/common/" + item)
-                        hasLocalVoice = true
-                        break
-                    }
-                }
-                if (!hasLocalVoice) {
-                    mediaList.add("common/$item")
-                }
-            }
-        }
-
-
-        //合成报站音频
-        if (this::audioScope.isInitialized) {
-            audioScope.cancel()
-        }
-
-        audioScope = CoroutineScope(Dispatchers.IO).launch {
-
-            if (!this.isActive) {
-                audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+            if (currentLineStationList.isEmpty()) {
+                pauseAnnounce()
                 return@launch
+            }
+
+            val mediaList = ArrayList<String>()
+            val stationType = when (currentLineStationCount) {
+                0 -> "Starting"
+                1 -> "Second"
+                currentLineStationList.size - 1 -> "Terminal"
+                else -> "Default"
+            }
+            val stationState = when (currentLineStationState) {
+                onArrive -> "Arrive"
+                onNext -> "Next"
+                onWillArrive -> "WillArrive"
+                else -> ""
+            }
+
+            val anExp =
+                if (format == "") utils.getAnnouncementFormat(stationState, stationType)
+                else format
+            val anList = utils.getAnnouncements(anExp)
+            for (item in anList) {
+                if (item == "") {
+//                utils.showMsg("请到\"设置\"-\"语音播报库\"设置报站内容")
+                    pauseAnnounce()
+                    return@launch
+                } else if (item[0] == '<') {
+                    when (item) {
+                        in listOf(
+                            "<line>",
+                            "<year>",
+                            "<years>",
+                            "<month>",
+                            "<date>",
+                            "<hour>",
+                            "<minute>",
+                            "<second>"
+                        ) -> {
+                            val str = when (item) {
+                                "<line>" -> currentLine.name
+                                "<year>" -> LocalDate.now().year.toString()
+                                "<years>" -> (LocalDate.now().year % 100).toString()
+                                "<month>" -> LocalDate.now().monthValue.toString()
+                                "<date>" -> LocalDate.now().dayOfMonth.toString()
+                                "<hour>" -> LocalTime.now().hour.toString()
+                                "<minute>" -> LocalTime.now().minute.toString()
+                                "<second>" -> LocalTime.now().second.toString()
+                                else -> ""
+                            }
+                            mediaList.addAll(utils.getNumOrLetterVoiceList(str))
+                        }
+
+                        "<time>" -> {
+                            mediaList.addAll(utils.getTimeVoiceList())
+                        }
+
+                        "<speed>" -> {
+                            mediaList.addAll(
+                                utils.intOrLetterToCnReading(
+                                    currentSpeedKmH.toInt().toString(),
+                                    "cn/number/"
+                                )
+                            )
+                        }
+
+                        else -> {
+                            val station = when (item.substring(1, 3)) {
+                                "ns" -> currentLineStation
+                                "ss" -> currentLineStationList.first()
+                                "ts" -> currentLineStationList.last()
+                                "ms" -> {
+                                    val stationList =
+                                        stationDatabaseHelper.queryById(
+                                            (item.substring(
+                                                5,
+                                                item.length - 1
+                                            )).toInt()
+                                        )
+                                    if (stationList.isNotEmpty())
+                                        stationList.first()
+                                    else Station(
+                                        id = Int.MAX_VALUE,
+                                        cnName = "未知站点",
+                                        enName = "unknown"
+                                    )
+                                }
+
+                                else -> Station()
+                            }
+                            val lang = if (item.substring(1, 3) == "ms") {
+                                item.substring(3, 5)
+                            } else
+                                item.drop(3).dropLast(1)
+                            when (lang) {
+                                "cn" ->
+                                    mediaList.add("/${lang}/station/" + station.cnName)
+
+                                "en" ->
+                                    mediaList.add("/${lang}/station/" + station.enName)
+
+                                else ->
+                                    mediaList.add(
+                                        "/${lang}/station/" + utils.getStationNameFromCn(
+                                            station.cnName,
+                                            lang
+                                        )
+                                    )
+                            }
+                        }
+                    }
+                } else {
+                    var hasLocalVoice = false
+                    for (lang in announcementLangList) {
+                        val file =
+                            File("$appRootPath/Media/${utils.getAnnouncementLibrary()}/${lang}/common")
+                        val fileList = file.walk()
+                            .filter { it.isFile && it.nameWithoutExtension == item }
+                            .toList()
+                        if (fileList.isNotEmpty()) {
+                            mediaList.add("/${lang}/common/" + item)
+                            hasLocalVoice = true
+                            break
+                        }
+                    }
+                    if (!hasLocalVoice) {
+                        mediaList.add("common/$item")
+                    }
+                }
             }
 
             //新建缓存文件目录
@@ -3046,7 +3136,6 @@ class MainFragment : Fragment() {
 
             }
 
-            val filePathList = ArrayList<String>()
 
             val ttsTextList = ArrayList<String>()
             // 查找本地音频/合成TTS音频
@@ -3104,25 +3193,34 @@ class MainFragment : Fragment() {
 
             audioReleaseHandler.removeCallbacksAndMessages(null)
 
-            // 音频推流
+//            if (::audioTrack.isInitialized) {
+//                audioTrack.release()
+//            }
+
+
+            // 音频解码
             filePathList.forEachIndexed { i, filePath ->
 
-
                 if (!isActive) {
-                    audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+                    pauseAnnounce()
                     return@launch
                 }
+
+                var pcmBytes: ByteArray? = null
 
                 // 等待TTS合成完成
                 if (filePath.split("/").reversed()[1] == "tts") {
 
                     while (true) {
                         if (!isActive) {
-                            audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+                            pauseAnnounce()
                             return@launch
                         }
-                        Thread.sleep(50)
-                        if (utteranceIdDoneList.contains(filePath)) break
+//                        Thread.sleep(50)
+                        if (utteranceIdDoneList.contains(filePath)) {
+                            Log.d(tag, "filePath ok ${filePath}")
+                            break
+                        }
                     }
                 }
 
@@ -3137,8 +3235,9 @@ class MainFragment : Fragment() {
                     try {
                         setDataSource(filePath)
                     } catch (e: Exception) {
+                        Log.d(tag, "setDataSource Error")
                         e.printStackTrace()
-                        audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+                        pauseAnnounce()
                         return@launch
                     }
 
@@ -3149,12 +3248,11 @@ class MainFragment : Fragment() {
                             selectTrack(i)
                             sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
                             channelCount = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-                            try {
-                                pcmEncoding = format.getInteger(MediaFormat.KEY_PCM_ENCODING)
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                                pcmEncoding = AudioFormat.ENCODING_PCM_16BIT
-
+                            // 非pcm音频流无法获取KEY_PCM_ENCODING，默认16BIT
+                            pcmEncoding = try {
+                                format.getInteger(MediaFormat.KEY_PCM_ENCODING)
+                            } catch (_: Exception) {
+                                AudioFormat.ENCODING_PCM_16BIT
                             }
                             durationUs = format.getLong(MediaFormat.KEY_DURATION)
 
@@ -3174,44 +3272,25 @@ class MainFragment : Fragment() {
                     AudioFormat.CHANNEL_OUT_MONO
                 }
 
-                audioFormat = AudioFormat.Builder().setEncoding(pcmEncoding)
-                    .setSampleRate(sampleRate).setChannelMask(channelMask)
-                    .build()
-
-                bufferSizeInBytes = AudioTrack.getMinBufferSize(
-                    sampleRate, channelMask, pcmEncoding
-                )
-
-                //启动报站
-                if (::audioTrack.isInitialized && audioTrack.state == AudioTrack.STATE_INITIALIZED) {
-                    audioTrack.stop()
-                    audioTrack.release()
-                }
-
-                audioTrack = AudioTrack(
-                    audioAttributes, audioFormat, bufferSizeInBytes, AudioTrack.MODE_STREAM, 1
-                )
-
-                audioTrack.play()
-
                 @Suppress("DEPRECATION")
                 val inputBuffers = decoder.inputBuffers
 
                 @Suppress("DEPRECATION")
                 val outputBuffers = decoder.outputBuffers
+
                 val info = MediaCodec.BufferInfo()
                 var eosReceived = false
+
 
                 while (!eosReceived) {
 
                     if (!isActive) {
-                        audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+                        pauseAnnounce()
                         return@launch
                     }
 
                     // 输入
-                    val inputBufferId = decoder.dequeueInputBuffer(10 * 10000)
-
+                    val inputBufferId = decoder.dequeueInputBuffer(100000)
                     if (inputBufferId >= 0) {
                         val buffer = inputBuffers[inputBufferId]
                         val sampleSize = extractor.readSampleData(buffer, 0)
@@ -3238,57 +3317,60 @@ class MainFragment : Fragment() {
                         }
                     }
 
-                    // 最后一段音频播放完毕，释放资源
-                    if (i == filePathList.size - 1) {
-                        audioReleaseHandler.removeCallbacksAndMessages(null)
-                        audioReleaseHandler.postDelayed({
-                            if (!audioScope.isActive)
-                                return@postDelayed
-                            audioTrack.release()
-                            audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-                        }, durationUs / 1000 + 500) //500ms冗余
-                    }
-
                     // 输出
-                    audioManager?.requestAudioFocus(audioFocusRequest!!)
-                    val outIndex = decoder.dequeueOutputBuffer(info, 10 * 10000)
+                    val outIndex = decoder.dequeueOutputBuffer(info, 100000)
                     when (outIndex) {
+
+                        // 输出缓冲区已更改
                         @Suppress("DEPRECATION")
                         MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED -> {
-                            // 输出缓冲区已更改
-                            Log.d(tag, "INFO_OUTPUT_BUFFERS_CHANGED")
+//                            Log.d(tag, "INFO_OUTPUT_BUFFERS_CHANGED")
                         }
 
+                        // 输出格式已更改
                         MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
-                            // 输出格式已更改
-                            Log.d(tag, "INFO_OUTPUT_FORMAT_CHANGED")
-
+//                            Log.d(tag, "INFO_OUTPUT_FORMAT_CHANGED")
                         }
 
+                        // 暂时没有可用输出
                         MediaCodec.INFO_TRY_AGAIN_LATER -> {
-                            // 暂时没有可用输出
-                            Log.d(tag, "INFO_TRY_AGAIN_LATER")
-
+//                            Log.d(tag, "INFO_TRY_AGAIN_LATER")
                         }
 
                         else -> {
-//                            Log.d(tag, "outIndex: $outIndex")
-
                             if (outIndex >= 0) {
-                                val outputBuffer = outputBuffers[outIndex]
-                                val pcmData = ByteArray(info.size)
-                                outputBuffer.get(pcmData)
+//                                Log.d(tag, "outIndex $filePath $i")
+                                val outputBuffer: ByteBuffer
+                                try {
+                                    outputBuffer = outputBuffers[outIndex]
+                                    val pcmData = ByteArray(info.size)
+                                    outputBuffer.get(pcmData)
 
-                                synchronized(audioTrack) {
-                                    if (audioTrack.state == AudioTrack.STATE_INITIALIZED && audioTrack.playState == AudioTrack.PLAYSTATE_PLAYING) {
-                                        audioTrack.write(pcmData, 0, pcmData.size)
-//                                        Log.d(
-//                                            tag,
-//                                            "${audioTrack.playbackHeadPosition * 1000 / audioTrack.sampleRate}/ ${info.presentationTimeUs / 1000}"
-//                                        )
+                                    if (pcmBytes == null) {
+                                        pcmBytes = pcmData
+                                    } else {
+                                        pcmBytes += pcmData
                                     }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
                                 }
+
+                                if (i == 0) {
+                                    pcmQueue.add(
+                                        PcmWithInfo(
+                                            pcmBytes,
+                                            pcmEncoding,
+                                            sampleRate,
+                                            channelMask,
+                                            durationUs,
+                                            i
+                                        )
+                                    )
+                                    pcmBytes = null
+                                }
+
                                 decoder.releaseOutputBuffer(outIndex, false)
+
                             }
                         }
                     }
@@ -3299,12 +3381,101 @@ class MainFragment : Fragment() {
 
                 }
 
-                // 等待播放完毕
-                if (i == filePathList.size - 1) {
-                    Thread.sleep(durationUs / 1000 + 1000)  //1000ms冗余
+//                Log.d(tag, "pcm ok ${filePath}")
+
+//                Log.d(tag, "finish $filePath $i")
+                if (pcmBytes != null) {
+                    pcmQueue.add(
+                        PcmWithInfo(pcmBytes, pcmEncoding, sampleRate, channelMask, durationUs, i)
+                    )
                 }
 
             }
+
+        }
+
+        if (::audioTrack.isInitialized)
+            audioTrack.release()
+
+        // 音频推流
+        audioPlayScope = CoroutineScope(Dispatchers.IO).launch {
+
+            var hasInitAudioTrack = false
+            var hasPost = false
+
+            while (isActive) {
+
+                val pcm = pcmQueue.poll()
+                if (pcm != null) {
+
+//                    Log.d(tag, "play ${filePathList[pcm.fileIndex]} ${pcm.sampleRate}")
+
+                    // 初始化或重建audioTrack
+                    if (!hasInitAudioTrack ||
+                        audioTrack.audioFormat != pcm.pcmEncoding ||
+                        audioTrack.sampleRate != pcm.sampleRate
+                    ) {
+
+                        hasInitAudioTrack = true
+
+                        audioFormat = AudioFormat.Builder().setEncoding(pcm.pcmEncoding)
+                            .setSampleRate(pcm.sampleRate).setChannelMask(pcm.channelMask)
+                            .build()
+
+                        bufferSizeInBytes = AudioTrack.getMinBufferSize(
+                            pcm.sampleRate, pcm.channelMask, pcm.pcmEncoding
+                        )
+
+
+                        if (::audioTrack.isInitialized && audioTrack.state == AudioTrack.STATE_INITIALIZED) {
+                            audioTrack.release()
+                        }
+
+                        audioTrack = AudioTrack(
+                            audioAttributes,
+                            audioFormat,
+                            bufferSizeInBytes,
+                            AudioTrack.MODE_STREAM,
+                            1
+                        )
+
+                        audioTrack.play()
+
+                    }
+
+                    if (utils.getAnSubtitle())
+                        requireActivity().runOnUiThread {
+                            val fileName = filePathList[pcm.fileIndex].split('/').last()
+                            val lastDotIndex = fileName.lastIndexOf(".")
+                            utils.showMsg(
+                                fileName.substring(0, lastDotIndex), true
+                            )
+                        }
+
+                    pcm.durationUs / 1000
+
+
+                    synchronized(audioTrack) {
+                        if (pcm.data != null && audioTrack.state == AudioTrack.STATE_INITIALIZED
+                            && audioTrack.playState == AudioTrack.PLAYSTATE_PLAYING
+                        ) {
+                            audioManager?.requestAudioFocus(audioFocusRequest!!)
+                            audioTrack.write(pcm.data!!, 0, pcm.data!!.size)
+//                        Log.d(tag, "play ${wl}/${pcm.data!!.size}")
+                        }
+                    }
+
+                    if (pcm.fileIndex == filePathList.size - 1 && !hasPost) {
+//                            Log.d(tag, "play finish")
+                        audioReleaseHandler.removeCallbacksAndMessages(null)
+                        audioReleaseHandler.postDelayed({
+                            audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+                        }, 0)
+                        hasPost = true
+                    }
+                }
+            }
+
         }
     }
 
@@ -3615,14 +3786,18 @@ class MainFragment : Fragment() {
     }
 
     fun pauseAnnounce() {
-        if (::audioTrack.isInitialized && audioTrack.state == AudioTrack.STATE_INITIALIZED) {
-            audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-            audioTrack.stop()
+
+        audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+
+        if (::audioPlayScope.isInitialized)
+            audioPlayScope.cancel()
+
+        if (::audioStreamScope.isInitialized)
+            audioStreamScope.cancel()
+
+        if (::audioTrack.isInitialized)
             audioTrack.release()
-        }
-        if (this::audioScope.isInitialized) {
-            audioScope.cancel()
-        }
+
     }
 
     fun refreshEs(toStation: Boolean = false, toStaringAndTerminal: Boolean = false) {
@@ -3759,7 +3934,6 @@ class MainFragment : Fragment() {
 
         }
 
-
         val minTimeS =
             if (esPlayIndex >= 0 && esPlayIndex < esList.size) esList[esPlayIndex].minTimeS else 5
         binding.headerLeftNew.minShowTimeMs = minTimeS * 1000
@@ -3786,61 +3960,74 @@ class MainFragment : Fragment() {
             binding.headerMiddleNew.showText(currentLine.name)
         }
 
-        val valueMap = HashMap<String, String>()
+//        val valueMap = HashMap<String, String>()
+//
+//        // todo 动态获取（用到了才获取）
+//        // 电显提示词
+//        valueMap["<next>"] = utils.getEsNextWord()
+//        valueMap["<will>"] = utils.getEsWillArriveWord()
+//        valueMap["<arrive>"] = utils.getEsArriveWord()
+//
+//        // 其他占位符
+//        valueMap["<line>"] = currentLine.name
+//
+//        valueMap["<year>"] = LocalDate.now().year.toString()
+//        valueMap["<years>"] = (LocalDate.now().year % 100).toString()
+//        valueMap["<month>"] = LocalDate.now().monthValue.toString()
+//        valueMap["<date>"] = LocalDate.now().dayOfMonth.toString()
+//
+//        valueMap["<hour>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().hour)
+//        valueMap["<minute>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().minute)
+//        valueMap["<second>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().second)
+//
+//        valueMap["<time>"] = "${valueMap["<hour>"]}:${valueMap["<minute>"]}"
+//
+//        valueMap["<speed>"] =
+//            if (currentSpeedKmH >= 0) String.format(Locale.CHINA, "%.1f", currentSpeedKmH) else "-"
+//
+//        // 站点占位符
+//        val stationStateList = listOf("ns", "ss", "ts")
+//        val langList = utils.getLangList()
+//
+//        for (stationState in stationStateList) {
+//            val station = when (stationState) {
+//                "ns" -> currentLineStation
+//
+//                "ss" -> if (currentLineStationList.isEmpty())
+//                    Station(
+//                        cnName = getString(R.string.terminal),
+//                        enName = getString(R.string.terminal)
+//                    )
+//                else currentLineStationList.first()
+//
+//                "ts" -> if (currentLineStationList.isEmpty())
+//                    Station(
+//                        cnName = getString(R.string.terminal),
+//                        enName = getString(R.string.terminal)
+//                    )
+//                else
+//                    currentLineStationList.last()
+//
+//                else -> currentLineStation
+//            }
+//            for (lang in langList) {
+//                when (lang) {
+//                    "cn" -> valueMap["<${stationState}${lang}>"] = station.cnName
+//                    "en" -> valueMap["<${stationState}${lang}>"] = station.enName
+//                    else -> valueMap["<${stationState}${lang}>"] =
+//                        utils.getStationNameFromCn(station.cnName, lang)
+//                }
+//            }
+//        }
 
-        valueMap["<next>"] = utils.getEsNextWord()
-        valueMap["<will>"] = utils.getEsWillArriveWord()
-        valueMap["<arrive>"] = utils.getEsArriveWord()
+        for (keyword in utils.getDefaultKeywordList()) {
+            leftText = leftText.replace(keyword, getValueMapValue(keyword), true)
+            rightText = rightText.replace(keyword, getValueMapValue(keyword), true)
+        }
 
-        valueMap["<line>"] = currentLine.name
-
-
-        valueMap["<year>"] = LocalDate.now().year.toString()
-        valueMap["<years>"] = (LocalDate.now().year % 100).toString()
-        valueMap["<month>"] = LocalDate.now().monthValue.toString()
-        valueMap["<date>"] = LocalDate.now().dayOfMonth.toString()
-
-        valueMap["<hour>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().hour)
-        valueMap["<minute>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().minute)
-        valueMap["<second>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().second)
-
-        valueMap["<time>"] = "${valueMap["<hour>"]}:${valueMap["<minute>"]}"
-
-
-        valueMap["<speed>"] =
-            if (currentSpeedKmH >= 0) String.format(Locale.CHINA, "%.1f", currentSpeedKmH) else "-"
-
-
-        valueMap["<nscn>"] = currentLineStation.cnName
-        valueMap["<nsen>"] = currentLineStation.enName
-
-        valueMap["<sscn>"] =
-            if (currentLineStationList.isEmpty())
-                getString(R.string.starting_station)
-            else currentLineStationList.first().cnName
-
-        valueMap["<ssen>"] =
-            if (currentLineStationList.isEmpty())
-                getString(R.string.starting_station)
-            else
-                currentLineStationList.first().enName
-
-        valueMap["<tscn>"] =
-            if (currentLineStationList.isEmpty())
-                getString(R.string.terminal)
-            else
-                currentLineStationList.last().cnName
-
-        valueMap["<tsen>"] =
-            if (currentLineStationList.isEmpty())
-                getString(R.string.terminal)
-            else
-                currentLineStationList.last().enName
-
-        val keywordList = utils.getDefaultKeywordList()
-        for (keyword in keywordList) {
-            leftText = leftText.replace(keyword, valueMap[keyword] ?: "", true)
-            rightText = rightText.replace(keyword, valueMap[keyword] ?: "", true)
+        if (!utils.getIsOpenLeftEs()) {
+            rightText = "$leftText $rightText"
+            leftText = ""
         }
 
         if (isUseSet) {
@@ -3907,7 +4094,7 @@ class MainFragment : Fragment() {
         }
     }
 
-    fun refreshUI(refreshEs: Boolean = true) {
+    fun refreshUI(isRefreshEs: Boolean = true) {
 
         //更新路线站点显示、小卡片和通知
         refreshLineStationList()
@@ -3915,8 +4102,8 @@ class MainFragment : Fragment() {
         //更新路线站点更新信息和系统通知
         refreshLineStationChangeInfo()
 
-        //刷新路线头屏
-        if (refreshEs)
+        //刷新电显
+        if (isRefreshEs)
             refreshEsToStation()
 
         //刷新站点标点
@@ -4004,7 +4191,7 @@ class MainFragment : Fragment() {
                 val busStation = res.busLines[x].busStations[i]
                 var enName = busStation.busStationName
                 val localStation =
-                    stationDatabaseHelper.queryByName(busStation.busStationName)
+                    stationDatabaseHelper.queryByCnName(busStation.busStationName)
                 if (localStation.isNotEmpty()) {
                     enName = localStation.first().enName
                 }
@@ -4183,6 +4370,70 @@ class MainFragment : Fragment() {
 
         refreshStationMarker()
 
+    }
+
+    fun getValueMapValue(key: String): String {
+        return when (key) {
+
+            // 站点占位符
+            "<next>" -> utils.getEsNextWord()
+            "<will>" -> utils.getEsWillArriveWord()
+            "<arrive>" -> utils.getEsArriveWord()
+
+            // 其他占位符
+            "<line>" -> currentLine.name
+
+            "<year>" -> LocalDate.now().year.toString()
+            "<years>" -> (LocalDate.now().year % 100).toString()
+            "<month>" -> LocalDate.now().monthValue.toString()
+            "<date>" -> LocalDate.now().dayOfMonth.toString()
+
+            "<hour>" -> String.format(Locale.CHINA, "%02d", LocalTime.now().hour)
+            "<minute>" -> String.format(Locale.CHINA, "%02d", LocalTime.now().minute)
+            "<second>" -> String.format(Locale.CHINA, "%02d", LocalTime.now().second)
+
+            "<time>" ->
+                String.format(Locale.CHINA, "%02d", LocalTime.now().hour) + ":" +
+                        String.format(Locale.CHINA, "%02d", LocalTime.now().minute)
+
+            "<speed>" ->
+                if (currentSpeedKmH >= 0) String.format(
+                    Locale.CHINA,
+                    "%.1f",
+                    currentSpeedKmH
+                ) else "-"
+
+            else -> {
+                val station = when (key.substring(1, 3)) {
+                    "ns" -> currentLineStation
+
+                    "ss" -> if (currentLineStationList.isEmpty())
+                        Station(
+                            cnName = getString(R.string.terminal),
+                            enName = getString(R.string.terminal)
+                        )
+                    else currentLineStationList.first()
+
+                    "ts" -> if (currentLineStationList.isEmpty())
+                        Station(
+                            cnName = getString(R.string.terminal),
+                            enName = getString(R.string.terminal)
+                        )
+                    else currentLineStationList.last()
+
+                    else -> currentLineStation
+                }
+                val lang = if (key.substring(1, 3) == "ms") {
+                    key.substring(3, 5)
+                } else
+                    key.drop(3).dropLast(1)
+                when (lang) {
+                    "cn" -> station.cnName
+                    "en" -> station.enName
+                    else -> utils.getStationNameFromCn(station.cnName, lang)
+                }
+            }
+        }
     }
 
 

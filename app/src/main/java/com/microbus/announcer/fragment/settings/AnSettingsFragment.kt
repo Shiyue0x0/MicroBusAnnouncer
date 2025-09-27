@@ -126,7 +126,7 @@ class AnSettingsFragment : Fragment() {
             )
         }
 
-        val customLangList = utils.getAnnouncementLangList()
+        val customLangList = utils.getLangList()
         customLangList.remove("cn")
         customLangList.remove("en")
         val (customLangListStr, setCustomLangListStr) = remember {
@@ -141,6 +141,10 @@ class AnSettingsFragment : Fragment() {
 
         val (stationChangeVibrator, setStationChangeVibrator) = remember {
             mutableStateOf(utils.getIsStationChangeVibrator())
+        }
+
+        val (anSubtitle, setAnSubtitle) = remember {
+            mutableStateOf(utils.getAnSubtitle())
         }
 
         val (serviceLanguageStr, setServiceLanguageStr) = remember {
@@ -175,7 +179,7 @@ class AnSettingsFragment : Fragment() {
                         setAnnouncementLibrary(prefs.getString(key, "") ?: "")
                         setCnVoiceCount(utils.getLibVoiceCount("cn"))
                         setEnVoiceCount(utils.getLibVoiceCount("en"))
-                        val customLangList = utils.getAnnouncementLangList()
+                        val customLangList = utils.getLangList()
                         customLangList.remove("cn")
                         customLangList.remove("en")
                         setCustomLangListStr(customLangList.joinToString(" "))
@@ -187,6 +191,10 @@ class AnSettingsFragment : Fragment() {
 
                     "stationChangeVibrator" -> {
                         setStationChangeVibrator(utils.getIsStationChangeVibrator())
+                    }
+
+                    "anSubtitle" -> {
+                        setAnSubtitle(utils.getAnSubtitle())
                     }
 
                     "serviceLanguageStr" -> {
@@ -235,6 +243,7 @@ class AnSettingsFragment : Fragment() {
                         )
                         TTSItem(useTTS, setUseTTS)
                         StationChangeVibratorItem(stationChangeVibrator, setStationChangeVibrator)
+                        AnSubtitleItem(anSubtitle, setAnSubtitle)
                         ServiceLanguageItem(serviceLanguageStr)
                         AnFormatGroup(anFormatArray)
                         Spacer(modifier = Modifier.height(1.dp))
@@ -395,6 +404,29 @@ class AnSettingsFragment : Fragment() {
     }
 
     @Composable
+    fun AnSubtitleItem(value: Boolean, setValue: (Boolean) -> Unit) {
+        BaseSettingItem(
+            "播报字幕",
+            "播报时显示字幕",
+            painterResource(id = R.drawable.subtitle),
+            {
+                toggleAnSubtitle(setValue, !value)
+            },
+            rightContain = {
+                SwitchSettingItem(value) {
+                    toggleAnSubtitle(setValue, it)
+                }
+            })
+    }
+
+    fun toggleAnSubtitle(setValue: (Boolean) -> Unit, it: Boolean) {
+        setValue(it)
+        prefs.edit {
+            putBoolean("anSubtitle", it)
+        }
+    }
+
+    @Composable
     fun ServiceLanguageItem(value: String) {
         BaseSettingItem(
             "服务语", value, painterResource(id = R.drawable.service), {
@@ -403,7 +435,7 @@ class AnSettingsFragment : Fragment() {
                     requireContext(),
                     R.style.CustomAlertDialogStyle
                 ).setTitle("设置服务语").setView(binding.root)
-                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
+                    .setPositiveButton("保存", null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 binding.editText.setText(value)
@@ -493,12 +525,9 @@ class AnSettingsFragment : Fragment() {
                                 R.style.CustomAlertDialogStyle
                             ).setTitle("设置${stateStr}${typeStr}播报")
                                 .setView(binding.root)
-                                .setPositiveButton(
-                                    requireContext().getString(android.R.string.ok),
-                                    null
-                                )
-                                .setNegativeButton(getString(android.R.string.cancel), null)
-                                .setNeutralButton("试听", null)
+                                .setPositiveButton("保存", null)
+                                .setNeutralButton("帮助", null)
+                                .setNegativeButton("试听", null)
                                 .show()
 
                             binding.editText.isSingleLine = false
@@ -509,38 +538,12 @@ class AnSettingsFragment : Fragment() {
                             )
 
                             dialog.setCanceledOnTouchOutside(false)
-                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                                val newValue = binding.editText.text.toString()
-                                if (newValue == "") {
-                                    utils.showMsg("请输入播报格式")
-                                    return@setOnClickListener
-                                }
-
-                                val ans = utils.getAnnouncements(newValue)
-                                if (ans[0] == "ERROR") {
-                                    utils.showMsg("${ans[1]}不正确，请修改")
-                                } else {
-
-                                    prefs.edit {
-                                        putString(
-                                            "${type}${state}AnnouncementExpression",
-                                            newValue
-                                        )
-                                    }
-
-                                    // 同步修改config.json
-                                    utils.updateAnnouncementFormatConfig(
-                                        type,
-                                        state,
-                                        newValue
-                                    )
-                                    utils.showMsg("播报格式设置成功")
-                                    dialog.dismiss()
-                                }
-
-                            }
 
                             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                                utils.openHelperDialog("查看语音播报文档", "readme/语音播报.md")
+                            }
+
+                            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
 
                                 val newValue = binding.editText.text.toString()
 
@@ -563,6 +566,39 @@ class AnSettingsFragment : Fragment() {
                                         .sendBroadcast(intent)
                                 }
 
+                            }
+
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                                val newValue = binding.editText.text.toString()
+
+//                                if (newValue == "") {
+//                                    utils.showMsg("请输入播报格式")
+//                                    return@setOnClickListener
+//                                }
+
+                                // 允许填空
+
+                                val ans = utils.getAnnouncements(newValue)
+                                if (ans[0] == "ERROR" && newValue != "") {
+                                    utils.showMsg("${ans[1]}不正确，请修改")
+                                } else {
+
+                                    prefs.edit {
+                                        putString(
+                                            "${type}${state}AnnouncementExpression",
+                                            newValue
+                                        )
+                                    }
+
+                                    // 同步修改config.json
+                                    utils.updateAnnouncementFormatConfig(
+                                        type,
+                                        state,
+                                        newValue
+                                    )
+                                    utils.showMsg("播报格式设置成功")
+                                    dialog.dismiss()
+                                }
                             }
 
                             // 中断播报

@@ -1,5 +1,6 @@
 package com.microbus.announcer
 
+import android.app.NotificationManager
 import android.content.Intent
 import android.os.Bundle
 import android.os.PowerManager
@@ -172,6 +173,9 @@ class MainActivity : AppCompatActivity() {
                 moveTaskToBack(true)
             } else {
                 if (backPressedTime + 2000 > System.currentTimeMillis()) {
+                    val notificationManager =
+                        getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                    notificationManager.cancelAll()
                     finish()
                 } else {
                     utils.showMsg(getString(R.string.press_again_exit_app))

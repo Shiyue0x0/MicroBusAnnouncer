@@ -78,7 +78,7 @@ class StationDatabaseHelper(
         return list
     }
 
-    fun queryByName(name: String): List<Station> {
+    fun queryByCnName(name: String): List<Station> {
         val list: MutableList<Station> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =

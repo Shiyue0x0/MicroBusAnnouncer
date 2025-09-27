@@ -116,40 +116,4 @@ class PermissionManager(private val context: Context, private val activity: Acti
         }
     }
 
-//    /**
-//     * 请求权限结果
-//     * @param requestCode
-//     * @param permissions
-//     * @param grantResults
-//     */
-//    override fun onRequestPermissionsResult(
-//        requestCode: Int,
-//        permissions: Array<String?>,
-//        grantResults: IntArray
-//    ) {
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-//        //设置权限请求结果
-//        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this)
-//        when (requestCode) {
-//            PermissionManager.REQUEST_LOCATION -> {
-//                Log.d(tag, "per2 code: REQUEST_LOCATION")
-//            }
-//
-//            PermissionManager.REQUEST_MANAGE_FILES_ACCESS -> {
-//                Log.d(tag, "per2 code: REQUEST_MANAGE_FILES_ACCESS")
-//            }
-//        }
-//
-//    }
-//
-//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-//        super.onActivityResult(requestCode, resultCode, data)
-//        if (requestCode == REQUEST_MANAGE_FILES_ACCESS) {
-//            if (resultCode == Activity.RESULT_OK) {
-//                utils.showMsg("允许访问所有文件")
-//            } else {
-//                utils.showMsg("不允许访问所有文件")
-//            }
-//        }
-//    }
 }

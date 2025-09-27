@@ -12,25 +12,19 @@
 
 无需过多配置，只需要一些步骤即可体验Announcer的基本功能。
 
-1. 准备一台Android 8.0+的手机，从下列渠道下载最新版，然后安装。
+1. 准备一台Android 8.0+的手机，从下列渠道下载最新版应用本体和体验语音库。
 
    [Github](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
    [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/releases)
    [蓝奏云](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
 
-2. 下载体验语音库。
+2. 将其中的`Announcer`文件夹解压到手机的根目录。
 
-   [Github](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
-   [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/releases)
-   [蓝奏云](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
+3. 安装并启动应用，并授予所需的权限。
 
-3. 将其中的`Announcer`文件夹解压到手机的根目录。
+4. 点击右下角的`设置`-`数据与关于`，点击`加载预设站点数据`，此时应用会自动关闭。
 
-4. 启动应用，并授予所需的权限。
-
-5. 点击右下角的`设置`-`数据与关于`，点击`加载预设站点数据`，此时应用会自动关闭。
-
-6. 再次打开应用，点击`设置`-`数据与关于`-`加载预设路线数据`，自动关闭后再打开应用。
+5. 再次打开应用，点击`设置`-`数据与关于`-`加载预设路线数据`，自动关闭后再打开应用。
 
 喜报！您已经完成了所有的初始设置。现在可以试着自行探索一下，或者是继续跟随文档操作。
 

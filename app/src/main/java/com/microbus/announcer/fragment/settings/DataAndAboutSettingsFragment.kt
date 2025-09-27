@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -102,13 +103,18 @@ class DataAndAboutSettingsFragment : Fragment() {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            "数据",
+                            "备份与还原",
                             fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
                             modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 4.dp)
                         )
                         BackupItem()
                         RestoreItem("station", painterResource(id = R.drawable.station1))
                         RestoreItem("line", painterResource(id = R.drawable.line1))
+                        Text(
+                            "预设数据",
+                            fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
+                            modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 4.dp)
+                        )
                         RestorePresetItem("station", painterResource(id = R.drawable.station1))
                         RestorePresetItem("line", painterResource(id = R.drawable.line1))
                         Text(
@@ -119,6 +125,7 @@ class DataAndAboutSettingsFragment : Fragment() {
                         AboutItem()
                         ProjectUrlItem()
                         DeveloperItem()
+                        HelperItem()
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -403,16 +410,30 @@ class DataAndAboutSettingsFragment : Fragment() {
     fun ProjectUrlItem() {
         BaseSettingItem(
             "项目地址",
-            "Github",
+            "GitHub/Gitee",
             painterResource(id = R.drawable.github),
             {
-                val uri = "https://github.com/Shiyue0x0/MicroBusAnnouncer".toUri()
-                val intent = Intent(Intent.ACTION_VIEW, uri)
-                if (intent.resolveActivity(requireContext().packageManager) != null) {
-                    startActivity(intent)
-                } else {
-                    utils.showMsg("打开失败")
-                }
+                val urlList = listOf("GitHub", "Gitee").toTypedArray()
+                MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                ).setTitle("选择仓库").setSingleChoiceItems(
+                    urlList, -1
+                ) { dialog, which ->
+                    val uri = when(which){
+                        0 -> "https://github.com/Shiyue0x0/MicroBusAnnouncer".toUri()
+                        1 -> "https://gitee.com/shiyue0x0/micro-bus-announcer".toUri()
+                        else -> "https://github.com/Shiyue0x0/MicroBusAnnouncer".toUri()
+                    }
+                    val intent = Intent(Intent.ACTION_VIEW, uri)
+                    if (intent.resolveActivity(requireContext().packageManager) != null) {
+                        startActivity(intent)
+                    } else {
+                        utils.showMsg("打开失败，请检查设备是否安装浏览器")
+                    }
+                    dialog.cancel()
+                }.show()
+
             })
     }
 
@@ -428,8 +449,19 @@ class DataAndAboutSettingsFragment : Fragment() {
                 if (intent.resolveActivity(requireContext().packageManager) != null) {
                     startActivity(intent)
                 } else {
-                    utils.showMsg("打开失败")
+                    utils.showMsg("打开失败，请检查设备是否安装浏览器")
                 }
+            })
+    }
+
+    @Composable
+    fun HelperItem() {
+        BaseSettingItem(
+            "使用文档",
+            "了解 ${resources.getString(R.string.app_name)}",
+            painterResource(id = R.drawable.doc),
+            {
+                utils.openHelperDialog("要在哪里阅读？","README.md")
             })
     }
 

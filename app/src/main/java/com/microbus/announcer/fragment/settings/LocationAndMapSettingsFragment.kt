@@ -355,7 +355,7 @@ class LocationAndMapSettingsFragment : Fragment() {
                     requireContext(),
                     R.style.CustomAlertDialogStyle
                 ).setTitle("设置定位间隔").setView(binding.root)
-                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
+                    .setPositiveButton("保存", null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 binding.slider.contentDescription = "拖动以调整定位间隔"
