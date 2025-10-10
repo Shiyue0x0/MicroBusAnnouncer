@@ -1,5 +1,9 @@
 package com.microbus.announcer.fragment.settings
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.os.Bundle
@@ -37,8 +41,10 @@ import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
 import com.microbus.announcer.MainActivity
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
@@ -77,6 +83,30 @@ class SysAndEsSettingsFragment : Fragment() {
             composeView.setLayoutParams(layoutParams)
         }
 
+        val mBroadcastReceiver = object : BroadcastReceiver() {
+            override fun onReceive(
+                context: Context,
+                intent: Intent
+            ) {
+                if (isAdded) {
+                    when (intent.action) {
+                        utils.sendCityFromLocationActionName -> {
+                            val cityName = intent.getStringExtra("cityName")
+                            if (cityName != "" && ::cityInput.isInitialized) {
+                                utils.showMsg("当前城市：$cityName")
+                                cityInput.setText(cityName)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(utils.sendCityFromLocationActionName)
+
+        LocalBroadcastManager.getInstance(requireContext())
+            .registerReceiver(mBroadcastReceiver, intentFilter)
 
         return composeView
     }
@@ -234,6 +264,9 @@ class SysAndEsSettingsFragment : Fragment() {
         }
     }
 
+
+    lateinit var cityInput: TextInputEditText
+
     @Composable
     fun CityNameItem(city: String) {
         BaseSettingItem(
@@ -243,10 +276,21 @@ class SysAndEsSettingsFragment : Fragment() {
                     requireContext(),
                     R.style.CustomAlertDialogStyle
                 )
-                    .setTitle("设置城市").setView(binding.root).setPositiveButton("保存", null)
-                    .setNegativeButton(getString(android.R.string.cancel), null).show()
+                    .setTitle("设置城市").setView(binding.root)
+                    .setNeutralButton("定位", null)
+                    .setNegativeButton(getString(android.R.string.cancel), null)
+                    .setPositiveButton("保存", null)
+                    .show()
 
                 dialog.setCanceledOnTouchOutside(false)
+
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                    val intent = Intent()
+                        .setAction(utils.requestCityFromLocationActionName)
+                    LocalBroadcastManager.getInstance(requireContext())
+                        .sendBroadcast(intent)
+                }
+
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                     val newValue = binding.editText.text.toString()
                     if (newValue == "") {
@@ -259,6 +303,8 @@ class SysAndEsSettingsFragment : Fragment() {
                     utils.showMsg("已将城市设置为${newValue}")
                     dialog.dismiss()
                 }
+
+                cityInput = binding.editText
 
                 binding.textInputLayout.hint = "请输入文本"
                 binding.textInputLayout.requestFocus()
@@ -505,6 +551,8 @@ class SysAndEsSettingsFragment : Fragment() {
             })
     }
 
+    val esDemoText = "请有序排队 文明乘车 桂林公交欢迎您 K99 开往 汽车客运南站"
+
     @Composable
     fun ESSpeedItem(eSSpeed: Int) {
         BaseSettingItem(
@@ -525,7 +573,7 @@ class SysAndEsSettingsFragment : Fragment() {
 
                 binding.es.pixelMovePerSecond = eSSpeed
                 binding.es.finishPositionOfLastWord = utils.getEsFinishPositionOfLastWord()
-                binding.es.showText("请有序排队 文明乘车 桂林公交欢迎您 K99 开往 汽车客运南站")
+                binding.es.showText(esDemoText)
 
 
                 binding.text.visibility = ViewGroup.VISIBLE
@@ -579,7 +627,7 @@ class SysAndEsSettingsFragment : Fragment() {
 
                 binding.es.finishPositionOfLastWord = esFinishPositionOfLastWord
                 binding.es.pixelMovePerSecond = utils.getEsSpeed()
-                binding.es.showText("请有序排队 文明乘车 桂林公交欢迎您")
+                binding.es.showText(esDemoText)
 
                 binding.text.visibility = ViewGroup.VISIBLE
                 binding.text.text = text

@@ -85,6 +85,7 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <com.microbus.announcer.view.NestedScrollableHost
+            android:id="@+id/lineStationListHost"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -97,6 +98,10 @@
                 android:id="@+id/lineStationList"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:fadingEdgeLength="20dp"
+                android:requiresFadingEdge="horizontal"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/line_name_card" />
 
         </com.microbus.announcer.view.NestedScrollableHost>

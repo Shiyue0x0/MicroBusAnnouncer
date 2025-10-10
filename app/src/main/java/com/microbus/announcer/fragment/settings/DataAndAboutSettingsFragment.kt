@@ -30,13 +30,19 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.gson.JsonParser
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.compose.BaseSettingItem
+import com.microbus.announcer.databinding.DialogLoadingBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
@@ -123,6 +129,7 @@ class DataAndAboutSettingsFragment : Fragment() {
                             modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 4.dp)
                         )
                         AboutItem()
+                        CheckForUpdatesItem()
                         ProjectUrlItem()
                         DeveloperItem()
                         HelperItem()
@@ -281,7 +288,7 @@ class DataAndAboutSettingsFragment : Fragment() {
             }
 
             //  备份原数据
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
+            val dateFormat = SimpleDateFormat("yyMMdd-HHmmss", Locale.getDefault())
             val dataTime = dateFormat.format(Date(System.currentTimeMillis()))
             backupFile(fileName, "$dataTime-auto")
 
@@ -362,11 +369,11 @@ class DataAndAboutSettingsFragment : Fragment() {
             //检测表是否存在
 
             //备份当前文件
-            val dateFormat =
-                SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
-            val dataTimeStr = dateFormat.format(Date(System.currentTimeMillis()))
+            val dateFormat = SimpleDateFormat("yyMMdd-HHmmss", Locale.getDefault())
+            val dataTime = dateFormat.format(Date(System.currentTimeMillis()))
+
             val inputStream = FileInputStream(outputPath)
-            backupFile(outputFileName, "$dataTimeStr-auto", inputStream)
+            backupFile(outputFileName, "$dataTime-auto", inputStream)
             inputStream.close()
 
             //清空原文件
@@ -407,6 +414,141 @@ class DataAndAboutSettingsFragment : Fragment() {
     }
 
     @Composable
+    fun CheckForUpdatesItem() {
+        val wayList = listOf("GitHub", "Gitee")
+        BaseSettingItem(
+            "检查更新",
+            "",
+            painterResource(id = R.drawable.update),
+            clickFun = {
+                MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                ).setTitle("选择更新渠道").setSingleChoiceItems(
+                    wayList.toTypedArray(), -1
+                ) { dialog, which ->
+
+                    val loadingDialogBinding =
+                        DialogLoadingBinding.inflate(LayoutInflater.from(context))
+                    loadingDialogBinding.title.text = "正在检查更新"
+
+                    val loadingDialog = MaterialAlertDialogBuilder(
+                        requireContext(),
+                        R.style.CustomAlertDialogStyle
+                    )
+                        .setView(loadingDialogBinding.root)
+                        .show()
+
+                    val url =
+                        when (which) {
+                            0 -> "https://api.github.com/repos/Shiyue0x0/MicroBusAnnouncer/releases"
+                            1 -> "https://gitee.com/api/v5/repos/shiyue0x0/micro-bus-announcer/releases"
+                            else -> ""
+                        }
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val client = OkHttpClient()
+                            val request = Request.Builder()
+                                .url(url)
+                                .build()
+                            val res = client.newCall(request).execute()
+                            val body = res.body.string()
+                            val releaseList = JsonParser.parseString(body).asJsonArray
+                            // ID越大，版本越新
+                            var maxId = Int.MIN_VALUE
+                            var lastVersionName = ""
+                            var lastVersionBody = ""
+                            var lastVersionApkUrl = ""
+                            for (release in releaseList) {
+                                val obj = release.asJsonObject
+                                val id = obj.get("id").asString.toInt()
+                                if (id > maxId) {
+                                    maxId = id
+                                    lastVersionName = obj.get("tag_name").asString
+                                    lastVersionBody = obj.get("body").asString
+                                    for (asset in obj.get("assets").asJsonArray) {
+                                        val url =
+                                            asset.asJsonObject.get("browser_download_url").asString
+                                        if (url.split(".").last() == "apk") {
+                                            // todo apk 下载
+                                            lastVersionApkUrl = url
+                                            break
+                                        }
+                                    }
+                                }
+                            }
+
+                            val currentVerName = requireContext().packageManager
+                                .getPackageInfo(requireContext().packageName, 0).versionName
+
+                            //1.2.3-250901-1200
+                            val currentVerNameList = currentVerName?.split("-")[0]!!.split(
+                                "v",
+                                "."
+                            )
+
+                            //v1.2.3
+                            val lastVerNameList =
+                                lastVersionName.drop(1).split(".")
+
+                            var isLast = true
+                            currentVerNameList.forEachIndexed { i, string ->
+                                Log.d(tag, "${lastVerNameList[i]} > ${currentVerNameList[i]}")
+                                if (lastVerNameList[i].toInt() > currentVerNameList[i].toInt()) {
+                                    isLast = false
+                                }
+                            }
+
+                            requireActivity().runOnUiThread {
+                                loadingDialog.dismiss()
+                                if (isLast) {
+                                    MaterialAlertDialogBuilder(
+                                        requireContext(),
+                                        R.style.CustomAlertDialogStyle
+                                    ).setTitle("已是最新版本")
+                                        .setMessage("${getString(R.string.app_name)} ${lastVersionName.drop(1)}")
+                                        .setPositiveButton(getString(android.R.string.ok), null)
+                                        .show()
+                                } else {
+
+                                    val newVerDialog = MaterialAlertDialogBuilder(
+                                        requireContext(),
+                                        R.style.CustomAlertDialogStyle
+                                    ).setTitle("有最新版本 $lastVersionName")
+                                        .setMessage(lastVersionBody)
+                                        .setNegativeButton(getString(android.R.string.cancel), null)
+                                        .setPositiveButton("现在更新", null)
+                                        .show()
+
+                                    newVerDialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                                        .setOnClickListener {
+                                            val uri = when (which) {
+                                                0 -> "https://github.com/Shiyue0x0/MicroBusAnnouncer/releases".toUri()
+                                                1 -> "https://gitee.com/shiyue0x0/micro-bus-announcer/releases".toUri()
+                                                else -> "".toUri()
+                                            }
+                                            val intent = Intent(Intent.ACTION_VIEW, uri)
+                                            if (intent.resolveActivity(requireContext().packageManager) != null) {
+                                                startActivity(intent)
+                                            } else {
+                                                utils.showMsg("打开失败，请检查设备是否安装浏览器")
+                                            }
+
+
+                                        }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+
+                    }
+                    dialog.cancel()
+                }.show()
+            })
+    }
+
+    @Composable
     fun ProjectUrlItem() {
         BaseSettingItem(
             "项目地址",
@@ -420,7 +562,7 @@ class DataAndAboutSettingsFragment : Fragment() {
                 ).setTitle("选择仓库").setSingleChoiceItems(
                     urlList, -1
                 ) { dialog, which ->
-                    val uri = when(which){
+                    val uri = when (which) {
                         0 -> "https://github.com/Shiyue0x0/MicroBusAnnouncer".toUri()
                         1 -> "https://gitee.com/shiyue0x0/micro-bus-announcer".toUri()
                         else -> "https://github.com/Shiyue0x0/MicroBusAnnouncer".toUri()
@@ -461,7 +603,7 @@ class DataAndAboutSettingsFragment : Fragment() {
             "了解 ${resources.getString(R.string.app_name)}",
             painterResource(id = R.drawable.doc),
             {
-                utils.openHelperDialog("要在哪里阅读？","README.md")
+                utils.openHelperDialog("要在哪里阅读？", "README.md")
             })
     }
 

@@ -2,9 +2,9 @@
 
 ### 这是什么？
 
-`Announcer`是一款Android公交报站器，集成了<b>语音播报</b>，<b>运行图展示</b>，<b>电显模拟</b>等功能。
+`Announcer`是一款Android公交报站器，集成了`语音播报` `运行图展示` `电显模拟`等功能。
 
-[演示视频](https://bilibili.com)
+[演示视频](https://www.bilibili.com/video/BV1sdn7zhEQo)
 
 ![UI预览](readme/img/uiPreview.jpg)
 
@@ -12,7 +12,7 @@
 
 无需过多配置，只需要一些步骤即可体验Announcer的基本功能。
 
-1. 准备一台Android 8.0+的手机，从下列渠道下载最新版应用本体和体验语音库。
+1. 准备一台Android 8.0+的手机，从下列渠道下载最新版应用和体验语音库。
 
    [Github](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
    [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/releases)

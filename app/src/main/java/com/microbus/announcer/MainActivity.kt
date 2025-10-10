@@ -46,6 +46,9 @@ class MainActivity : AppCompatActivity() {
 
         utils.loadAnnouncementFormatFromConfig()
 
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+
         // 设置语言
         utils.setUILang(utils.getUILang())
 

@@ -17,6 +17,7 @@ import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.StationAdapter
@@ -140,6 +141,11 @@ class StationFragment : Fragment() {
             stationList,
             lineDatabaseHelper
         )
+
+        val layoutManager = LinearLayoutManager(requireContext())
+        layoutManager.initialPrefetchItemCount = 10
+        binding!!.stationRecyclerView.setLayoutManager(layoutManager)
+
         binding!!.stationRecyclerView.setAdapter(adapter)
         adapter.setOnItemClickListener(object : StationAdapter.OnItemClickListener {
             override fun onItemClick(station: Station) {
@@ -168,9 +174,10 @@ class StationFragment : Fragment() {
         binding!!.swipeRefreshLayout.setOnRefreshListener {
             @SuppressLint("NotifyDataSetChanged")
             binding!!.stationRecyclerView.adapter!!.notifyDataSetChanged()
-            requireActivity().runOnUiThread{
+            requireActivity().runOnUiThread {
                 binding!!.swipeRefreshLayout.isRefreshing = false
             }
+            utils.showMsg("刷新成功")
             utils.haptic(binding!!.swipeRefreshLayout)
         }
     }

@@ -21,6 +21,7 @@ import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
+import com.microbus.announcer.databinding.DialogInputBinding
 import com.microbus.announcer.databinding.DialogLineInfoBinding
 import com.microbus.announcer.databinding.FragmentLineBinding
 
@@ -135,7 +136,6 @@ class LineFragment : Fragment() {
     }
 
     private fun addLine() {
-        alertBinding = DialogLineInfoBinding.inflate(LayoutInflater.from(context))
 
 //        val adapter = ArrayAdapter<String>(
 //            requireContext(),
@@ -144,69 +144,143 @@ class LineFragment : Fragment() {
 //        )
 //        alertBinding.editTextIsUpAndDownInvert.setAdapter(adapter)
 
-        val alertDialog: AlertDialog? =
+        val stationPreparedDialog =
             MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                .setView(alertBinding.root)
                 .setTitle("新增路线")
-                .setPositiveButton("提交", null)
+                .setMessage("新增路线前，请确保该路线途径的站点已添加完毕。")
+                .setPositiveButton("已全部添加，继续", null)
                 .setNegativeButton(getString(android.R.string.cancel)) { _, _ -> }
                 .show()
 
-        alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
-            val name = alertBinding.editTextName.text.toString()
-            var upLineStation = alertBinding.editTextUpLineStation.text.toString()
-            var downLineStation = alertBinding.editTextDownLineStation.text.toString()
+
+        stationPreparedDialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
+            stationPreparedDialog.dismiss()
+            val modeList = listOf("在地图上添加（推荐）", "通过站点ID添加")
+            val modeSelectDialog =
+                MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
+                    .setTitle("要使用哪种方式添加路线站点？")
+                    .setSingleChoiceItems(
+                        modeList.toTypedArray(), -1
+                    ) { dialog, which ->
+                        dialog.dismiss()
+                        when (which) {
+                            0 -> {
+                                val binding =
+                                    DialogInputBinding.inflate(LayoutInflater.from(context))
+                                val lineNameDialog = MaterialAlertDialogBuilder(
+                                    requireContext(),
+                                    R.style.CustomAlertDialogStyle
+                                )
+                                    .setTitle("设置路线名称").setView(binding.root)
+                                    .setNegativeButton(getString(android.R.string.cancel), null)
+                                    .setPositiveButton("确定", null)
+                                    .show()
+
+                                lineNameDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                                    val lineName = binding.editText.text.toString()
+                                    if (lineName == "") {
+                                        utils.showMsg("请输入路线名称")
+                                        return@setOnClickListener
+                                    }
+                                    lineNameDialog.dismiss()
+
+                                    val intent = Intent()
+                                        .setAction(utils.editLineOnMapActionName)
+                                        .putExtra("id", -1)
+                                        .putExtra("name", lineName)   //名称
+                                        .putExtra("direction", 0)   //上行
+                                        .putExtra("type", "new")   //新增
+                                    LocalBroadcastManager.getInstance(requireContext())
+                                        .sendBroadcast(intent)
+                                }
+                            }
+
+                            1 -> {
+                                alertBinding =
+                                    DialogLineInfoBinding.inflate(LayoutInflater.from(context))
+
+                                val alertDialog: AlertDialog? =
+                                    MaterialAlertDialogBuilder(
+                                        requireContext(),
+                                        R.style.CustomAlertDialogStyle
+                                    )
+                                        .setView(alertBinding.root)
+                                        .setTitle("新增路线")
+                                        .setPositiveButton("提交", null)
+                                        .setNegativeButton(getString(android.R.string.cancel)) { _, _ -> }
+                                        .show()
+
+                                alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)
+                                    ?.setOnClickListener {
+
+
+                                        val name = alertBinding.editTextName.text.toString()
+                                        var upLineStation =
+                                            alertBinding.editTextUpLineStation.text.toString()
+                                        var downLineStation =
+                                            alertBinding.editTextDownLineStation.text.toString()
 //            val isUpAndDownInvert = alertBinding.editTextIsUpAndDownInvert.isChecked
 
-            if (name == "") {
-                utils.showMsg("请填写路线名称")
-                return@setOnClickListener
-            }
+                                        if (name == "") {
+                                            utils.showMsg("请填写路线名称")
+                                            return@setOnClickListener
+                                        }
 
-            val lineStationRegex = Regex("\\d+ \\d+( \\d+)*")
+                                        val lineStationRegex = Regex("\\d+ \\d+( \\d+)*")
 
-            if (!upLineStation.matches(lineStationRegex) && !downLineStation.matches(
-                    lineStationRegex
-                )
-            ) {
-                utils.showMsg("路线站点未填写或格式错误")
-                return@setOnClickListener
-            }
+                                        if (!upLineStation.matches(lineStationRegex) && !downLineStation.matches(
+                                                lineStationRegex
+                                            )
+                                        ) {
+                                            utils.showMsg("路线站点未填写或格式错误")
+                                            return@setOnClickListener
+                                        }
 
-            if (upLineStation == "") {
-                val downLineStationList = downLineStation.split(' ')
-                upLineStation = downLineStationList.reversed().joinToString(" ")
-            }
+                                        if (upLineStation == "") {
+                                            val downLineStationList = downLineStation.split(' ')
+                                            upLineStation =
+                                                downLineStationList.reversed().joinToString(" ")
+                                        }
 
-            if (downLineStation == "") {
-                val upLineStationList = upLineStation.split(' ')
-                downLineStation = upLineStationList.reversed().joinToString(" ")
-            }
+                                        if (downLineStation == "") {
+                                            val upLineStationList = upLineStation.split(' ')
+                                            downLineStation =
+                                                upLineStationList.reversed().joinToString(" ")
+                                        }
 
-            //查找是否输入了不存在的站点
-            val upLineStationList = upLineStation.split(' ')
-            val downLineStationList = downLineStation.split(' ')
-            var stationList: List<Station>
-            for (stationIdStr in upLineStationList) {
-                stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
-                if (stationList.isEmpty()) {
-                    utils.showMsg("上行站点 $stationIdStr 不存在")
-                    return@setOnClickListener
-                }
-            }
-            for (stationIdStr in downLineStationList) {
-                stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
-                if (stationList.isEmpty()) {
-                    utils.showMsg("下行站点 $stationIdStr 不存在")
-                    return@setOnClickListener
-                }
-            }
+                                        //查找是否输入了不存在的站点
+                                        val upLineStationList = upLineStation.split(' ')
+                                        val downLineStationList = downLineStation.split(' ')
+                                        var stationList: List<Station>
+                                        for (stationIdStr in upLineStationList) {
+                                            stationList =
+                                                stationDatabaseHelper.queryById(stationIdStr.toInt())
+                                            if (stationList.isEmpty()) {
+                                                utils.showMsg("上行站点 $stationIdStr 不存在")
+                                                return@setOnClickListener
+                                            }
+                                        }
+                                        for (stationIdStr in downLineStationList) {
+                                            stationList =
+                                                stationDatabaseHelper.queryById(stationIdStr.toInt())
+                                            if (stationList.isEmpty()) {
+                                                utils.showMsg("下行站点 $stationIdStr 不存在")
+                                                return@setOnClickListener
+                                            }
+                                        }
 
-            val line = Line(null, name, upLineStation, downLineStation, true)
-            lineDatabaseHelper.insert(line)
-            refreshLineList()
-            alertDialog.cancel()
+                                        val line =
+                                            Line(null, name, upLineStation, downLineStation, true)
+                                        lineDatabaseHelper.insert(line)
+                                        refreshLineList()
+                                        alertDialog.cancel()
+                                    }
+                            }
+                        }
+                    }
+                    .show()
         }
+
     }
 
 
@@ -219,6 +293,7 @@ class LineFragment : Fragment() {
             @SuppressLint("NotifyDataSetChanged")
             binding!!.lineRecyclerView.adapter!!.notifyDataSetChanged()
             binding!!.swipeRefreshLayout.isRefreshing = false
+            utils.showMsg("刷新成功")
             utils.haptic(binding!!.swipeRefreshLayout)
         }
     }

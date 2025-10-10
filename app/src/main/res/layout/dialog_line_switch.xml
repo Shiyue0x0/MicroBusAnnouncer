@@ -59,13 +59,16 @@
 
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
+    <com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
         android:id="@+id/lineListNew"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:paddingTop="4dp"
-        android:scrollbars="vertical"
+        app:fastScrollAutoHide="false"
+        app:fastScrollThumbColor="@color/md_theme_primary"
+        app:fastScrollThumbInactiveColor="@color/md_theme_primaryContainer"
+        app:fastScrollTrackColor="@android:color/transparent"
         app:layoutManager="LinearLayoutManager" />
 
 

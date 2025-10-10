@@ -10,10 +10,11 @@ import com.microbus.announcer.databinding.ItemLineOfStationBinding
 
 
 internal class LineOfStationAdapter(
-    private val stationIndex: Int,
     private val lineDatabaseHelper: LineDatabaseHelper,
 ) :
     RecyclerView.Adapter<LineOfStationAdapter.LineOfStationViewHolder>() {
+
+    var stationId = 0
 
     private lateinit var stationList: ArrayList<String>
 
@@ -44,7 +45,7 @@ internal class LineOfStationAdapter(
             lineStationIndexStrSet.addAll(line.upLineStation.split(' '))
             lineStationIndexStrSet.addAll(line.downLineStation.split(' '))
             for (station in lineStationIndexStrSet) {
-                if (station == stationIndex.toString()) {
+                if (station == stationId.toString()) {
                     stationCount++
                     stationList.add(line.name)
                 }

@@ -16,9 +16,9 @@ android {
         applicationId = "com.microbus.announcer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 300
+        versionCode = 301
         versionName =
-            "3.0.0-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
+            "3.0.1-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
     }
 
     buildTypes {
@@ -102,4 +102,7 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation(libs.okhttp)
+    implementation(libs.recyclerview.fastscroll)
+
 }

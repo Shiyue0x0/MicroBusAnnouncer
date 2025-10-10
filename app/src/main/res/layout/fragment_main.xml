@@ -149,7 +149,9 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/lineStationList"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:fadingEdgeLength="20dp"
+                android:requiresFadingEdge="horizontal"/>
 
         </com.microbus.announcer.view.NestedScrollableHost>
 
@@ -559,44 +561,44 @@
 
             </LinearLayout>
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
+            <!--            <com.google.android.material.card.MaterialCardView-->
+            <!--                android:layout_width="match_parent"-->
+            <!--                android:layout_height="wrap_content"-->
+            <!--                android:layout_marginStart="16dp"-->
+            <!--                android:layout_marginEnd="16dp"-->
 
-                android:layout_marginBottom="12dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:visibility="gone"
+            <!--                android:layout_marginBottom="12dp"-->
+            <!--                android:clickable="true"-->
+            <!--                android:focusable="true"-->
+            <!--                android:visibility="gone"-->
 
-                app:cardCornerRadius="24dp">
+            <!--                app:cardCornerRadius="24dp">-->
 
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:orientation="vertical">
+            <!--                <LinearLayout-->
+            <!--                    android:layout_width="match_parent"-->
+            <!--                    android:layout_height="wrap_content"-->
+            <!--                    android:layout_marginBottom="12dp"-->
+            <!--                    android:orientation="vertical">-->
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginEnd="12dp" />
+            <!--                    <TextView-->
+            <!--                        android:layout_width="wrap_content"-->
+            <!--                        android:layout_height="wrap_content"-->
+            <!--                        android:layout_marginStart="12dp"-->
+            <!--                        android:layout_marginTop="12dp"-->
+            <!--                        android:layout_marginEnd="12dp" />-->
 
-                    <TextView
-                        android:id="@+id/lineStationChangeInfo"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_marginEnd="12dp"
-                        android:layout_marginBottom="12dp" />
+            <!--                    <TextView-->
+            <!--                        android:id="@+id/lineStationChangeInfo"-->
+            <!--                        android:layout_width="wrap_content"-->
+            <!--                        android:layout_height="wrap_content"-->
+            <!--                        android:layout_marginStart="12dp"-->
+            <!--                        android:layout_marginEnd="12dp"-->
+            <!--                        android:layout_marginBottom="12dp" />-->
 
-                </LinearLayout>
+            <!--                </LinearLayout>-->
 
-            </com.google.android.material.card.MaterialCardView>
+            <!--            </com.google.android.material.card.MaterialCardView>-->
 
         </LinearLayout>
 

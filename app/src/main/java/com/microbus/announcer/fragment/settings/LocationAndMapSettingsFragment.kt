@@ -132,6 +132,11 @@ class LocationAndMapSettingsFragment : Fragment() {
         }
 
 
+        val (isMapTrafficEnabled, setIsMapTrafficEnabled) = remember {
+            mutableStateOf(utils.getIsMapTrafficEnabled())
+        }
+
+
 
         DisposableEffect(prefs) {
             val listener = OnSharedPreferenceChangeListener { prefs, key ->
@@ -143,7 +148,7 @@ class LocationAndMapSettingsFragment : Fragment() {
 
                     "locationInterval" -> setLocationInterval(utils.getLocationInterval())
                     "autoSwitchLineDirection" -> setAutoSwitchLineDirection(utils.getIsAutoSwitchLineDirection())
-                    "switchDirectionWhenOutFromTerminalWithOnUp" -> setSwitchDirectionWhenOutFromTerminalWithOnUp(utils.getIsAutoSwitchLineDirection())
+                    "switchDirectionWhenOutFromTerminalWithOnUp" -> setSwitchDirectionWhenOutFromTerminalWithOnUp(utils.getSwitchDirectionWhenOutFromTerminalWithOnUp())
 
                     "mapEditLineMode" -> setMapEditLineMode(utils.getIsMapEditLineMode())
                     "clickMapToCopyLngLat" -> setClickMapToCopyLngLat(utils.getIsClickMapToCopyLngLat())
@@ -151,6 +156,8 @@ class LocationAndMapSettingsFragment : Fragment() {
                     "clickLocationButtonToCopyLngLat" -> setClickLocationButtonToCopyLngLat(utils.getIsClickLocationButtonToCopyLngLat())
                     "linePlanning" -> setLinePlanning(utils.getIsLinePlanning())
                     "lineTrajectoryCorrection" -> setLineTrajectoryCorrection(utils.getIsLineTrajectoryCorrection())
+
+                    "isMapTrafficEnabled" -> setIsMapTrafficEnabled(utils.getIsMapTrafficEnabled())
 
                 }
             }
@@ -242,9 +249,17 @@ class LocationAndMapSettingsFragment : Fragment() {
                             key = "linePlanning"
                         )
                         SwitchItem(
+                            isMapTrafficEnabled,
+                            setIsMapTrafficEnabled,
+                            title = "显示路况",
+                            text = "地图实时显示交通情况",
+                            icon = painterResource(id = R.drawable.traffic),
+                            key = "isMapTrafficEnabled"
+                        )
+                        SwitchItem(
                             lineTrajectoryCorrection,
                             setLineTrajectoryCorrection,
-                            title = "线路轨迹纠偏（实验性）",
+                            title = "路线贴合道路",
                             text = "线路轨迹将贴合道路",
                             icon = painterResource(id = R.drawable.road),
                             key = "lineTrajectoryCorrection"

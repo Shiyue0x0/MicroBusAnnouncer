@@ -33,18 +33,24 @@
 
         app:layout_constraintTop_toBottomOf="@+id/toolbar">
 
-<!--        <com.microbus.announcer.view.NestedScrollableHost-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content">-->
+        <!--        <com.microbus.announcer.view.NestedScrollableHost-->
+        <!--            android:layout_width="match_parent"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            app:sameDirectionWithParent="false">-->
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/lineRecyclerView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:scrollbars="vertical"
-                app:layoutManager="LinearLayoutManager" />
+        <com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
+            android:id="@+id/lineRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fadingEdgeLength="20dp"
+            android:requiresFadingEdge="vertical"
+            app:fastScrollAutoHide="false"
+            app:fastScrollThumbColor="@color/md_theme_primary"
+            app:fastScrollThumbInactiveColor="@color/md_theme_primaryContainer"
+            app:fastScrollTrackColor="@android:color/transparent"
+            app:layoutManager="LinearLayoutManager" />
 
-<!--        </com.microbus.announcer.view.NestedScrollableHost>-->
+        <!--        </com.microbus.announcer.view.NestedScrollableHost>-->
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 

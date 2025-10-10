@@ -147,6 +147,10 @@ class AnSettingsFragment : Fragment() {
             mutableStateOf(utils.getAnSubtitle())
         }
 
+        val (clickMapPauseAn, setClickMapPauseAn) = remember {
+            mutableStateOf(utils.getClickMapPauseAn())
+        }
+
         val (serviceLanguageStr, setServiceLanguageStr) = remember {
             mutableStateOf(utils.getServiceLanguageStr())
         }
@@ -197,6 +201,10 @@ class AnSettingsFragment : Fragment() {
                         setAnSubtitle(utils.getAnSubtitle())
                     }
 
+                    "clickMapPauseAn" -> {
+                        setClickMapPauseAn(utils.getClickMapPauseAn())
+                    }
+
                     "serviceLanguageStr" -> {
                         setServiceLanguageStr(utils.getServiceLanguageStr())
                     }
@@ -244,6 +252,7 @@ class AnSettingsFragment : Fragment() {
                         TTSItem(useTTS, setUseTTS)
                         StationChangeVibratorItem(stationChangeVibrator, setStationChangeVibrator)
                         AnSubtitleItem(anSubtitle, setAnSubtitle)
+                        ClickMapPauseAnItem(clickMapPauseAn, setClickMapPauseAn)
                         ServiceLanguageItem(serviceLanguageStr)
                         AnFormatGroup(anFormatArray)
                         Spacer(modifier = Modifier.height(1.dp))
@@ -360,7 +369,7 @@ class AnSettingsFragment : Fragment() {
     @Composable
     fun TTSItem(tts: Boolean, setTTS: (Boolean) -> Unit) {
         BaseSettingItem(
-            "使用TTS播报",
+            "使用系统文字转语音",
             "找不到对应音频文件时使用TTS播报",
             painterResource(id = R.drawable.tts),
             {
@@ -423,6 +432,29 @@ class AnSettingsFragment : Fragment() {
         setValue(it)
         prefs.edit {
             putBoolean("anSubtitle", it)
+        }
+    }
+
+    @Composable
+    fun ClickMapPauseAnItem(value: Boolean, setValue: (Boolean) -> Unit) {
+        BaseSettingItem(
+            "点击地图中断播报",
+            "点击地图后，自动中断播报",
+            painterResource(id = R.drawable.pause),
+            {
+                toggleClickMapPauseAn(setValue, !value)
+            },
+            rightContain = {
+                SwitchSettingItem(value) {
+                    toggleClickMapPauseAn(setValue, it)
+                }
+            })
+    }
+
+    fun toggleClickMapPauseAn(setValue: (Boolean) -> Unit, it: Boolean) {
+        setValue(it)
+        prefs.edit {
+            putBoolean("clickMapPauseAn", it)
         }
     }
 

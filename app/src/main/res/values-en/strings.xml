@@ -104,6 +104,8 @@
     <string name="S2T">%1$s - %2$s</string>
     <string name="currentRange">当前半径 %1$dm</string>
     <string name="locationPerSecond">每 %1$d 毫秒定位一次</string>
+    <string name="loading">Loading…</string>
+    <string name="now_search">正在搜索%1$s路线%2$s</string>
 
 
 </resources>

@@ -1,13 +1,16 @@
 package com.microbus.announcer.adapter
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.text.TextUtils
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -56,7 +59,7 @@ internal class StationOfLineAdapter(
         var stationIndex = binding.stationIndex
         var stationNameNestedScrollView = binding.stationNameNestedScrollView
         var stationName = binding.stationName
-        var main = binding.main
+        var main = binding.itemStationOfLineMain
         var constraintLayout = binding.constraintLayout
 
 
@@ -80,7 +83,22 @@ internal class StationOfLineAdapter(
 
         lineHeight = holder.stationIndex.lineHeight
 
+
+        // todo 适配英文
+
+//        if (utils.getUILang() == "zh") {
+        holder.stationName.rotation = 0F
+        holder.stationName.maxLines = Int.MAX_VALUE
+        holder.stationName.ellipsize = TextUtils.TruncateAt.END
         holder.stationNameNestedScrollView.layoutParams.width = (lineHeight * 1.1).toInt()
+//        } else {
+//            holder.stationName.rotation = 90F
+//            holder.stationName.maxLines = 1
+//            holder.stationName.ellipsize = TextUtils.TruncateAt.MARQUEE
+//            holder.stationNameNestedScrollView.layoutParams.width =
+//                lineHeight * 4 + utils.dp2px(2F) * 2
+//        }
+
         holder.stationNameNestedScrollView.layoutParams.height =
             lineHeight * 4 + utils.dp2px(2F) * 2
 
@@ -134,10 +152,15 @@ internal class StationOfLineAdapter(
             Choreographer.getInstance().postFrameCallback(frameCallback)
         }
 
+        @SuppressLint("ClickableViewAccessibility")
+        holder.stationNameNestedScrollView.setOnTouchListener { v, event -> true }
+
+
         return holder
     }
 
     override fun onBindViewHolder(holder: StationOfLineViewHolder, position: Int) {
+
 
         when (position) {
             0 -> holder.stationIndex.text = "始发"
@@ -156,8 +179,14 @@ internal class StationOfLineAdapter(
             }
         }
 
+        // 站点名称
 
-        holder.stationName.text = stationList[position].cnName
+        // todo 适配英文
+        holder.stationName.text = if (utils.getUILang() == "zh") {
+            stationList[position].cnName
+        } else {
+            stationList[position].cnName
+        }
 
         //当前站点样式
         val color: Int
@@ -193,6 +222,7 @@ internal class StationOfLineAdapter(
         holder.main.setCardBackgroundColor(bg)
         holder.constraintLayout.setPadding(padding, utils.dp2px(8F), padding, utils.dp2px(8F))
 
+//        if (utils.getUILang() == "zh") {
         when (holder.stationName.text.length) {
             2 -> {
                 holder.stationName.setLineSpacing(
@@ -214,6 +244,10 @@ internal class StationOfLineAdapter(
                 holder.stationName.setLineSpacing(0f, 1f)
             }
         }
+//        }
+//    else {
+//            holder.stationName.setLineSpacing(0f, 1f)
+//        }
 
     }
 

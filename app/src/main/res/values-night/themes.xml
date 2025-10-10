@@ -9,6 +9,8 @@
         <item name="android:fontFamily">@font/galano_grotesque_bold</item>
 
         <item name="android:windowBackground">@color/an_window_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowTranslucentStatus">true</item>
 
         <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/an_window_bg</item>
         <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">@color/an_window_bg</item>

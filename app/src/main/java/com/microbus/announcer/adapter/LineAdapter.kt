@@ -38,7 +38,7 @@ class LineAdapter(
     val commonView = 0
     val headerView = 1
 
-    var allLineList = lineDatabaseHelper.queryAll()
+    lateinit var allLineList: MutableList<Line>
 
 //    var firstVisibleItem = -1
 //
@@ -60,10 +60,11 @@ class LineAdapter(
         var lineStartingStation = binding.lineStartingStation
         var lineTerminal = binding.lineTerminal
         var lineStationList = binding.lineStationList
+        var lineStationListHost = binding.lineStationListHost
 
         init {
             mListener = clickListener
-            lineCard.setOnClickListener(this)
+            lineName.setOnClickListener(this)
 
 //        binding.lineStationListContainer.setScrollView(binding.lineStationList)
         }
@@ -113,12 +114,16 @@ class LineAdapter(
         }
     }
 
+    val lineWithDirectionMap = HashMap<Int, Int>()  //<lineId, Direction(0 or 1)>
+
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(
         holder: ViewHolder,
         @SuppressLint("RecyclerView") position: Int
     ) {
         val utils = Utils(context)
+
+        allLineList = lineDatabaseHelper.queryAll()
 
         // LineViewHolder
         if (position == 0) {
@@ -131,14 +136,16 @@ class LineAdapter(
 
             val holder = holder as LineViewHolder
             val position = position - 1
-            val line = lineDatabaseHelper.queryById(allLineList[position].id ?: -1).first()
+            holder.line = lineDatabaseHelper.queryById(allLineList[position].id ?: -1).first()
+            holder.lineName.text = holder.line.name
 
+            lineWithDirectionMap[holder.line.id ?: -1] = 0
 
-            //获取路线起点站、终点站下标
-            val stationStrIndexList = line.upLineStation.split(" ").toMutableList()
+            //获取路线站点信息
             val stationList = ArrayList<Station>()
-            for (i in stationStrIndexList.indices) {
-                val stationRes = stationDatabaseHelper.queryById(stationStrIndexList[i].toInt())
+            val upStationStrIndexList = holder.line.upLineStation.split(" ").toMutableList()
+            for (i in upStationStrIndexList.indices) {
+                val stationRes = stationDatabaseHelper.queryById(upStationStrIndexList[i].toInt())
                 if (stationRes.isNotEmpty())
                     stationList.add(stationRes[0])
                 else
@@ -151,8 +158,6 @@ class LineAdapter(
                     )
             }
 
-            holder.line = line
-            holder.lineName.text = line.name
 
             if (stationList.isNotEmpty()) {
                 holder.lineStartingStation.text = stationList.first().cnName
@@ -162,8 +167,23 @@ class LineAdapter(
                 holder.lineTerminal.text = "未知站点"
             }
 
+//            val linearLayoutManager: LinearLayoutManager = object : LinearLayoutManager(context) {
+//                override fun canScrollHorizontally(): Boolean {
+//                    return true
+//                }
+//
+//                override fun canScrollVertically(): Boolean {
+//                    return false
+//                }
+//
+//            }
+//
+//            linearLayoutManager.orientation = LinearLayoutManager.HORIZONTAL
+
+
             val linearLayoutManager =
                 LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+
             holder.lineStationList.setHasFixedSize(true)
             holder.lineStationList.layoutManager = linearLayoutManager
             val stationOfLineAdapter =
@@ -209,121 +229,81 @@ class LineAdapter(
                 }
             })
 
+            // 长按编辑路线
             holder.lineCard.setOnLongClickListener {
-                val binding = DialogLineInfoBinding.inflate(LayoutInflater.from(context))
-
-                binding.editTextName.setText(line.name)
-                binding.editTextUpLineStation.setText(line.upLineStation)
-                binding.editTextDownLineStation.setText(line.downLineStation)
-                binding.editTextType.setText(line.type)
-//            binding.editTextIsUpAndDownInvert.isChecked = line.isUpAndDownInvert
-
-                val alertDialog =
-                    MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
-                        .setView(binding.root)
-                        .setTitle("更新路线")
-                        .setPositiveButton("提交", null)
-                        .setNeutralButton("删除路线") { _, _ ->
-                            lineDatabaseHelper.delById(line.id ?: -1)
-                            notifyItemRemoved(position)
-                        }
-                        .setNegativeButton("到地图编辑") { _, _ ->
-
-                            MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
-                                .setTitle("选择要编辑的方向")
-                                .setNeutralButton(context.getString(android.R.string.cancel), null)
-                                .setNegativeButton("上行") { _, _ ->
-                                    val intent = Intent()
-                                        .setAction(utils.editLineOnMapActionName)
-                                        .putExtra("id", line.id)
-                                        .putExtra("direction", 0)   //上行
-                                    LocalBroadcastManager.getInstance(context)
-                                        .sendBroadcast(intent)
-                                }
-                                .setPositiveButton("下行") { _, _ ->
-                                    val intent = Intent()
-                                        .setAction(utils.editLineOnMapActionName)
-                                        .putExtra("id", line.id)
-                                        .putExtra("direction", 1)   //下行
-                                    LocalBroadcastManager.getInstance(context)
-                                        .sendBroadcast(intent)
-                                }
-                                .show()
-                        }
-                        .show()
-
-
-                alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
-                    val name = binding.editTextName.text.toString()
-                    var upLineStation = binding.editTextUpLineStation.text.toString()
-                    var downLineStation = binding.editTextDownLineStation.text.toString()
-                    val lineType = binding.editTextType.text.toString()
-//                val isUpAndDownInvert = binding.editTextIsUpAndDownInvert.isChecked
-
-                    if (name == "") {
-                        utils.showMsg("请填写路线名称")
-                        return@setOnClickListener
-                    }
-
-                    val lineStationRegex = Regex("\\d+ \\d+( \\d+)*")
-
-                    if (!upLineStation.matches(lineStationRegex) && !downLineStation.matches(
-                            lineStationRegex
-                        )
-                    ) {
-                        utils.showMsg("路线站点未填写或格式错误")
-                        return@setOnClickListener
-                    }
-
-                    if (lineType == "") {
-                        utils.showMsg("请填写路线类型")
-                        return@setOnClickListener
-                    }
-
-                    if (!listOf("C", "B", "U", "T").contains(lineType)) {
-                        utils.showMsg("路线类型应为CBUT之一")
-                        return@setOnClickListener
-                    }
-
-                    if (upLineStation == "") {
-                        val downLineStationList = downLineStation.split(' ')
-                        upLineStation = downLineStationList.reversed().joinToString(" ")
-                    }
-
-                    if (downLineStation == "") {
-                        val upLineStationList = upLineStation.split(' ')
-                        downLineStation = upLineStationList.reversed().joinToString(" ")
-                    }
-
-                    //查找是否输入了不存在的站点
-                    val upLineStationList = upLineStation.split(' ')
-                    val downLineStationList = downLineStation.split(' ')
-                    var stationList: List<Station>
-                    for (stationIdStr in upLineStationList) {
-                        stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
-                        if (stationList.isEmpty()) {
-                            utils.showMsg("上行站点 $stationIdStr 不存在")
-                            return@setOnClickListener
-                        }
-                    }
-                    for (stationIdStr in downLineStationList) {
-                        stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
-                        if (stationList.isEmpty()) {
-                            utils.showMsg("下行站点 $stationIdStr 不存在")
-                            return@setOnClickListener
-                        }
-                    }
-
-                    val lineUpdated =
-                        Line(line.id, name, upLineStation, downLineStation, false, lineType)
-                    lineDatabaseHelper.updateById(line.id!!, lineUpdated)
-                    notifyItemChanged(position + 1)
-                    alertDialog.cancel()
-                }
-
-                utils.haptic(holder.lineCard)
+                showEditLineDialog(holder, position, utils)
                 return@setOnLongClickListener true
             }
+            holder.lineStartingStation.setOnLongClickListener {
+                showEditLineDialog(holder, position, utils)
+                return@setOnLongClickListener true
+            }
+            holder.lineName.setOnLongClickListener {
+                showEditLineDialog(holder, position, utils)
+                return@setOnLongClickListener true
+            }
+            holder.lineTerminal.setOnLongClickListener {
+                showEditLineDialog(holder, position, utils)
+                return@setOnLongClickListener true
+            }
+
+            holder.lineStartingStation.setOnClickListener {
+                switchDirection(holder)
+            }
+            holder.lineTerminal.setOnClickListener {
+                switchDirection(holder)
+            }
+
+
+        }
+    }
+
+    /*
+    * 切换上下行
+    * */
+    fun switchDirection(holder: LineViewHolder) {
+        val stationList = ArrayList<Station>()
+        val stationStr = when (lineWithDirectionMap[holder.line.id!!]) {
+            0 -> holder.line.downLineStation
+            1 -> holder.line.upLineStation
+            else -> ""
+        }
+        val upStationStrIndexList = stationStr.split(" ").toMutableList()
+        for (i in upStationStrIndexList.indices) {
+            val stationRes = stationDatabaseHelper.queryById(upStationStrIndexList[i].toInt())
+            if (stationRes.isNotEmpty())
+                stationList.add(stationRes[0])
+            else
+                stationList.add(
+                    Station(
+                        id = Int.MAX_VALUE,
+                        cnName = "未知站点",
+                        enName = "unknown"
+                    )
+                )
+        }
+
+        if (stationList.isNotEmpty()) {
+            holder.lineStartingStation.text = stationList.first().cnName
+            holder.lineTerminal.text = stationList.last().cnName
+        } else {
+            holder.lineStartingStation.text = "未知站点"
+            holder.lineTerminal.text = "未知站点"
+        }
+
+        val adapter = holder.lineStationList.adapter as StationOfLineAdapter
+        adapter.stationList = stationList
+        @SuppressLint("NotifyDataSetChanged")
+        adapter.notifyDataSetChanged()
+
+        // 滚动到起点站
+        val manager = holder.lineStationList.layoutManager as LinearLayoutManager
+        manager.scrollToPositionWithOffset(0, 0)
+
+        lineWithDirectionMap[holder.line.id!!] = when (lineWithDirectionMap[holder.line.id!!]) {
+            0 -> 1
+            1 -> 0
+            else -> 1
         }
     }
 
@@ -355,14 +335,129 @@ class LineAdapter(
 
     fun updateItemShown(firstVisibleItem: Int, lastVisibleItem: Int) {
         for (i in 1 until itemCount) {
-            stationOfLineAdapterMap[i]?.isShown = i in firstVisibleItem .. lastVisibleItem
+            stationOfLineAdapterMap[i]?.isShown = i in firstVisibleItem..lastVisibleItem
         }
     }
 
-    fun updateAllItemShown(value: Boolean){
+    fun updateAllItemShown(value: Boolean) {
         for (i in 1 until itemCount) {
             stationOfLineAdapterMap[i]?.isShown = value
         }
+    }
+
+    fun showEditLineDialog(holder: LineViewHolder, position: Int, utils: Utils) {
+        val binding = DialogLineInfoBinding.inflate(LayoutInflater.from(context))
+
+        binding.editTextName.setText(holder.line.name)
+        binding.editTextUpLineStation.setText(holder.line.upLineStation)
+        binding.editTextDownLineStation.setText(holder.line.downLineStation)
+        binding.editTextType.setText(holder.line.type)
+//            binding.editTextIsUpAndDownInvert.isChecked = line.isUpAndDownInvert
+
+        val alertDialog =
+            MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
+                .setView(binding.root)
+                .setTitle("更新路线")
+                .setPositiveButton("提交", null)
+                .setNeutralButton("删除路线") { _, _ ->
+                    lineDatabaseHelper.delById(holder.line.id ?: -1)
+                    notifyItemRemoved(position)
+                }
+                .setNegativeButton("到地图编辑") { _, _ ->
+
+                    MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
+                        .setTitle("选择要编辑的方向")
+                        .setNeutralButton(context.getString(android.R.string.cancel), null)
+                        .setNegativeButton("上行") { _, _ ->
+                            val intent = Intent()
+                                .setAction(utils.editLineOnMapActionName)
+                                .putExtra("id", holder.line.id)
+                                .putExtra("direction", 0)   //上行
+                            LocalBroadcastManager.getInstance(context)
+                                .sendBroadcast(intent)
+                        }
+                        .setPositiveButton("下行") { _, _ ->
+                            val intent = Intent()
+                                .setAction(utils.editLineOnMapActionName)
+                                .putExtra("id", holder.line.id)
+                                .putExtra("direction", 1)   //下行
+                            LocalBroadcastManager.getInstance(context)
+                                .sendBroadcast(intent)
+                        }
+                        .show()
+                }
+                .show()
+
+
+        alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
+            val name = binding.editTextName.text.toString()
+            var upLineStation = binding.editTextUpLineStation.text.toString()
+            var downLineStation = binding.editTextDownLineStation.text.toString()
+            val lineType = binding.editTextType.text.toString()
+//                val isUpAndDownInvert = binding.editTextIsUpAndDownInvert.isChecked
+
+            if (name == "") {
+                utils.showMsg("请填写路线名称")
+                return@setOnClickListener
+            }
+
+            val lineStationRegex = Regex("\\d+ \\d+( \\d+)*")
+
+            if (!upLineStation.matches(lineStationRegex) && !downLineStation.matches(
+                    lineStationRegex
+                )
+            ) {
+                utils.showMsg("路线站点未填写或格式错误")
+                return@setOnClickListener
+            }
+
+            if (lineType == "") {
+                utils.showMsg("请填写路线类型")
+                return@setOnClickListener
+            }
+
+            if (!listOf("C", "B", "U", "T").contains(lineType)) {
+                utils.showMsg("路线类型应为CBUT之一")
+                return@setOnClickListener
+            }
+
+            if (upLineStation == "") {
+                val downLineStationList = downLineStation.split(' ')
+                upLineStation = downLineStationList.reversed().joinToString(" ")
+            }
+
+            if (downLineStation == "") {
+                val upLineStationList = upLineStation.split(' ')
+                downLineStation = upLineStationList.reversed().joinToString(" ")
+            }
+
+            //查找是否输入了不存在的站点
+            val upLineStationList = upLineStation.split(' ')
+            val downLineStationList = downLineStation.split(' ')
+            var stationList: List<Station>
+            for (stationIdStr in upLineStationList) {
+                stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
+                if (stationList.isEmpty()) {
+                    utils.showMsg("上行站点 $stationIdStr 不存在")
+                    return@setOnClickListener
+                }
+            }
+            for (stationIdStr in downLineStationList) {
+                stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
+                if (stationList.isEmpty()) {
+                    utils.showMsg("下行站点 $stationIdStr 不存在")
+                    return@setOnClickListener
+                }
+            }
+
+            val lineUpdated =
+                Line(holder.line.id, name, upLineStation, downLineStation, false, lineType)
+            lineDatabaseHelper.updateById(holder.line.id!!, lineUpdated)
+            notifyItemChanged(position + 1)
+            alertDialog.cancel()
+        }
+
+        utils.haptic(holder.lineCard)
     }
 
 }

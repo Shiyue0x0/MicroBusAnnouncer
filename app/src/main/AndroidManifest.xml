@@ -73,7 +73,7 @@
         <!-- @string/amapKey是高德地图的key -->
         <meta-data
             android:name="com.amap.api.v2.apikey"
-            android:value="@string/amapKey" />
+            android:value="@string/amapKey_android" />
     </application>
 
 </manifest>

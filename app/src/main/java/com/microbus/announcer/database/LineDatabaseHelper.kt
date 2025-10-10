@@ -18,7 +18,7 @@ class LineDatabaseHelper(
 
     override fun onCreate(db: SQLiteDatabase?) {
 
-        var sql = "CREATE TABLE IF NOT EXISTS $tableName" + " (" +
+        val sql = "CREATE TABLE IF NOT EXISTS $tableName" + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
                 "name VARCHAR NOT NULL," +
                 "upLineStation VARCHAR NOT NULL," +

@@ -19,7 +19,6 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.res.Resources
 import android.graphics.Color
-import android.location.Location
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioFormat
@@ -65,6 +64,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.amap.api.location.AMapLocation
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.location.AMapLocationClientOption
 import com.amap.api.maps.AMap
@@ -98,6 +98,8 @@ import com.amap.api.services.route.RideRouteResult
 import com.amap.api.services.route.RouteSearch
 import com.amap.api.services.route.WalkRouteResult
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.gson.Gson
+import com.google.gson.JsonParser
 import com.microbus.announcer.MainActivity
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
@@ -110,9 +112,11 @@ import com.microbus.announcer.bean.EsItem
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.RunningInfo
 import com.microbus.announcer.bean.Station
+import com.microbus.announcer.bean.TrajectoryPoint
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogLineSwitchBinding
+import com.microbus.announcer.databinding.DialogLoadingBinding
 import com.microbus.announcer.databinding.DialogRunningInfoBinding
 import com.microbus.announcer.databinding.FragmentMainBinding
 import kotlinx.coroutines.CoroutineScope
@@ -121,18 +125,19 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import java.net.UnknownHostException
 import java.nio.ByteBuffer
-import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.stream.Collectors
-import kotlin.collections.set
-import kotlin.text.substring
 
 
 class MainFragment : Fragment() {
@@ -233,8 +238,6 @@ class MainFragment : Fragment() {
     //    private var markerList = ArrayList<Marker>()
     private var circleList = ArrayList<Circle>()
     private val polylineList = ArrayList<Polyline>()
-    private val lineLatLngList = ArrayList<LatLng>()
-    private val lineLatLngForStationList = ArrayList<Int>()
 
 //    /**上次定位路线站点距离列表*/
 //    private val lastDistanceToStationList = ArrayList<Double>()
@@ -316,6 +319,7 @@ class MainFragment : Fragment() {
     val runningInfoList = ArrayList<RunningInfo>()
 
     val locationInfoList = ArrayList<String>()
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -407,6 +411,7 @@ class MainFragment : Fragment() {
 
         (binding.lineStationList.adapter as StationOfLineAdapter).isShown = true
 
+
     }
 
     /* 不再与用户交互时 */
@@ -444,6 +449,9 @@ class MainFragment : Fragment() {
         super.onSaveInstanceState(outState)
         aMapView.onSaveInstanceState(outState)
     }
+
+    val client = OkHttpClient()
+
 
     /**
      * 加载路线
@@ -554,23 +562,6 @@ class MainFragment : Fragment() {
             else
                 currentLineStationList.last().enName
 
-            //更新路线站点变更卡片
-            //todo 待重构
-            binding.lineStationChangeInfo.text =
-                binding.lineStationChangeInfo.text.toString() + "【"
-            if (currentLine.name != resources.getString(R.string.line_all)) {
-                binding.lineStationChangeInfo.text =
-                    binding.lineStationChangeInfo.text.toString() + currentLine.name
-                binding.lineStationChangeInfo.text =
-                    binding.lineStationChangeInfo.text as String +
-                            if (utils.getUILang() == "zh")
-                                " 开往 " + currentLineStationList.last().cnName
-                            else
-                                " To " + currentLineStationList.last().enName
-            }
-            binding.lineStationChangeInfo.text =
-                binding.lineStationChangeInfo.text.toString() + "】"
-
         } else {
             binding.terminalName.text = getString(R.string.main_to_station_name)
         }
@@ -641,9 +632,107 @@ class MainFragment : Fragment() {
         @SuppressLint("NotifyDataSetChanged")
         adapter.notifyDataSetChanged()
 
-        refreshUI(isRefreshEs = false)
+        try {
+            CoroutineScope(Dispatchers.IO).launch {
+                // 获取路线轨迹（纠偏）
+                if (utils.getIsLineTrajectoryCorrection() && currentLine.name != resources.getString(
+                        R.string.line_all
+                    )
+                ) {
 
-        refreshEsToStaringAndTerminal()
+                    val trajectoryPointList = ArrayList<TrajectoryPoint>()
+                    for (i in currentLineStationList.indices) {
+                        val ag = if (i < currentLineStationList.size - 1)
+                            utils.calculateBearing(
+                                currentLineStationList[i].latitude,
+                                currentLineStationList[i].longitude,
+                                currentLineStationList[i + 1].latitude,
+                                currentLineStationList[i + 1].longitude
+                            ).toInt()
+                        else
+                            0
+
+                        val sp = 1
+
+                        val tm = if (i == 0) {
+                            1735704000  //2025-01-01 12:00:00
+                        } else {
+                            // 米
+                            val distance = utils.calculateDistance(
+                                currentLineStationList[i].latitude,
+                                currentLineStationList[i].longitude,
+                                currentLineStationList[i - 1].latitude,
+                                currentLineStationList[i - 1].longitude
+                            )
+                            (distance / 1000 / sp * 3600).toInt()
+                        }
+
+                        trajectoryPointList.add(
+                            TrajectoryPoint(
+                                x = "%.6f".format(currentLineStationList[i].longitude)
+                                    .toDouble(),
+                                y = "%.6f".format(currentLineStationList[i].latitude)
+                                    .toDouble(),
+                                ag = ag,
+                                tm = tm,
+                                sp = sp
+                            )
+                        )
+
+                    }
+
+                    val gson = Gson()
+                    val json = gson.toJson(trajectoryPointList)
+                    Log.d(tag, "aMapRes: json: $json")
+
+                    val traceRequest = Request.Builder()
+                        .url("https://restapi.amap.com/v4/grasproad/driving?key=${getString(R.string.amapKey_web)}")
+                        .post(
+                            json.toRequestBody("application/json; charset=utf-8".toMediaType())
+                        )
+                        .build()
+                    try {
+                        val res = client.newCall(traceRequest).execute()
+                        if (res.isSuccessful) {
+                            synchronized(traceResJsonStr) {
+                                traceResJsonStr = res.body.string()
+                            }
+                        } else {
+                            requireActivity().runOnUiThread {
+                                utils.showMsg("轨迹获取失败")
+                            }
+                        }
+                    } catch (e: UnknownHostException) {
+                        e.printStackTrace()
+                        requireActivity().runOnUiThread {
+                            utils.showMsg("轨迹获取失败\n（无网络或连接异常）")
+                        }
+                    }
+                }
+
+                CoroutineScope(Dispatchers.Main).launch {
+                    //移除所有轨迹
+                    for (line in polylineList) {
+                        line.remove()
+                    }
+                    polylineList.clear()
+                    lineWithTypeMap.clear()
+
+                    //移除所有站点范围圆
+                    for (circle in circleList) {
+                        circle.remove()
+                    }
+                    circleList.clear()
+                    circleWithStationMap.clear()
+
+                    refreshUI(isRefreshEs = false)
+                    refreshEsToStaringAndTerminal()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            utils.showMsg("路线加载异常")
+        }
 
     }
 
@@ -667,6 +756,7 @@ class MainFragment : Fragment() {
         val option = AMapLocationClientOption()
         option.interval = utils.getLocationInterval().toLong()
         option.isSensorEnable = true
+        option.isNeedAddress = true
         locationClient.setLocationOption(option)
 
         locationClient.setLocationListener { location ->
@@ -886,7 +976,28 @@ class MainFragment : Fragment() {
             }
 
             dialogBinding.onlineSearch.setOnClickListener {
-                //                    Log.d(tag, "在线搜索路线")
+
+                if (dialogBinding.lineNameInput.text.toString() == "") {
+                    utils.showMsg("请输入要搜索的内容")
+                    return@setOnClickListener
+                }
+
+                val loadingDialogBinding =
+                    DialogLoadingBinding.inflate(LayoutInflater.from(context))
+                loadingDialogBinding.title.text = getString(
+                    R.string.now_search,
+                    utils.getCity(),
+                    dialogBinding.lineNameInput.text
+                )
+
+                val loadingDialog = MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                )
+                    .setView(loadingDialogBinding.root)
+                    .show()
+
+
                 val busLineQuery = BusLineQuery(
                     dialogBinding.lineNameInput.text.toString(),
                     BusLineQuery.SearchType.BY_LINE_NAME,
@@ -897,6 +1008,11 @@ class MainFragment : Fragment() {
                 busLineQuery.pageSize = 999999
                 val busLineSearch = BusLineSearch(requireContext(), busLineQuery)
                 busLineSearch.setOnBusLineSearchListener { res, rCode ->
+                    loadingDialog.dismiss()
+                    if (rCode != 1000) {
+                        utils.showMsg("搜索失败，请检查网络连接")
+                        return@setOnBusLineSearchListener
+                    }
                     if (res.busLines.isEmpty()) {
                         utils.showMsg("暂时查找不到${utils.getCity()}${dialogBinding.lineNameInput.text}路线")
                         return@setOnBusLineSearchListener
@@ -1080,9 +1196,11 @@ class MainFragment : Fragment() {
                 utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
                 return@setOnClickListener
             }
-            val lastLineStationCount = currentLineStationCount
-            setStationAndState(0, currentLineStationState)
-            if (currentLineStationCount != lastLineStationCount) utils.haptic(binding.startingStation)
+            if (currentLineStationCount != 0) {
+                setStationAndState(0, onNext)
+                utils.haptic(binding.startingStation)
+            }
+
         }
 
         //终点站按钮
@@ -1091,9 +1209,11 @@ class MainFragment : Fragment() {
                 utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
                 return@setOnClickListener
             }
-            val lastLineStationCount = currentLineStationCount
-            setStationAndState(currentLineStationList.size - 1, currentLineStationState)
-            if (currentLineStationCount != lastLineStationCount) utils.haptic(binding.terminal)
+            if (currentLineStationCount != currentLineStationList.size - 1) {
+                setStationAndState(currentLineStationList.size - 1, onArrive)
+                utils.haptic(binding.terminal)
+            }
+
         }
 
         //上站按钮
@@ -1268,18 +1388,34 @@ class MainFragment : Fragment() {
                 stationNameList.add("(${i + 1})${station.cnName}[${station.id}]")
             }
 
+            val editorModeStr = when (lineEditorMode) {
+                "update" -> "更新"
+                "new" -> "新增"
+                else -> ""
+            }
+
+            val directionStr = when (lineEditorLineDirection) {
+                onUp -> "上行"
+                onDown -> "下行"
+                else -> ""
+            }
+
             val dialog =
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                    .setTitle("提交路线编辑")
+                    .setTitle("正在${editorModeStr}路线 $lineEditorLineName $directionStr")
                     .setItems(stationNameList.toTypedArray(), null)
-                    .setNegativeButton("取消", null)
-                    .setPositiveButton("确认", null)
+                    .setNegativeButton("继续编辑", null)
+                    .setPositiveButton("提交", null)
                     .show()
 
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
 
-                var stationIdListStr = ""
+                if (lineEditorStationList.size < 2) {
+                    utils.showMsg("请至少添加2个站点")
+                    return@setOnClickListener
+                }
 
+                var stationIdListStr = ""
                 lineEditorStationList.forEachIndexed { i, station ->
                     stationIdListStr += station.id.toString()
                     if (i < lineEditorStationList.size - 1) {
@@ -1288,50 +1424,112 @@ class MainFragment : Fragment() {
                 }
 
                 // 添加路线
-                if (lineEditorLineId == -1) {
-                    val clipboard =
-                        requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clipData = ClipData.newPlainText("text", stationIdListStr)
-                    clipboard.setPrimaryClip(clipData)
+                if (lineEditorMode == "new") {
 
-                    utils.showMsg("当前路线站点序列已复制到剪切板")
-                    utils.showMsg("现在可以前往“路线”添加路线，或继续规划路线")
+                    // 上行
+                    if (lineEditorLineDirection == onUp) {
+                        val continueEditDownDialog = MaterialAlertDialogBuilder(
+                            requireContext(),
+                            R.style.CustomAlertDialogStyle
+                        )
+                            .setTitle("继续编辑下行站点")
+                            .setMessage("如果上下行走向差不多，且对向站点距离都较近，可直接反转上行站点作为下行站点")
+                            .setNegativeButton("继续录入下行", null)
+                            .setPositiveButton("反转上行作为下行", null)
+                            .show()
 
+                        // 继续录入下行
+                        continueEditDownDialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                            .setOnClickListener {
+                                continueEditDownDialog.dismiss()
+                                // todo
+                            }
+
+                        //反转上行作为下行
+                        continueEditDownDialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                            .setOnClickListener {
+
+                                continueEditDownDialog.dismiss()
+
+                                // 上行
+                                lineEditorUpLineStationListStr = stationIdListStr
+
+                                // 下行（反转上行得到）
+                                var stationIdDownListStr = ""
+                                lineEditorStationList.reversed().forEachIndexed { i, station ->
+                                    stationIdDownListStr += station.id.toString()
+                                    if (i < lineEditorStationList.size - 1) {
+                                        stationIdDownListStr += " "
+                                    }
+                                }
+                                lineEditorDownLineStationListStr = stationIdDownListStr
+
+                                val newLine = Line(
+                                    name = lineEditorLineName,
+                                    upLineStation = lineEditorUpLineStationListStr,
+                                    downLineStation = lineEditorDownLineStationListStr
+                                )
+
+                                lineDatabaseHelper.insert(newLine)
+
+                                utils.showMsg("路线 $lineEditorLineName 添加成功")
+
+                                // todo 通知LineFrag 刷新
+
+                                binding.finishEditLine.visibility = GONE
+                                lineEditorLineId = -1
+                                lineEditorStationList.clear()
+                                lineEditorLineDirection = onUp
+
+                                dialog.dismiss()
+                            }
+
+                    }
+                    // 下行
+                    else if (lineEditorLineDirection == onDown) {
+                        // todo
+                        lineEditorDownLineStationListStr = stationIdListStr
+                    }
+
+//                    val clipboard =
+//                        requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+//                    val clipData = ClipData.newPlainText("text", stationIdListStr)
+//                    clipboard.setPrimaryClip(clipData)
+//
+//                    utils.showMsg("当前路线站点序列已复制到剪切板")
+//                    utils.showMsg("现在可以前往“路线”添加路线，或继续规划路线")
                 }
-                //  编辑路线
-                else {
+                //  更新路线
+                else if (lineEditorMode == "update") {
                     val oldLine = lineDatabaseHelper.queryById(lineEditorLineId).first()
 
-                    val directionStr: String
                     when (lineEditorLineDirection) {
                         onUp -> {
                             oldLine.upLineStation = stationIdListStr
-                            directionStr = "上行"
                         }
 
                         onDown -> {
                             oldLine.downLineStation = stationIdListStr
-                            directionStr = "下行"
                         }
 
                         else -> {
-                            directionStr = ""
                         }
                     }
 
                     lineDatabaseHelper.updateById(oldLine.id ?: -1, oldLine)
                     utils.showMsg("路线 ${oldLine.name} ${directionStr}已更新")
+
+                    // todo 通知LineFrag 刷新
+
+                    binding.finishEditLine.visibility = GONE
+                    lineEditorLineId = -1
+                    lineEditorStationList.clear()
+                    lineEditorLineDirection = onUp
+
+                    dialog.dismiss()
                 }
 
-                // todo 通知LineFrag 刷新
 
-                binding.finishEditLine.visibility = GONE
-
-                lineEditorLineId = -1
-                lineEditorStationList.clear()
-                lineEditorLineDirection = onUp
-
-                dialog.dismiss()
             }
 
         }
@@ -1427,6 +1625,10 @@ class MainFragment : Fragment() {
                     )
                 ) {
                     refreshEsOnlyText(true)
+                }
+
+                if (::aMap.isInitialized && aMap.isTrafficEnabled != utils.getIsMapTrafficEnabled()) {
+                    aMap.isTrafficEnabled = utils.getIsMapTrafficEnabled()
                 }
 
                 esRefreshHandler.postDelayed(this, 100L)
@@ -1599,12 +1801,15 @@ class MainFragment : Fragment() {
 
     // 当前路线编辑站点列表
     val lineEditorStationList = ArrayList<Station>()
+    var lineEditorMode = ""
 
-    // 当前路线编辑路线ID
+    // 当前路线编辑路线信息
     var lineEditorLineId = -1
-
-    // 当前路线编辑路线方向
+    var lineEditorLineName = ""
     var lineEditorLineDirection = onUp
+
+    var lineEditorUpLineStationListStr = ""
+    var lineEditorDownLineStationListStr = ""
 
     /**
      * 初始化地图
@@ -1616,7 +1821,7 @@ class MainFragment : Fragment() {
         aMap = aMapView.map
 
         aMap.isMyLocationEnabled = false
-        aMap.isTrafficEnabled = true
+        aMap.isTrafficEnabled = utils.getIsMapTrafficEnabled()
 
         binding.mapContainer.setScrollView(binding.main)
 
@@ -1627,7 +1832,8 @@ class MainFragment : Fragment() {
 
         markerMipmapIds.forEach {
             val overlayOptions =
-                MultiPointOverlayOptions().icon(BitmapDescriptorFactory.fromResource(it))
+                MultiPointOverlayOptions()
+                    .icon(BitmapDescriptorFactory.fromResource(it))
             multiPointOverlayList.add(aMap.addMultiPointOverlay(overlayOptions)!!)
         }
 
@@ -1661,7 +1867,8 @@ class MainFragment : Fragment() {
             if (utils.getIsMapEditLineMode()) {
                 if (currentLine.name == resources.getString(R.string.line_all)) {
 
-                    binding.finishEditLine.visibility = VISIBLE
+                    if (lineEditorStationList.size >= 2)
+                        binding.finishEditLine.visibility = VISIBLE
 
                     var findStationIndex = -1
                     lineEditorStationList.forEachIndexed { i, station ->
@@ -1697,7 +1904,7 @@ class MainFragment : Fragment() {
                         }
                         if (res) {
                             utils.showMsg("${stationDel.cnName}[${stationDel.id}] 已删除")
-                            refreshStationMarker()
+                            refreshMarkerAndTrack()
                         } else {
                             utils.showMsg("该站点尚未添加到路线")
                         }
@@ -1725,7 +1932,7 @@ class MainFragment : Fragment() {
                                     val newStation = stationList.first()
                                     lineEditorStationList.add(which, newStation)
                                     utils.showMsg("${newStation.cnName}[${newStation.id}] 添加成功")
-                                    refreshStationMarker()
+                                    refreshMarkerAndTrack()
                                 } else {
                                     utils.showMsg("站点不存在")
                                 }
@@ -1742,7 +1949,7 @@ class MainFragment : Fragment() {
                             val newStation = stationList.first()
                             lineEditorStationList.add(newStation)
                             utils.showMsg("${newStation.cnName}[${newStation.id}] 添加成功")
-                            refreshStationMarker()
+                            refreshMarkerAndTrack()
                         } else {
                             utils.showMsg("站点不存在")
                         }
@@ -1792,7 +1999,8 @@ class MainFragment : Fragment() {
             if (event.action == MotionEvent.ACTION_UP) {
                 v.performClick()
             }
-            pauseAnnounce()
+            if (utils.getClickMapPauseAn())
+                pauseAnnounce()
             return@setOnTouchListener true
         }
 
@@ -1848,24 +2056,9 @@ class MainFragment : Fragment() {
             }
         }
 
-//        autoFollowNavigationRunnable = Runnable {
-//            if (binding.locationBtn.isChecked)
-//                binding.switchFollowLocation.isChecked = true
-//        }
-
         aMap.setOnMapTouchListener {
-
-//            if (binding.switchFollowLocation.isChecked) {
-//                binding.switchFollowLocation.isChecked = false
-//            }
-
-            //   超过秒数自动跟随定位
-//            autoFollowNavigationHandler.removeCallbacks(autoFollowNavigationRunnable!!)
-//            autoFollowNavigationHandler.postDelayed(
-//                autoFollowNavigationRunnable!!,
-//                utils.getAutoFollowNavigationWhenAboveSecond() * 1000
-//            )
-            pauseAnnounce()
+            if (utils.getClickMapPauseAn())
+                pauseAnnounce()
         }
 
         // 每隔1s刷新地图Text
@@ -2169,7 +2362,12 @@ class MainFragment : Fragment() {
 
     }
 
-    fun onMyLocationChange(location: Location) {
+    var currentCityName = ""
+    fun onMyLocationChange(location: AMapLocation) {
+
+//        utils.showMsg(location.city)
+
+        currentCityName = location.city
 
         val latStr = String.format(Locale.CHINA, "%.8f", location.latitude)
         val longStr = String.format(Locale.CHINA, "%.8f", location.longitude)
@@ -2442,59 +2640,55 @@ class MainFragment : Fragment() {
         return false
     }
 
+
+    val circleWithStationMap = HashMap<Int, Int>()   //<circleIndex, stationIndex>
+
     /**
-     * 移除所有地图标记
+     * 刷新路线标记和轨迹
      */
-    private fun refreshStationMarker() {
+    private fun refreshMarkerAndTrack() {
 
         aMapView.onPause()
 
-        //移除所有路线标点，清空标点列表
-        for (polyline in polylineList) {
-            polyline.remove()
-        }
-        polylineList.clear()
-
-        //移除所有路线圆，清空圆列表
-        for (circle in circleList) {
-            circle.remove()
-        }
-        circleList.clear()
-
-        if (::aMapStationClickText.isInitialized) aMapStationClickText.remove()
-
-
-        //移除标记序号
+        //移除标点文字
         for (text in aMapStationTextList) {
             text.remove()
         }
         aMapStationTextList.clear()
 
-        showCurrentLineStationMarker()
+        //移除标点点击文字
+        if (::aMapStationClickText.isInitialized)
+            aMapStationClickText.remove()
+
+        showMarkerAndTrack()
 
         if (binding.mapBtn.isChecked)
             aMapView.onResume()
 
     }
 
+    val mPolylineLatLngLists = ArrayList<ArrayList<LatLng>>()
+    val multiPointLists = ArrayList<ArrayList<MultiPointItem>>()
+    var traceResJsonStr = ""
+
     /**
-     * 显示当前路线站点标记点和轨迹线（已通过站点标为绿色不会移除原有标记）
+     * 显示当前路线站点标记点和轨迹线（已通过站点标为绿色，不会移除原有标记）
      */
-    private fun showCurrentLineStationMarker() {
+    private fun showMarkerAndTrack() {
 
 //        Log.d(tag, "showCurrentLineStationMarker")
 
         val latLngList = ArrayList<LatLng>()
 
-        val multiPointLists = ArrayList<ArrayList<MultiPointItem>>()
-        multiPointLists.add(ArrayList())
-        multiPointLists.add(ArrayList())
-        multiPointLists.add(ArrayList())
+        multiPointLists.clear()
+        repeat(3) {
+            multiPointLists.add(ArrayList())
+        }
 
-        val mPolylineLatLngLists = ArrayList<ArrayList<LatLng>>()
-        mPolylineLatLngLists.add(ArrayList())
-        mPolylineLatLngLists.add(ArrayList())
-        mPolylineLatLngLists.add(ArrayList())
+        mPolylineLatLngLists.clear()
+        repeat(3) {
+            mPolylineLatLngLists.add(ArrayList())
+        }
 
         for (i in currentLineStationList.indices) {
 
@@ -2503,20 +2697,23 @@ class MainFragment : Fragment() {
             )
             latLngList.add(latLng)
 
-            val fillColor = if (aMap.mapType == MAP_TYPE_NIGHT)
-                Color.argb(8, 255, 255, 255)
-            else
-                Color.argb(8, 0, 0, 0)
-            //绘制站点范围
-            val circle = aMap.addCircle(
-                CircleOptions()
-                    .center(latLng)
-                    .radius(utils.getStationRangeByLineType(currentLine.type).toDouble())
-                    .fillColor(fillColor)
-//                    .strokeColor(Color.argb(64, 0, 0, 0))
-                    .strokeWidth(0F)
-            )
-            if (circle != null) circleList.add(circle)
+            if (!circleWithStationMap.containsKey(i)) {
+                val fillColor = if (aMap.mapType == MAP_TYPE_NIGHT)
+                    Color.argb(8, 255, 255, 255)
+                else
+                    Color.argb(8, 0, 0, 0)
+                //绘制站点范围圆
+                val circle = aMap.addCircle(
+                    CircleOptions()
+                        .center(latLng)
+                        .radius(utils.getStationRangeByLineType(currentLine.type).toDouble())
+                        .fillColor(fillColor)
+                        .strokeWidth(0F)
+                        .zIndex(-100F)
+                )
+                circleList.add(circle)
+                circleWithStationMap[i] = i
+            }
 
             //绘制站点标点
             val multiPointItem = MultiPointItem(latLng)
@@ -2576,8 +2773,12 @@ class MainFragment : Fragment() {
                 }
             }
 
-            // 绘制线（不线路轨迹纠偏）
-            if (!utils.getIsLineTrajectoryCorrection() && currentLine.name != resources.getString(R.string.line_all)) {
+            // 添加绘制线（不纠偏轨迹，不是全站路线）
+            if (!utils.getIsLineTrajectoryCorrection() && currentLine.name != resources.getString(
+                    R.string.line_all
+                )
+            ) {
+
                 when (i) {
                     in 0 until currentLineStationCount - 1 -> {
                         mPolylineLatLngLists[0].add(latLngList[i])
@@ -2585,11 +2786,17 @@ class MainFragment : Fragment() {
 
                     currentLineStationCount - 1 -> {
                         mPolylineLatLngLists[0].add(latLngList[i])
-                        mPolylineLatLngLists[1].add(latLngList[i])
+                        if (currentLineStationState == onNext)
+                            mPolylineLatLngLists[1].add(latLngList[i])
+                        else
+                            mPolylineLatLngLists[0].add(latLngList[i])
                     }
 
                     currentLineStationCount -> {
-                        mPolylineLatLngLists[1].add(latLngList[i])
+                        if (currentLineStationState == onNext)
+                            mPolylineLatLngLists[1].add(latLngList[i])
+                        else
+                            mPolylineLatLngLists[0].add(latLngList[i])
                         mPolylineLatLngLists[2].add(latLngList[i])
                     }
 
@@ -2597,18 +2804,9 @@ class MainFragment : Fragment() {
                         mPolylineLatLngLists[2].add(latLngList[i])
                     }
                 }
+
             }
 
-
-        }
-
-        if (utils.getIsMapEditLineMode() && currentLine.name == resources.getString(R.string.line_all)) {
-            for (station in lineEditorStationList) {
-                val latLng = LatLng(
-                    station.latitude, station.longitude
-                )
-                mPolylineLatLngLists[2].add(latLng)
-            }
         }
 
         //提交标点
@@ -2618,60 +2816,57 @@ class MainFragment : Fragment() {
             multiPointOverlayList[2].items = multiPointLists[2]
         }
 
-        // 绘制线（线路轨迹纠偏）
-        if (utils.getIsLineTrajectoryCorrection()) {
-            for (i in lineLatLngList.indices) {
-//                Log.d(tag, lineLatLngForStationList[i].toString())
-                when (lineLatLngForStationList[i]) {
-                    in 0 until currentLineStationCount - 1 -> {
-                        mPolylineLatLngLists[0].add(lineLatLngList[i])
-                    }
 
-                    currentLineStationCount - 1 -> {
-                        mPolylineLatLngLists[0].add(lineLatLngList[i])
-                        mPolylineLatLngLists[1].add(lineLatLngList[i])
-                    }
-
-                    currentLineStationCount -> {
-                        mPolylineLatLngLists[1].add(lineLatLngList[i])
-                        mPolylineLatLngLists[2].add(lineLatLngList[i])
-                    }
-
-                    in currentLineStationCount + 1 until currentLineStationList.size -> {
-                        mPolylineLatLngLists[2].add(lineLatLngList[i])
-                    }
+        // 非全站路线
+        if (currentLine.name != resources.getString(R.string.line_all)) {
+            // 纠偏
+            if (utils.getIsLineTrajectoryCorrection())
+                drawLineTrace(traceResJsonStr)
+            // 不纠偏
+            else
+                addMapLine()
+        }
+        // 全站路线
+        else {
+            // 编辑模式
+            if (utils.getIsMapEditLineMode()) {
+                for (station in lineEditorStationList) {
+                    val latLng = LatLng(
+                        station.latitude, station.longitude
+                    )
+                    mPolylineLatLngLists[2].add(latLng)
                 }
+                addMapLine()
+            }
+            // 非编辑模式
+            else {
+                // 不绘制轨迹
             }
         }
 
-        //提交线
-        //已经过的路径（灰）
-        if (currentLine.name != resources.getString(R.string.line_all) || utils.getIsMapEditLineMode()) {
 
-            val lineWidth = 16f
-            var mPolyline = aMap.addPolyline(
-                PolylineOptions().addAll(mPolylineLatLngLists[0]).width(lineWidth)
-//                .color(Color.argb(200, 182, 182, 182)
-                    .setCustomTexture((BitmapDescriptorFactory.fromResource(R.mipmap.line_gray)))
-            )!!
-            polylineList.add(mPolyline)
-            //当前处在的路径（蓝）
-            mPolyline = aMap.addPolyline(
-                PolylineOptions().addAll(mPolylineLatLngLists[1]).width(lineWidth)
-//                .color(Color.argb(200, 25, 150, 216))
-                    .setCustomTexture((BitmapDescriptorFactory.fromResource(R.mipmap.line_blue)))
-
-            )!!
-            polylineList.add(mPolyline)
-            //还未经过的路径（绿）
-            mPolyline = aMap.addPolyline(
-                PolylineOptions().addAll(mPolylineLatLngLists[2]).width(lineWidth)
-//                .color(Color.argb(200, 55, 178, 103))
-                    .setCustomTexture((BitmapDescriptorFactory.fromResource(R.mipmap.line_green)))
-
-            )!!
-            polylineList.add(mPolyline)
-        }
+//        if (utils.getIsMapEditLineMode() && currentLine.name == resources.getString(R.string.line_all)) {
+//            for (station in lineEditorStationList) {
+//                val latLng = LatLng(
+//                    station.latitude, station.longitude
+//                )
+//                mPolylineLatLngLists[2].add(latLng)
+//            }
+//            addMapLine()
+//        }
+//
+//        if (utils.getIsLineTrajectoryCorrection() && currentLine.name != resources.getString(
+//                R.string.line_all
+//            )
+//        ) {
+//            drawLineTrace(traceResJsonStr)
+//        }
+//
+//        if (!utils.getIsLineTrajectoryCorrection() &&
+//            (currentLine.name != resources.getString(R.string.line_all) || utils.getIsMapEditLineMode())
+//        ) {
+//            addMapLine()
+//        }
 
         // 绘制站点序号与名称
         for (i in currentLineStationList.indices) {
@@ -2706,7 +2901,6 @@ class MainFragment : Fragment() {
             currentLineStationState = onArrive
         } else if (currentLineStationState == onArrive) {
             currentLineStationState = onNext
-
         }
 
         refreshUI()
@@ -2806,8 +3000,10 @@ class MainFragment : Fragment() {
                 adapter.stationState = currentLineStationState
                 adapter.notifyDataSetChanged()
 
-                val factory = LayoutInflater.from(requireContext())
-                val layout = factory.inflate(R.layout.item_station_of_line, null)
+                val layout = LayoutInflater.from(requireContext())
+                    .inflate(
+                        R.layout.item_station_of_line, null
+                    )
                 val stationIndexView = layout.findViewById<TextView>(R.id.station_index)
                 val lineHeight = stationIndexView.lineHeight
 
@@ -2873,25 +3069,25 @@ class MainFragment : Fragment() {
     private fun refreshLineStationChangeInfo() {
 
         // De
-
-        var newInfo = ""
-
-        val dateFormat = SimpleDateFormat("[HH:mm:ss] ", Locale.getDefault())
-        newInfo += dateFormat.format(Date(System.currentTimeMillis()))
-
-        when (currentLineStationState) {
-            onArrive -> newInfo += "${resources.getString(R.string.arrive)} "
-            onWillArrive -> newInfo += "${resources.getString(R.string.will_arrive)} "
-            onNext -> newInfo += "${resources.getString(R.string.next)} "
-        }
-        newInfo += if (utils.getUILang() == "zh")
-            currentLineStation.cnName
-        else
-            currentLineStation.enName
-        newInfo += "\n"
-
-        binding.lineStationChangeInfo.text =
-            binding.lineStationChangeInfo.text as String + newInfo
+//
+//        var newInfo = ""
+//
+//        val dateFormat = SimpleDateFormat("[HH:mm:ss] ", Locale.getDefault())
+//        newInfo += dateFormat.format(Date(System.currentTimeMillis()))
+//
+//        when (currentLineStationState) {
+//            onArrive -> newInfo += "${resources.getString(R.string.arrive)} "
+//            onWillArrive -> newInfo += "${resources.getString(R.string.will_arrive)} "
+//            onNext -> newInfo += "${resources.getString(R.string.next)} "
+//        }
+//        newInfo += if (utils.getUILang() == "zh")
+//            currentLineStation.cnName
+//        else
+//            currentLineStation.enName
+//        newInfo += "\n"
+//
+//        binding.lineStationChangeInfo.text =
+//            binding.lineStationChangeInfo.text as String + newInfo
 
 
         val stationName = if (utils.getUILang() == "zh")
@@ -2963,7 +3159,7 @@ class MainFragment : Fragment() {
 
         val filePathList = ArrayList<String>()
 
-        val pcmQueue = ArrayBlockingQueue<PcmWithInfo>(1024)
+        val pcmQueue = ArrayBlockingQueue<PcmWithInfo>(1024 * 1024)
 
         audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
 
@@ -3218,7 +3414,7 @@ class MainFragment : Fragment() {
                         }
 //                        Thread.sleep(50)
                         if (utteranceIdDoneList.contains(filePath)) {
-                            Log.d(tag, "filePath ok ${filePath}")
+//                            Log.d(tag, "filePath ok $filePath")
                             break
                         }
                     }
@@ -3355,7 +3551,7 @@ class MainFragment : Fragment() {
                                     e.printStackTrace()
                                 }
 
-                                if (i == 0) {
+                                if (pcmBytes != null && pcmBytes.size > 64) {
                                     pcmQueue.add(
                                         PcmWithInfo(
                                             pcmBytes,
@@ -3384,9 +3580,17 @@ class MainFragment : Fragment() {
 //                Log.d(tag, "pcm ok ${filePath}")
 
 //                Log.d(tag, "finish $filePath $i")
+
                 if (pcmBytes != null) {
                     pcmQueue.add(
-                        PcmWithInfo(pcmBytes, pcmEncoding, sampleRate, channelMask, durationUs, i)
+                        PcmWithInfo(
+                            pcmBytes,
+                            pcmEncoding,
+                            sampleRate,
+                            channelMask,
+                            durationUs,
+                            i
+                        )
                     )
                 }
 
@@ -3402,8 +3606,12 @@ class MainFragment : Fragment() {
 
             var hasInitAudioTrack = false
             var hasPost = false
+            val hasShowSubtitleMap = HashMap<Int, Boolean>() // <fileIndex, hasShow>
+
 
             while (isActive) {
+
+//                Log.d(tag, "pcmQueue ${pcmQueue.size}")
 
                 val pcm = pcmQueue.poll()
                 if (pcm != null) {
@@ -3443,17 +3651,20 @@ class MainFragment : Fragment() {
 
                     }
 
-                    if (utils.getAnSubtitle())
-                        requireActivity().runOnUiThread {
-                            val fileName = filePathList[pcm.fileIndex].split('/').last()
-                            val lastDotIndex = fileName.lastIndexOf(".")
-                            utils.showMsg(
-                                fileName.substring(0, lastDotIndex), true
-                            )
+                    if (utils.getAnSubtitle()) {
+                        if (!hasShowSubtitleMap.containsKey(pcm.fileIndex) || hasShowSubtitleMap[pcm.fileIndex] == false) {
+
+                            requireActivity().runOnUiThread {
+                                val fileName = filePathList[pcm.fileIndex].split('/').last()
+                                val lastDotIndex = fileName.lastIndexOf(".")
+                                utils.showMsg(
+                                    fileName.substring(0, lastDotIndex), true
+                                )
+                            }
+                            hasShowSubtitleMap[pcm.fileIndex] = true
+
                         }
-
-                    pcm.durationUs / 1000
-
+                    }
 
                     synchronized(audioTrack) {
                         if (pcm.data != null && audioTrack.state == AudioTrack.STATE_INITIALIZED
@@ -4106,8 +4317,8 @@ class MainFragment : Fragment() {
         if (isRefreshEs)
             refreshEsToStation()
 
-        //刷新站点标点
-        refreshStationMarker()
+        //刷新地图标点和轨迹
+        refreshMarkerAndTrack()
     }
 
     fun findOnlineLine(
@@ -4294,8 +4505,23 @@ class MainFragment : Fragment() {
                         utils.editLineOnMapActionName -> {
                             startEditLineOnMap(
                                 id = intent.getIntExtra("id", -1),
-                                direction = intent.getIntExtra("direction", 0)
+                                name = intent.getStringExtra("name") ?: "",
+                                direction = intent.getIntExtra("direction", 0),
+                                type = intent.getStringExtra("type") ?: "update"
                             )
+                        }
+
+                        utils.requestCityFromLocationActionName -> {
+
+                            if (!permissionManager.hasLocationPermission()) {
+                                utils.showRequestLocationPermissionDialog(permissionManager)
+                            }
+
+                            val intent = Intent()
+                                .setAction(utils.sendCityFromLocationActionName)
+                                .putExtra("cityName", getCityFromLocation())
+                            LocalBroadcastManager.getInstance(requireContext())
+                                .sendBroadcast(intent)
                         }
                     }
                 }
@@ -4306,6 +4532,7 @@ class MainFragment : Fragment() {
         intentFilter.addAction(utils.tryListeningAnActionName)
         intentFilter.addAction(utils.switchLineActionName)
         intentFilter.addAction(utils.editLineOnMapActionName)
+        intentFilter.addAction(utils.requestCityFromLocationActionName)
 
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(mBroadcastReceiver, intentFilter)
@@ -4331,7 +4558,7 @@ class MainFragment : Fragment() {
     }
 
 
-    fun startEditLineOnMap(id: Int, direction: Int) {
+    fun startEditLineOnMap(id: Int, name: String = "", direction: Int, type: String = "update") {
 
         if (!isAdded)
             return
@@ -4348,10 +4575,21 @@ class MainFragment : Fragment() {
 
         loadLineAll()
 
-        val line = lineDatabaseHelper.queryById(id).first()
-        lineEditorLineId = line.id ?: -1
+        lineEditorMode = type
+
+        var line = Line()
+        if (type == "update") {
+            line = lineDatabaseHelper.queryById(id).first()
+            lineEditorLineId = line.id ?: -1
+            lineEditorLineName = line.name
+        } else if (type == "new") {
+            line = Line(name = "")
+            lineEditorLineId = -1
+            lineEditorLineName = name
+        }
 
         lineEditorLineDirection = direction
+
         //获取当前方向路线站点下标（String形式）序列
         val currentLineStationIndexStrList = when (lineEditorLineDirection) {
             onUp -> line.upLineStation.split(' ')
@@ -4368,7 +4606,7 @@ class MainFragment : Fragment() {
             }
         }
 
-        refreshStationMarker()
+        refreshMarkerAndTrack()
 
     }
 
@@ -4436,5 +4674,170 @@ class MainFragment : Fragment() {
         }
     }
 
+    fun getCityFromLocation(): String {
+        return currentCityName
+    }
+
+    var pointWithStationIndexMap = HashMap<Int, Int>()  //<pointIndex, stationIndex>
+    fun drawLineTrace(jsonStr: String) {
+
+        if (jsonStr == "") {
+            return
+        }
+
+        try {
+            Log.d(tag, jsonStr)
+
+            val rootElement = JsonParser.parseString(jsonStr).asJsonObject
+            val points =
+                rootElement.get("data").asJsonObject.get("points").asJsonArray
+
+            pointWithStationIndexMap = HashMap()
+
+            // 匹配距离每个站点所属的轨迹点
+            var lastPointIndex = 0
+            currentLineStationList.forEachIndexed { sIndex, station ->
+
+                var minDistance = Double.MAX_VALUE
+                var matchPointIndex = 0
+
+                points.forEachIndexed { pIndex, point ->
+                    val longitude = point.asJsonObject.get("x").asDouble
+                    val latitude = point.asJsonObject.get("y").asDouble
+
+                    val distance = utils.calculateDistance(
+                        station.longitude,
+                        station.latitude,
+                        longitude,
+                        latitude
+                    )
+                    if (distance < minDistance) {
+                        minDistance = distance
+                        matchPointIndex = pIndex
+                    }
+                }
+
+//                pointWithStationIndexMap[matchPointIndex] = sIndex
+
+                for (i in lastPointIndex..matchPointIndex) {
+                    pointWithStationIndexMap[i] = sIndex - 1
+                }
+                lastPointIndex = matchPointIndex
+
+            }
+
+//            Log.d("pointWithStationIndexMap", "all ${points.size()}")
+//
+//            pointWithStationIndexMap.forEach { (key, value) ->
+//                Log.d("pointWithStationIndexMap", "$key\t$value")
+//            }
+
+            points.forEachIndexed { index, element ->
+                val longitude = element.asJsonObject.get("x").asDouble
+                val latitude = element.asJsonObject.get("y").asDouble
+                val latLng = LatLng(latitude, longitude)
+                mPolylineLatLngLists[0].add(latLng)
+            }
+
+            addMapLine()
+
+
+        } catch (e: Exception) {
+            utils.showMsg("在线轨迹纠偏获取异常")
+            e.printStackTrace()
+        }
+
+    }
+
+    val lineWithTypeMap = HashMap<Int, Int>()   //<polyLineIndex, Type(0, 1, 2)>
+    fun addMapLine() {
+        if (utils.getIsLineTrajectoryCorrection()) {
+
+            val pointList = ArrayList<LatLng>()
+            var stationIndex = 0
+
+            mPolylineLatLngLists[0].forEachIndexed { pIndex, point ->
+
+                pointList.add(point)
+
+                // 绘制该站点轨迹
+                if ((pIndex != 0 && pointWithStationIndexMap[pIndex] != pointWithStationIndexMap[pIndex - 1]) ||
+                    pIndex == mPolylineLatLngLists[0].size - 1
+                ) {
+
+                    val lineType = when (pointWithStationIndexMap[pIndex]) {
+                        in 0 until currentLineStationCount ->
+                            0
+
+                        currentLineStationCount ->
+                            if (currentLineStationState == onNext)
+                                1
+                            else
+                                0
+
+                        else ->
+                            2
+                    }
+
+                    val lineColorId = when (lineType) {
+                        0 -> R.mipmap.line_gray
+                        1 -> R.mipmap.line_blue
+                        2 -> R.mipmap.line_green
+                        else -> R.mipmap.line_gray
+                    }
+
+                    // 本站轨迹没有绘制过
+                    if (!lineWithTypeMap.containsKey(stationIndex)) {
+                        val mPolyline = aMap.addPolyline(
+                            PolylineOptions().width(16f)
+                                .setCustomTexture((BitmapDescriptorFactory.fromResource(lineColorId)))
+                                .addAll(pointList)
+                        )
+                        polylineList.add(mPolyline)
+                        lineWithTypeMap[stationIndex] = lineType
+                    }
+                    // 本站轨迹绘制过，但颜色不对应
+                    else if (lineWithTypeMap[stationIndex] != lineType) {
+
+//                        Log.d(tag, "station $stationIndex redraw $lineType")
+
+                        polylineList[stationIndex].remove()
+                        val mPolyline = aMap.addPolyline(
+                            PolylineOptions().width(16f)
+                                .setCustomTexture((BitmapDescriptorFactory.fromResource(lineColorId)))
+                                .addAll(pointList)
+                                .zIndex(-90F)
+                        )
+                        polylineList[stationIndex] = mPolyline
+                        lineWithTypeMap[stationIndex] = lineType
+                    }
+
+                    pointList.clear()
+                    stationIndex++
+
+//                    Log.d(tag, "polylineList ${polylineList.size}")
+                }
+
+
+            }
+        } else {
+            mPolylineLatLngLists.forEachIndexed { index, points ->
+                val lineColorId = when (index) {
+                    0 -> R.mipmap.line_gray     //已经过的路径（灰）
+                    1 -> R.mipmap.line_blue     //当前处在的路径（蓝）
+                    2 -> R.mipmap.line_green    //还未经过的路径（绿）
+                    else -> R.mipmap.line_gray
+                }
+                val mPolyline = aMap.addPolyline(
+                    PolylineOptions().addAll(mPolylineLatLngLists[index])
+                        .width(16f)
+                        .setCustomTexture((BitmapDescriptorFactory.fromResource(lineColorId)))
+                        .zIndex(-90F)
+                )!!
+                polylineList.add(mPolyline)
+            }
+        }
+
+    }
 
 }

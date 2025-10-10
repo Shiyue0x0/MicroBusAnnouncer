@@ -58,6 +58,10 @@ class Utils(private val context: Context) {
 
     val editLineOnMapActionName = "com.microbus.announcer.edit_line_on_map"
 
+    val requestCityFromLocationActionName = "com.microbus.announcer.request_city_from_location"
+
+    val sendCityFromLocationActionName = "com.microbus.announcer.send_city_from_location"
+
     lateinit var toast: Toast
 
     /**
@@ -159,7 +163,7 @@ class Utils(private val context: Context) {
      * 从设置中获取所在城市
      */
     fun getCity(): String {
-        return prefs.getString("city", "桂林") ?: "桂林"
+        return prefs.getString("city", "桂林市") ?: "桂林市"
     }
 
     fun setUILang(lang: String) {
@@ -288,7 +292,14 @@ class Utils(private val context: Context) {
      * 从设置中获取是否启用线路轨迹纠偏
      */
     fun getIsLineTrajectoryCorrection(): Boolean {
-        return prefs.getBoolean("lineTrajectoryCorrection", false)
+        return prefs.getBoolean("lineTrajectoryCorrection", true)
+    }
+
+    /**
+     * 从设置中获取地图是否显示路况
+     */
+    fun getIsMapTrafficEnabled(): Boolean {
+        return prefs.getBoolean("isMapTrafficEnabled", false)
     }
 
     /**
@@ -304,6 +315,10 @@ class Utils(private val context: Context) {
 
     fun getAnSubtitle(): Boolean {
         return prefs.getBoolean("anSubtitle", true)
+    }
+
+    fun getClickMapPauseAn(): Boolean {
+        return prefs.getBoolean("clickMapPauseAn", true)
     }
 
     fun getServiceLanguageStr(): String {
@@ -1026,7 +1041,7 @@ class Utils(private val context: Context) {
 
     fun openHelperDialog(title: String, url: String) {
         val urlList = listOf("GitHub", "Gitee")
-        val dialog = MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
+        MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
             .setTitle(title)
             .setSingleChoiceItems(urlList.toTypedArray(), -1) { dialog, which ->
                 dialog.dismiss()
@@ -1101,6 +1116,23 @@ class Utils(private val context: Context) {
 
         return cnName
 
+    }
+
+    fun calculateBearing(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val lat1Rad = Math.toRadians(lat1)
+        val lon1Rad = Math.toRadians(lon1)
+        val lat2Rad = Math.toRadians(lat2)
+        val lon2Rad = Math.toRadians(lon2)
+
+        val dLon = lon2Rad - lon1Rad
+
+        val y = sin(dLon) * cos(lat2Rad)
+        val x = cos(lat1Rad) * sin(lat2Rad) - sin(lat1Rad) * cos(lat2Rad) * cos(dLon)
+
+        var bearing = Math.toDegrees(atan2(y, x))
+        bearing = (bearing + 360) % 360  // 规范化到0-360度
+
+        return bearing
     }
 
 }

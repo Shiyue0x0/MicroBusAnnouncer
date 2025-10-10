@@ -24,7 +24,7 @@
         android:focusable="true"
         android:focusableInTouchMode="true"
         app:layout_constraintTop_toBottomOf="@+id/bar"
-        app:title="@string/nav_station"  />
+        app:title="@string/nav_station" />
 
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -38,12 +38,17 @@
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         tools:context=".fragment.StationFragment">
 
-        <androidx.recyclerview.widget.RecyclerView
+        <com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
             android:id="@+id/stationRecyclerView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:scrollbars="vertical"
-            app:layoutManager="LinearLayoutManager" />
+            android:fadingEdgeLength="20dp"
+            android:requiresFadingEdge="vertical"
+            app:fastScrollAutoHide="false"
+            app:fastScrollThumbColor="@color/md_theme_primary"
+            app:fastScrollThumbInactiveColor="@color/md_theme_primaryContainer"
+            app:fastScrollTrackColor="@android:color/transparent" />
+
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
