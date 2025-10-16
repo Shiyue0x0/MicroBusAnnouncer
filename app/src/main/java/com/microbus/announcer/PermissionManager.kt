@@ -6,12 +6,14 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import androidx.fragment.app.Fragment
 import pub.devrel.easypermissions.EasyPermissions
 import androidx.core.net.toUri
+import pub.devrel.easypermissions.AfterPermissionGranted
 
 
-class PermissionManager(private val context: Context, private val activity: Activity) : Fragment() {
+class PermissionManager(private val context: Context, private val activity: Activity) {
 
     companion object {
         const val REQUEST_ALL = 0
@@ -44,8 +46,10 @@ class PermissionManager(private val context: Context, private val activity: Acti
     fun requestPermission(permissions: List<String>, requestCode: Int): Boolean {
         val permissionsArray = permissions.toTypedArray()
         if (EasyPermissions.hasPermissions(context, *permissionsArray)) {
+//            Log.d("requestPermission", "已获得权限")
             return true
         } else {
+//            Log.d("requestPermission", "未获得权限")
             EasyPermissions.requestPermissions(
                 activity,
                 "应用运行需要一些权限",
@@ -62,6 +66,7 @@ class PermissionManager(private val context: Context, private val activity: Acti
         permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
         requestPermission(permissions, REQUEST_LOCATION)
     }
+
 
     fun hasLocationPermission(): Boolean {
         val isGrantedCOARSELOCATION = EasyPermissions.hasPermissions(

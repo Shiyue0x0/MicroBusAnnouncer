@@ -136,6 +136,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.Timer
+import java.util.TimerTask
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.stream.Collectors
 
@@ -710,7 +712,8 @@ class MainFragment : Fragment() {
                     }
                 }
 
-                CoroutineScope(Dispatchers.Main).launch {
+                requireActivity().runOnUiThread {
+//                CoroutineScope(Dispatchers.Main).launch {
                     //移除所有轨迹
                     for (line in polylineList) {
                         line.remove()
@@ -1584,9 +1587,11 @@ class MainFragment : Fragment() {
 
         val esRefreshHandler = Handler(mLooper)
         var isRefreshing = false
+        var esRefreshCount = 0
         val esRefreshRunnable = object : Runnable {
 
             override fun run() {
+
 
                 val esSpeed = utils.getEsSpeed()
                 binding.headerLeftNew.pixelMovePerSecond = esSpeed
@@ -1608,8 +1613,16 @@ class MainFragment : Fragment() {
                 else
                     GONE
 
+                if (esPlayIndex >= 0 && esPlayIndex < esList.size &&
+                    esList[esPlayIndex].type.contains("R") && esRefreshCount % 10 == 0
+                ) {
+                    refreshEsOnlyText(true)
+                }
+
+
                 val isLeftFinish = binding.headerLeftNew.isShowFinish || !utils.getIsOpenLeftEs()
                 val isRightFinish = binding.headerRightNew.isShowFinish
+//                Log.d(tag, "Finished: $isLeftFinish $isRightFinish")
                 if (!isRefreshing && isLeftFinish && isRightFinish) {
                     isRefreshing = true
                     esPlayNext()
@@ -1620,16 +1633,12 @@ class MainFragment : Fragment() {
                     binding.headerMiddleNew.showText(currentLine.name)
                 }
 
-                if (esPlayIndex >= 0 && esPlayIndex < esList.size && esList[esPlayIndex].type.contains(
-                        "R"
-                    )
-                ) {
-                    refreshEsOnlyText(true)
-                }
-
                 if (::aMap.isInitialized && aMap.isTrafficEnabled != utils.getIsMapTrafficEnabled()) {
                     aMap.isTrafficEnabled = utils.getIsMapTrafficEnabled()
                 }
+
+                esRefreshCount++
+
 
                 esRefreshHandler.postDelayed(this, 100L)
             }
@@ -1845,15 +1854,9 @@ class MainFragment : Fragment() {
                 return@setOnMultiPointClickListener true
             }
             multiPointCustomerId = it.customerId
-
             // 文本颜色
-            val fontColor = when (it.customerId.toInt()) {
-                in 0 until currentLineStationCount -> Color.rgb(182, 182, 182)
+            val fontColor = getFontColor(multiPointCustomerId.toInt())
 
-                currentLineStationCount -> Color.rgb(25, 150, 216)
-
-                else -> Color.rgb(55, 178, 103)
-            }
             val textOptions =
                 TextOptions()
                     .text(it.title).fontColor(fontColor).position(it.latLng)
@@ -1861,9 +1864,8 @@ class MainFragment : Fragment() {
                     .typeface(requireContext().resources.getFont(R.font.galano_grotesque_bold))
             aMapStationClickText = aMap.addText(textOptions)!!
 
-            val stationId = it.customerId.toInt()
+            val stationId = currentLineStationList[multiPointCustomerId.toInt()].id ?: -1
 
-            // todo 地图编辑路线
             if (utils.getIsMapEditLineMode()) {
                 if (currentLine.name == resources.getString(R.string.line_all)) {
 
@@ -2744,11 +2746,8 @@ class MainFragment : Fragment() {
                     "${indexText}${currentLineStationList[i].cnName}[${currentLineStationList[i].id!!}]"
                 }
 
-            if (currentLine.name != resources.getString(R.string.line_all)) {
-                multiPointItem.customerId = i.toString()
-            } else {
-                multiPointItem.customerId = currentLineStationList[i].id!!.toString()
-            }
+
+            multiPointItem.customerId = i.toString()
             multiPointItem.title = textContext
 
             if (currentLine.name != resources.getString(R.string.line_all)) {
@@ -2763,14 +2762,25 @@ class MainFragment : Fragment() {
                         multiPointLists[2].add(multiPointItem)
                 }
             } else {
-                when (i) {
 
-                    currentLineStationCount ->
+                if (utils.getIsMapEditLineMode()) {
+                    val matchStation =
+                        lineEditorStationList.find { station -> station.id == currentLineStationList[i].id }
+                    if (matchStation == null)
                         multiPointLists[1].add(multiPointItem)
-
-                    else ->
+                    else
                         multiPointLists[2].add(multiPointItem)
+                } else {
+                    when (i) {
+
+                        currentLineStationCount ->
+                            multiPointLists[1].add(multiPointItem)
+
+                        else ->
+                            multiPointLists[2].add(multiPointItem)
+                    }
                 }
+
             }
 
             // 添加绘制线（不纠偏轨迹，不是全站路线）
@@ -2978,9 +2988,9 @@ class MainFragment : Fragment() {
     private fun refreshLineStationList() {
 
         val currentStationStateText = when (currentLineStationState) {
-            onNext -> resources.getString(R.string.next)
-            onWillArrive -> resources.getString(R.string.will_arrive)
-            onArrive -> resources.getString(R.string.arrive)
+            onNext -> requireContext().resources.getString(R.string.next)
+            onWillArrive -> requireContext().resources.getString(R.string.will_arrive)
+            onArrive -> requireContext().resources.getString(R.string.arrive)
             else -> ""
         }
 
@@ -3189,9 +3199,17 @@ class MainFragment : Fragment() {
                 else -> ""
             }
 
-            val anExp =
+            val anExps =
                 if (format == "") utils.getAnnouncementFormat(stationState, stationType)
                 else format
+
+            if (anExps == "") {
+                pauseAnnounce()
+                return@launch
+            }
+
+            val anExp = anExps.split("\n").random()
+
             val anList = utils.getAnnouncements(anExp)
             for (item in anList) {
                 if (item == "") {
@@ -3326,6 +3344,7 @@ class MainFragment : Fragment() {
                     }
 
                     override fun onError(utteranceId: String?) {
+                        utils.showMsg("TTS合成异常，请检查系统设置")
                     }
 
                 })
@@ -3608,6 +3627,7 @@ class MainFragment : Fragment() {
             var hasPost = false
             val hasShowSubtitleMap = HashMap<Int, Boolean>() // <fileIndex, hasShow>
 
+            audioManager?.requestAudioFocus(audioFocusRequest!!)
 
             while (isActive) {
 
@@ -3670,18 +3690,17 @@ class MainFragment : Fragment() {
                         if (pcm.data != null && audioTrack.state == AudioTrack.STATE_INITIALIZED
                             && audioTrack.playState == AudioTrack.PLAYSTATE_PLAYING
                         ) {
-                            audioManager?.requestAudioFocus(audioFocusRequest!!)
                             audioTrack.write(pcm.data!!, 0, pcm.data!!.size)
 //                        Log.d(tag, "play ${wl}/${pcm.data!!.size}")
                         }
                     }
 
                     if (pcm.fileIndex == filePathList.size - 1 && !hasPost) {
-//                            Log.d(tag, "play finish")
+//                        Log.d(tag, "play finish")
                         audioReleaseHandler.removeCallbacksAndMessages(null)
                         audioReleaseHandler.postDelayed({
                             audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-                        }, 0)
+                        }, pcm.durationUs / 1000)
                         hasPost = true
                     }
                 }
@@ -3698,27 +3717,7 @@ class MainFragment : Fragment() {
         aMapView.onPause()
         for (i in aMapStationTextList.indices) {
             // 文本颜色
-            val fontColor =
-                if (utils.getIsMapEditLineMode() && currentLine.name == resources.getString(R.string.line_all)) {
-                    when (i) {
-                        currentLineStationCount ->
-                            Color.rgb(25, 150, 216)
-
-                        else ->
-                            Color.rgb(55, 178, 103)
-                    }
-                } else {
-                    when (i) {
-                        in 0 until currentLineStationCount ->
-                            Color.rgb(182, 182, 182)
-
-                        currentLineStationCount ->
-                            Color.rgb(25, 150, 216)
-
-                        else ->
-                            Color.rgb(55, 178, 103)
-                    }
-                }
+            val fontColor = getFontColor(i)
 
             // 文本序号/ID
             val indexOrId = if (currentLine.name != resources.getString(R.string.line_all)) {
@@ -3894,27 +3893,10 @@ class MainFragment : Fragment() {
         alertDialog: AlertDialog
     ) {
 
-        "^(\\d+.*)$".toRegex()
-        val numReg = "\\d+".toRegex()
-        val comparator = Comparator { line1: Line, line2: Line ->
-//            val diff = line1.name.length - line2.name.length
-//            if (diff != 0) {
-//                diff
-//            } else {
-            val line1NumRes = numReg.find(line1.name)
-            val line2NumRes = numReg.find(line2.name)
 
-            if (line1NumRes == null)
-                Integer.MAX_VALUE
-            else if (line2NumRes == null)
-                Integer.MIN_VALUE
-            else line1NumRes.value.toInt() - line2NumRes.value.toInt()
-//            }
-        }
-
+        val comparator = utils.getDefaultLineComparator()
 
         val res = ArrayList(lineDatabaseHelper.queryByKey(key).sortedWith(comparator))
-
 
 //        val lineNameList = res.map { it.name }
         val lineInfoList = ArrayList(res.map {
@@ -4156,6 +4138,8 @@ class MainFragment : Fragment() {
 
     fun refreshEsOnlyText(isUseSet: Boolean = false) {
 
+        Log.d(tag, "refreshEsOnlyText S")
+
         var leftText: String
         var rightText: String
 
@@ -4171,66 +4155,6 @@ class MainFragment : Fragment() {
             binding.headerMiddleNew.showText(currentLine.name)
         }
 
-//        val valueMap = HashMap<String, String>()
-//
-//        // todo 动态获取（用到了才获取）
-//        // 电显提示词
-//        valueMap["<next>"] = utils.getEsNextWord()
-//        valueMap["<will>"] = utils.getEsWillArriveWord()
-//        valueMap["<arrive>"] = utils.getEsArriveWord()
-//
-//        // 其他占位符
-//        valueMap["<line>"] = currentLine.name
-//
-//        valueMap["<year>"] = LocalDate.now().year.toString()
-//        valueMap["<years>"] = (LocalDate.now().year % 100).toString()
-//        valueMap["<month>"] = LocalDate.now().monthValue.toString()
-//        valueMap["<date>"] = LocalDate.now().dayOfMonth.toString()
-//
-//        valueMap["<hour>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().hour)
-//        valueMap["<minute>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().minute)
-//        valueMap["<second>"] = String.format(Locale.CHINA, "%02d", LocalTime.now().second)
-//
-//        valueMap["<time>"] = "${valueMap["<hour>"]}:${valueMap["<minute>"]}"
-//
-//        valueMap["<speed>"] =
-//            if (currentSpeedKmH >= 0) String.format(Locale.CHINA, "%.1f", currentSpeedKmH) else "-"
-//
-//        // 站点占位符
-//        val stationStateList = listOf("ns", "ss", "ts")
-//        val langList = utils.getLangList()
-//
-//        for (stationState in stationStateList) {
-//            val station = when (stationState) {
-//                "ns" -> currentLineStation
-//
-//                "ss" -> if (currentLineStationList.isEmpty())
-//                    Station(
-//                        cnName = getString(R.string.terminal),
-//                        enName = getString(R.string.terminal)
-//                    )
-//                else currentLineStationList.first()
-//
-//                "ts" -> if (currentLineStationList.isEmpty())
-//                    Station(
-//                        cnName = getString(R.string.terminal),
-//                        enName = getString(R.string.terminal)
-//                    )
-//                else
-//                    currentLineStationList.last()
-//
-//                else -> currentLineStation
-//            }
-//            for (lang in langList) {
-//                when (lang) {
-//                    "cn" -> valueMap["<${stationState}${lang}>"] = station.cnName
-//                    "en" -> valueMap["<${stationState}${lang}>"] = station.enName
-//                    else -> valueMap["<${stationState}${lang}>"] =
-//                        utils.getStationNameFromCn(station.cnName, lang)
-//                }
-//            }
-//        }
-
         for (keyword in utils.getDefaultKeywordList()) {
             leftText = leftText.replace(keyword, getValueMapValue(keyword), true)
             rightText = rightText.replace(keyword, getValueMapValue(keyword), true)
@@ -4242,12 +4166,16 @@ class MainFragment : Fragment() {
         }
 
         if (isUseSet) {
-            binding.headerLeftNew.setText(leftText)
-            binding.headerRightNew.setText(rightText)
+            if (binding.headerLeftNew.getText() != leftText)
+                binding.headerLeftNew.setText(leftText)
+            if (binding.headerRightNew.getText() != rightText)
+                binding.headerRightNew.setText(rightText)
         } else {
             binding.headerLeftNew.showText(leftText)
             binding.headerRightNew.showText(rightText)
         }
+
+        Log.d(tag, "refreshEsOnlyText E")
 
 
     }
@@ -4523,6 +4451,10 @@ class MainFragment : Fragment() {
                             LocalBroadcastManager.getInstance(requireContext())
                                 .sendBroadcast(intent)
                         }
+
+                        utils.openLocationActionName -> {
+                            binding.locationBtnGroup.check(binding.locationBtn.id)
+                        }
                     }
                 }
             }
@@ -4533,6 +4465,7 @@ class MainFragment : Fragment() {
         intentFilter.addAction(utils.switchLineActionName)
         intentFilter.addAction(utils.editLineOnMapActionName)
         intentFilter.addAction(utils.requestCityFromLocationActionName)
+        intentFilter.addAction(utils.openLocationActionName)
 
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(mBroadcastReceiver, intentFilter)
@@ -4570,9 +4503,6 @@ class MainFragment : Fragment() {
             putBoolean("mapEditLineMode", true)
         }
 
-        // 关闭定位
-        binding.locationBtnGroup.uncheck(binding.locationBtn.id)
-
         loadLineAll()
 
         lineEditorMode = type
@@ -4608,6 +4538,16 @@ class MainFragment : Fragment() {
 
         refreshMarkerAndTrack()
 
+        // 延迟 1 秒关闭定位
+        val timer = Timer()
+        timer.schedule(object : TimerTask() {
+            override fun run() {
+                requireActivity().runOnUiThread {
+                    Log.d(tag, "close loc")
+                    binding.locationBtnGroup.uncheck(binding.locationBtn.id)
+                }
+            }
+        }, 1000)
     }
 
     fun getValueMapValue(key: String): String {
@@ -4751,8 +4691,7 @@ class MainFragment : Fragment() {
 
     val lineWithTypeMap = HashMap<Int, Int>()   //<polyLineIndex, Type(0, 1, 2)>
     fun addMapLine() {
-        if (utils.getIsLineTrajectoryCorrection()) {
-
+        if (utils.getIsLineTrajectoryCorrection() && currentLine.name != resources.getString(R.string.line_all)) {
             val pointList = ArrayList<LatLng>()
             var stationIndex = 0
 
@@ -4838,6 +4777,39 @@ class MainFragment : Fragment() {
             }
         }
 
+    }
+
+    fun getFontColor(i: Int): Int {
+        return if (currentLine.name == resources.getString(R.string.line_all)) {
+
+            if (utils.getIsMapEditLineMode()) {
+                val matchStation =
+                    lineEditorStationList.find { station -> station.id == currentLineStationList[i].id }
+                if (matchStation == null)
+                    Color.rgb(25, 150, 216)
+                else
+                    Color.rgb(55, 178, 103)
+            } else {
+                when (i) {
+                    currentLineStationCount ->
+                        Color.rgb(25, 150, 216)
+
+                    else ->
+                        Color.rgb(55, 178, 103)
+                }
+            }
+        } else {
+            when (i) {
+                in 0 until currentLineStationCount ->
+                    Color.rgb(182, 182, 182)
+
+                currentLineStationCount ->
+                    Color.rgb(25, 150, 216)
+
+                else ->
+                    Color.rgb(55, 178, 103)
+            }
+        }
     }
 
 }

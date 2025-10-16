@@ -121,8 +121,9 @@ class DataAndAboutSettingsFragment : Fragment() {
                             fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
                             modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 4.dp)
                         )
-                        RestorePresetItem("station", painterResource(id = R.drawable.station1))
-                        RestorePresetItem("line", painterResource(id = R.drawable.line1))
+//                        RestorePresetItem("station", painterResource(id = R.drawable.station1))
+//                        RestorePresetItem("line", painterResource(id = R.drawable.line1))
+                        RestorePresetMixItem()
                         Text(
                             "关于",
                             fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
@@ -234,16 +235,11 @@ class DataAndAboutSettingsFragment : Fragment() {
     }
 
     @Composable
-    fun RestorePresetItem(type: String, painter: Painter) {
-        val name = when (type) {
-            "station" -> "站点"
-            "line" -> "路线"
-            else -> -1
-        }
+    fun RestorePresetMixItem() {
         BaseSettingItem(
-            "加载预设${name}数据",
-            "将${name}内置的预设数据加载到应用",
-            painter,
+            "加载预设数据",
+            "将内置的预设数据加载到应用",
+            painterResource(id = R.drawable.database),
             {
 
                 if (!utils.isGrantManageFilesAccessPermission()) {
@@ -251,28 +247,89 @@ class DataAndAboutSettingsFragment : Fragment() {
                     return@BaseSettingItem
                 }
 
-                //todo 询问
-                val dialog = MaterialAlertDialogBuilder(
+                val chooseDialog = MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
-                ).setTitle("加载预设${name}数据")
-                    .setMessage("该操纵会覆盖您现有的${name}数据，建议您先备份后再操作，要继续吗")
-                    .setPositiveButton(requireContext().getString(android.R.string.ok), null)
-                    .setNegativeButton(getString(android.R.string.cancel), null).show()
+                ).setTitle("要加载哪些预设数据？")
+                    .setNeutralButton("站点和路线", null)
+                    .setNegativeButton("仅站点", null)
+                    .setPositiveButton("仅路线", null)
+                    .show()
 
+                // 站点和路线
+                chooseDialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                    restorePreset(station = true, line = true, chooseDialog = chooseDialog)
+                }
 
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                    val preset = when (type) {
-                        "station" -> R.raw.station
-                        "line" -> R.raw.line
-                        else -> R.raw.station
-                    }
-                    loadPresetData(preset)
-                    dialog.dismiss()
+                // 仅站点
+                chooseDialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
+                    restorePreset(station = true, line = false, chooseDialog = chooseDialog)
+                }
+
+                // 仅路线
+                chooseDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    restorePreset(station = false, line = true, chooseDialog = chooseDialog)
                 }
 
             })
     }
+
+    /**
+     * 加载预设数据
+     * @param station 是否加载站点
+     * @param line 是否加载路线
+     * */
+    fun restorePreset(station: Boolean, line: Boolean, chooseDialog: AlertDialog) {
+        val typeStr = if (station && line)
+            "站点和路线"
+        else if (station)
+            "站点"
+        else if (line)
+            "路线"
+        else
+            ""
+
+        val dialog = MaterialAlertDialogBuilder(
+            requireContext(),
+            R.style.CustomAlertDialogStyle
+        ).setTitle("加载$typeStr")
+            .setMessage("该操作会覆盖您现有的${typeStr}数据，建议您先备份后再操作，要继续吗")
+            .setPositiveButton(requireContext().getString(android.R.string.ok), null)
+            .setNegativeButton(getString(android.R.string.cancel), null).show()
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+
+            dialog.dismiss()
+            chooseDialog.dismiss()
+
+            val loadingDialogBinding =
+                DialogLoadingBinding.inflate(LayoutInflater.from(context))
+            loadingDialogBinding.title.text = "正在加载${typeStr}，请稍后"
+
+            val loadingDialog = MaterialAlertDialogBuilder(
+                requireContext(),
+                R.style.CustomAlertDialogStyle
+            )
+                .setView(loadingDialogBinding.root)
+                .show()
+
+            if (station)
+                loadPresetData(R.raw.station)
+            if (line)
+                loadPresetData(R.raw.line)
+//            utils.showMsg("已加载预设数据，再次打开应用生效")
+//            utils.showMsg("Announcer重启中，请稍后")
+            utils.showMsg("现有的站点和路线已备份至\nAnnouncer/Backups")
+            utils.showMsg("加载完成，请前往站点或路线查看")
+
+
+//            requireActivity().finish()
+
+
+            requireActivity().recreate()
+        }
+    }
+
 
     private fun loadPresetData(resId: Int) {
         val fileList = ArrayList<Int>()
@@ -301,10 +358,6 @@ class DataAndAboutSettingsFragment : Fragment() {
                 StandardCopyOption.REPLACE_EXISTING
             )
         }
-
-        utils.showMsg("现有的站点和路线已备份至\nAnnouncer/Backups")
-        utils.showMsg("已加载预设数据，再次打开应用生效")
-        requireActivity().finish()
     }
 
     //    选取文件回调
@@ -506,7 +559,13 @@ class DataAndAboutSettingsFragment : Fragment() {
                                         requireContext(),
                                         R.style.CustomAlertDialogStyle
                                     ).setTitle("已是最新版本")
-                                        .setMessage("${getString(R.string.app_name)} ${lastVersionName.drop(1)}")
+                                        .setMessage(
+                                            "${getString(R.string.app_name)} ${
+                                                lastVersionName.drop(
+                                                    1
+                                                )
+                                            }"
+                                        )
                                         .setPositiveButton(getString(android.R.string.ok), null)
                                         .show()
                                 } else {

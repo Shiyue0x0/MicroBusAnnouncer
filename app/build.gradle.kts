@@ -16,9 +16,9 @@ android {
         applicationId = "com.microbus.announcer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 301
+        versionCode = 302
         versionName =
-            "3.0.1-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
+            "3.0.2-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
     }
 
     buildTypes {
@@ -29,6 +29,7 @@ android {
                 "proguard-rules.pro"
             )
             isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
 
         }
     }
@@ -71,38 +72,41 @@ android {
 
 dependencies {
 
+    implementation(libs.androidx.core)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.easypermissions)
-    implementation(libs.viewpager2)
-    implementation(libs.recyclerview)
-    implementation(files("libs/AMap3DMap_10.1.302_AMapSearch_9.7.4_AMapLocation_6.5.0_20250804.jar"))
     implementation(libs.androidx.legacy.support.v4)
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.preference)
     implementation(libs.androidx.fragment)
-    implementation(libs.androidx.core)
     implementation(libs.androidx.swiperefreshlayout)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.gson)
-    implementation(libs.material)
-
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.compose.ui.text)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.viewpager2)
+
+    implementation(platform(libs.androidx.compose.bom))
+
+    implementation(files("libs/AMap3DMap_10.1.500_AMapSearch_9.7.4_AMapLocation_6.5.0_20250814.jar"))
+    implementation(libs.easypermissions)
     implementation(libs.okhttp)
     implementation(libs.recyclerview.fastscroll)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.gson)
+    implementation(libs.material)
+
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 
 }

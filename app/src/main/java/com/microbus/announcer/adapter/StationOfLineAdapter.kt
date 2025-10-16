@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
+import android.util.Log
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.LayoutInflater
@@ -121,7 +122,6 @@ internal class StationOfLineAdapter(
                     if (holder.layoutPosition !in firstVisibleItem..lastVisibleItem)
                         return
 
-
                     // 动态刷新率
                     val fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         context.display.refreshRate
@@ -133,6 +133,7 @@ internal class StationOfLineAdapter(
                     }
 
                     scrollY += ceil((pixelMovePerSecond.toFloat() / fps).toDouble()).toInt()
+//                    Log.d("offset add", "${ceil((pixelMovePerSecond.toFloat() / fps).toDouble()).toInt()}")
 
                     val maxScrollY =
                         holder.stationNameNestedScrollView.getChildAt(0).height - holder.stationNameNestedScrollView.height

@@ -13,6 +13,7 @@ import android.graphics.Shader
 import android.graphics.Typeface
 import android.os.Build
 import android.util.AttributeSet
+import android.util.Log
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.View
@@ -281,18 +282,33 @@ class ESView : View {
         postInvalidate()
     }
 
+    fun getText(): String {
+        return if (this::text.isInitialized)
+            text
+        else
+            ""
+    }
+
     private lateinit var frameCallback: FrameCallback
 
+    var lastFrameTimeNanos = 0L
     fun startAnimation() {
         if (!this::frameCallback.isInitialized) {
             frameCallback = object : FrameCallback {
                 override fun doFrame(frameTimeNanos: Long) {
 
+                    Choreographer.getInstance().postFrameCallback(this)
+
+                    val frameDelayNanos = frameTimeNanos - lastFrameTimeNanos
+//                    Log.d("ES", "$text frameTimeNanos: $frameDelayNanos")
+                    lastFrameTimeNanos = frameTimeNanos
+
                     // 动态刷新率
                     fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         context.display.refreshRate
                     } else {
-                        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                        val windowManager =
+                            context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
                         windowManager.defaultDisplay.refreshRate
                     }
 
@@ -320,7 +336,7 @@ class ESView : View {
                     }
                     // 文字宽度不足以超出屏幕时（静止）
                     else if (paint.measureText(text) <= width) {
-//                        Log.d("ES", "${text} ${allFrameCount / fps * 1000}/${minShowTimeMs}")
+//                        Log.d("ES", "$text ${allFrameCount / fps * 1000}/${minShowTimeMs}")
                         isShowFinish = if (allFrameCount / fps * 1000 > minShowTimeMs) {
                             true
                         } else {
@@ -331,7 +347,6 @@ class ESView : View {
                     frameCount = (frameCount + 1) % Int.MAX_VALUE
                     allFrameCount = (allFrameCount + 1) % Int.MAX_VALUE
 
-                    Choreographer.getInstance().postFrameCallback(this)
                 }
             }
 

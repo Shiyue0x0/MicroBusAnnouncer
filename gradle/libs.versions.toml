@@ -8,7 +8,7 @@ appcompat = "1.7.1"
 kotlinxSerializationJson = "1.9.0"
 activity = "1.11.0"
 constraintlayout = "2.2.1"
-materialVersion = "1.14.0-alpha04"
+materialVersion = "1.14.0-alpha05"
 okhttp = "5.2.1"
 recyclerviewFastscroll = "2.0.1"
 recyclerviewVersion = "1.4.0"
@@ -36,9 +36,9 @@ androidx-activity = { group = "androidx.activity", name = "activity", version.re
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 material = { module = "com.google.android.material:material", version.ref = "materialVersion" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerviewVersion" }
+androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerviewVersion" }
 recyclerview-fastscroll = { module = "com.simplecityapps:recyclerview-fastscroll", version.ref = "recyclerviewFastscroll" }
-viewpager2 = { module = "androidx.viewpager2:viewpager2", version.ref = "viewpager2Version" }
+androidx-viewpager2 = { module = "androidx.viewpager2:viewpager2", version.ref = "viewpager2Version" }
 androidx-legacy-support-v4 = { group = "androidx.legacy", name = "legacy-support-v4", version.ref = "legacySupportV4" }
 androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preferenceKtx" }
 androidx-preference = { group = "androidx.preference", name = "preference", version.ref = "preference" }

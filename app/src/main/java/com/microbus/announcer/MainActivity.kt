@@ -2,9 +2,11 @@ package com.microbus.announcer
 
 import android.app.NotificationManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import androidx.activity.addCallback
@@ -12,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.get
 import androidx.fragment.app.Fragment
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.viewpager2.widget.ViewPager2
 import com.microbus.announcer.adapter.FragActivityAdapter
 import com.microbus.announcer.databinding.ActivityMainBinding
@@ -75,9 +78,30 @@ class MainActivity : AppCompatActivity() {
                 return@setOnItemSelectedListener false
             val lastItem = binding.viewPager.currentItem
             when (item.itemId) {
+                // 主控
                 R.id.item0 -> binding.viewPager.currentItem = 0
-                R.id.item1 -> binding.viewPager.currentItem = 1
-                R.id.item2 -> binding.viewPager.currentItem = 2
+                // 路线
+                R.id.item1 -> {
+                    if (binding.viewPager.currentItem != 1) {
+                        binding.viewPager.currentItem = 1
+                    } else {
+                        val intent = Intent()
+                            .setAction(utils.lineListScrollToTopActionName)
+                        LocalBroadcastManager.getInstance(this)
+                            .sendBroadcast(intent)
+                    }
+                }
+                // 站点
+                R.id.item2 -> {
+                    if (binding.viewPager.currentItem != 2) {
+                        binding.viewPager.currentItem = 2
+                    } else {
+                        val intent = Intent()
+                            .setAction(utils.stationListScrollToTopActionName)
+                        LocalBroadcastManager.getInstance(this)
+                            .sendBroadcast(intent)
+                    }
+                }                // 设置
                 R.id.item3 -> binding.viewPager.currentItem = 3
             }
             if (lastItem != binding.viewPager.currentItem)
@@ -190,6 +214,35 @@ class MainActivity : AppCompatActivity() {
         // 其他页
         else {
             binding.viewPager.currentItem = 0
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String?>,
+        grantResults: IntArray,
+        deviceId: Int
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults, deviceId)
+        Log.d(tag, "requestCode: $requestCode")
+
+        var allGranted = true
+        for (result in grantResults) {
+            if (result != PackageManager.PERMISSION_GRANTED) {
+                allGranted = false
+                break
+            }
+        }
+
+        if (allGranted) {
+            when (requestCode) {
+                PermissionManager.REQUEST_LOCATION -> {
+                    val intent = Intent()
+                        .setAction(utils.openLocationActionName)
+                    LocalBroadcastManager.getInstance(this)
+                        .sendBroadcast(intent)
+                }
+            }
         }
     }
 

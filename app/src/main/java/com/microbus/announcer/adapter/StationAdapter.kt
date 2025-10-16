@@ -14,8 +14,6 @@ import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.ItemStationBinding
 import com.microbus.announcer.databinding.ItemStationHeaderBinding
-import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
-import java.util.Locale
 
 internal class StationAdapter(
     private val context: Context,
@@ -33,6 +31,7 @@ internal class StationAdapter(
     val stationDatabaseHelper = StationDatabaseHelper(context)
 
     val utils = Utils(context)
+    val comparator = utils.getDefaultLineComparator()
 
     internal class StationViewHolder(
         binding: ItemStationBinding,
@@ -40,7 +39,7 @@ internal class StationAdapter(
     ) :
         ViewHolder(binding.root), View.OnClickListener {
         private var mListener: OnItemClickListener? = null // 声明自定义监听接口
-        var station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
+        var station = Station(-1, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
         var stationCard = binding.stationCard
         var stationId = binding.stationId
         var stationType = binding.stationType
@@ -94,14 +93,11 @@ internal class StationAdapter(
             else -> {
                 val binding = ItemStationBinding
                     .inflate(LayoutInflater.from(parent.context), parent, false)
-
+                binding.stationLineList.setHasFixedSize(true)
                 val linearLayoutManager =
                     LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-                binding.stationLineList.setHasFixedSize(true)
                 binding.stationLineList.layoutManager = linearLayoutManager
-                binding.stationLineList.adapter =
-                    LineOfStationAdapter(lineDatabaseHelper)
-
+                binding.stationLineList.adapter = LineOfStationAdapter()
                 return StationViewHolder(binding, mClickListener)
             }
         }
@@ -109,7 +105,6 @@ internal class StationAdapter(
 
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-
 
         // LineViewHolder
         if (position == 0) {
@@ -124,15 +119,26 @@ internal class StationAdapter(
 
             holder.station = station
             holder.stationId.text = station.id.toString()
-//        holder.stationId.text = String.format(Locale.ROOT, "%03d", station.id)
             holder.stationType.text = station.type
             holder.stationCnName.text = station.cnName
             holder.stationEnName.text = station.enName
-//        holder.stationLongitude.text = "${station.longitude}"
-//        holder.stationLatitude.text = "${station.latitude}"
+
+            val lineNameList = ArrayList<String>()
+            val lineList = ArrayList(lineDatabaseHelper.queryAll().sortedWith(comparator))
+            val lineStationIndexStrSet = HashSet<String>()
+            for (line in lineList) {
+                lineStationIndexStrSet.clear()
+                lineStationIndexStrSet.addAll(line.upLineStation.split(' '))
+                lineStationIndexStrSet.addAll(line.downLineStation.split(' '))
+                for (stationId in lineStationIndexStrSet) {
+                    if (stationId == station.id.toString()) {
+                        lineNameList.add(line.name)
+                    }
+                }
+            }
 
             val adapter = holder.stationLineList.adapter as LineOfStationAdapter
-            adapter.stationId = station.id ?: -1
+            adapter.lineNameList = lineNameList
             @SuppressLint("NotifyDataSetChanged")
             adapter.notifyDataSetChanged()
 
@@ -145,6 +151,7 @@ internal class StationAdapter(
                 )
                 return@setOnLongClickListener true
             }
+
         }
     }
 

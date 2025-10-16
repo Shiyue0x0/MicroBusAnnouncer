@@ -1,7 +1,10 @@
 package com.microbus.announcer.fragment
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
@@ -121,6 +124,27 @@ class StationFragment : Fragment() {
         }
 
 
+        val mBroadcastReceiver = object : BroadcastReceiver() {
+            override fun onReceive(
+                context: Context,
+                intent: Intent
+            ) {
+                if (isAdded) {
+                    when (intent.action) {
+                        utils.stationListScrollToTopActionName -> {
+                            binding!!.stationRecyclerView.scrollToPosition(0)
+                        }
+                    }
+                }
+            }
+        }
+
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(utils.stationListScrollToTopActionName)
+
+        LocalBroadcastManager.getInstance(requireContext())
+            .registerReceiver(mBroadcastReceiver, intentFilter)
+
         return binding!!.root
     }
 
@@ -149,6 +173,11 @@ class StationFragment : Fragment() {
         binding!!.stationRecyclerView.setAdapter(adapter)
         adapter.setOnItemClickListener(object : StationAdapter.OnItemClickListener {
             override fun onItemClick(station: Station) {
+
+                if (station.id == null || station.id!! <= 0) {
+                    return
+                }
+
                 val intent = Intent()
                     .setAction(utils.tryListeningAnActionName)
                     .putExtra("format", "<mscn${station.id}>|<msen${station.id}>")

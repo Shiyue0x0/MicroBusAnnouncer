@@ -38,7 +38,10 @@ class LineAdapter(
     val commonView = 0
     val headerView = 1
 
-    lateinit var allLineList: MutableList<Line>
+    var allLineList: MutableList<Line>
+
+    val utils = Utils(context)
+
 
 //    var firstVisibleItem = -1
 //
@@ -46,6 +49,8 @@ class LineAdapter(
 
     init {
         setHasStableIds(true)
+        val comparator = utils.getDefaultLineComparator()
+        allLineList = ArrayList(lineDatabaseHelper.queryAll().sortedWith(comparator))
     }
 
     class LineViewHolder(
@@ -65,6 +70,7 @@ class LineAdapter(
         init {
             mListener = clickListener
             lineName.setOnClickListener(this)
+
 
 //        binding.lineStationListContainer.setScrollView(binding.lineStationList)
         }
@@ -121,9 +127,6 @@ class LineAdapter(
         holder: ViewHolder,
         @SuppressLint("RecyclerView") position: Int
     ) {
-        val utils = Utils(context)
-
-        allLineList = lineDatabaseHelper.queryAll()
 
         // LineViewHolder
         if (position == 0) {
@@ -132,8 +135,6 @@ class LineAdapter(
         }
         // ItemLineHeaderHolder
         else {
-
-
             val holder = holder as LineViewHolder
             val position = position - 1
             holder.line = lineDatabaseHelper.queryById(allLineList[position].id ?: -1).first()
@@ -365,8 +366,24 @@ class LineAdapter(
                 }
                 .setNegativeButton("到地图编辑") { _, _ ->
 
+                    val upStationList = holder.line.upLineStation.split(" ")
+                    val upStartingStationCnName =
+                        stationDatabaseHelper.queryById(upStationList.first().toInt())
+                            .first().cnName
+                    val upTerminalStationCnName =
+                        stationDatabaseHelper.queryById(upStationList.last().toInt()).first().cnName
+
+                    val downStationList = holder.line.downLineStation.split(" ")
+                    val downStartingStationCnName =
+                        stationDatabaseHelper.queryById(downStationList.first().toInt())
+                            .first().cnName
+                    val downTerminalStationCnName =
+                        stationDatabaseHelper.queryById(downStationList.last().toInt())
+                            .first().cnName
+
                     MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
                         .setTitle("选择要编辑的方向")
+                        .setMessage("上行：${upStartingStationCnName} - ${upTerminalStationCnName}\n下行：${downStartingStationCnName} - $downTerminalStationCnName")
                         .setNeutralButton(context.getString(android.R.string.cancel), null)
                         .setNegativeButton("上行") { _, _ ->
                             val intent = Intent()

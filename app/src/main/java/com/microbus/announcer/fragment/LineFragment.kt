@@ -1,7 +1,10 @@
 package com.microbus.announcer.fragment
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -74,6 +77,28 @@ class LineFragment : Fragment() {
             utils.haptic(binding!!.addLineFab)
             addLine()
         }
+
+        val mBroadcastReceiver = object : BroadcastReceiver() {
+            override fun onReceive(
+                context: Context,
+                intent: Intent
+            ) {
+                if (isAdded) {
+                    when (intent.action) {
+                        utils.lineListScrollToTopActionName -> {
+                            binding!!.lineRecyclerView.scrollToPosition(0)
+                        }
+                    }
+                }
+            }
+        }
+
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(utils.lineListScrollToTopActionName)
+
+        LocalBroadcastManager.getInstance(requireContext())
+            .registerReceiver(mBroadcastReceiver, intentFilter)
+
         return binding!!.root
     }
 
@@ -99,6 +124,7 @@ class LineFragment : Fragment() {
         //点击路线切换到主控并运行
         adapter.setOnItemClickListener(object : LineAdapter.OnItemClickListener {
             override fun onItemClick(line: Line, position: Int) {
+
                 if (position == 0)
                     return
 
@@ -289,7 +315,7 @@ class LineFragment : Fragment() {
      */
     private fun initSwipeRefreshLayout() {
         binding!!.swipeRefreshLayout.setOnRefreshListener {
-            //refreshLineList()
+            refreshLineList()
             @SuppressLint("NotifyDataSetChanged")
             binding!!.lineRecyclerView.adapter!!.notifyDataSetChanged()
             binding!!.swipeRefreshLayout.isRefreshing = false

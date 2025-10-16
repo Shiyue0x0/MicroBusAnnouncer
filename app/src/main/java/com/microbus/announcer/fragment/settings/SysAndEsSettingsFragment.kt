@@ -104,7 +104,6 @@ class SysAndEsSettingsFragment : Fragment() {
 
         val intentFilter = IntentFilter()
         intentFilter.addAction(utils.sendCityFromLocationActionName)
-
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(mBroadcastReceiver, intentFilter)
 

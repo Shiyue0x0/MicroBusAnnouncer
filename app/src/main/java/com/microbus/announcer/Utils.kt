@@ -29,6 +29,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import com.microbus.announcer.bean.EsItem
+import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogStationInfoBinding
@@ -61,6 +62,11 @@ class Utils(private val context: Context) {
     val requestCityFromLocationActionName = "com.microbus.announcer.request_city_from_location"
 
     val sendCityFromLocationActionName = "com.microbus.announcer.send_city_from_location"
+
+    val openLocationActionName = "com.microbus.announcer.open_location"
+
+    val lineListScrollToTopActionName = "com.microbus.announcer.line_list_scroll_to_top"
+    val stationListScrollToTopActionName = "com.microbus.announcer.station_list_scroll_to_top"
 
     lateinit var toast: Toast
 
@@ -608,22 +614,26 @@ class Utils(private val context: Context) {
      */
     fun getAnnouncements(exp: String): ArrayList<String> {
 
-        val itemList = exp.split("|")
+        val lineList = exp.split("\n")
         val anList = ArrayList<String>()
-        val itemRegex = Regex("^(?!(.*[|<>])).*$")
 
-        val anKeywordList = getDefaultKeywordList()
+        for (line in lineList) {
+            val itemList = line.split("|")
+            val itemRegex = Regex("^(?!(.*[|<>])).*$")
 
-        for (item in itemList) {
-            if (anKeywordList.contains(item)) {
-                anList.add(item)
-            } else {
-                if ((itemRegex.matches(item) && item != "") ||
-                    (item.length >= 3 && item.substring(1, 3) == "ms")
-                ) {
+            val anKeywordList = getDefaultKeywordList()
+
+            for (item in itemList) {
+                if (anKeywordList.contains(item)) {
                     anList.add(item)
                 } else {
-                    return ArrayList(listOf("ERROR", item))
+                    if ((itemRegex.matches(item) && item != "") ||
+                        (item.length >= 3 && item.substring(1, 3) == "ms")
+                    ) {
+                        anList.add(item)
+                    } else {
+                        return ArrayList(listOf("ERROR", item))
+                    }
                 }
             }
         }
@@ -631,15 +641,18 @@ class Utils(private val context: Context) {
         return anList
     }
 
+    var hasGetLangList = false
+    var myLangList = ArrayList(listOf("cn", "en"))
     /**
      * 获取语种列表
      * */
     fun getLangList(): ArrayList<String> {
 
-        val langList = ArrayList<String>(listOf("cn", "en"))
+        if (hasGetLangList)
+            return myLangList
 
         if (!isGrantManageFilesAccessPermission()) {
-            return langList
+            return myLangList
         }
 
         val dir = File("$appRootPath/Media/${getAnnouncementLibrary()}")
@@ -659,11 +672,13 @@ class Utils(private val context: Context) {
             .toList()
 
         for (langFolder in langFolderList) {
-            if (!langList.contains(langFolder.name))
-                langList.add(langFolder.name)
+            if (!myLangList.contains(langFolder.name))
+                myLangList.add(langFolder.name)
         }
 
-        return langList
+        hasGetLangList = true
+
+        return myLangList
     }
 
     /**
@@ -789,7 +804,6 @@ class Utils(private val context: Context) {
 
     }
 
-    //todo 添加默认文件
     fun copyDefaultConfig() {
 
         if (!isGrantManageFilesAccessPermission()) {
@@ -1082,15 +1096,14 @@ class Utils(private val context: Context) {
                 cnName
         }
 
-
         if (!isGrantManageFilesAccessPermission()) {
             return cnName
         }
 
-        val langTableFile = File("$appRootPath/Media/stationLangTable.json")
+        val langTableFile = File("$appRootPath/stationLangTable.json")
 
         if (!langTableFile.exists()) {
-            showMsg("langTable.json文件不存在，请先创建")
+//            showMsg("stationLangTable.json文件不存在，请先创建")
             return cnName
         }
 
@@ -1133,6 +1146,26 @@ class Utils(private val context: Context) {
         bearing = (bearing + 360) % 360  // 规范化到0-360度
 
         return bearing
+    }
+
+    fun getDefaultLineComparator(): Comparator<Line> {
+
+        val numReg = "\\d+".toRegex()
+        return Comparator { line1: Line, line2: Line ->
+//            val diff = line1.name.length - line2.name.length
+//            if (diff != 0) {
+//                diff
+//            } else {
+            val line1NumRes = numReg.find(line1.name)
+            val line2NumRes = numReg.find(line2.name)
+
+            if (line1NumRes == null)
+                Integer.MAX_VALUE
+            else if (line2NumRes == null)
+                Integer.MIN_VALUE
+            else line1NumRes.value.toInt() - line2NumRes.value.toInt()
+//            }
+        }
     }
 
 }

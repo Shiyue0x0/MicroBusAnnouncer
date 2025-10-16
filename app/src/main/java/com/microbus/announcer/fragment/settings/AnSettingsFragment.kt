@@ -52,6 +52,7 @@ import com.microbus.announcer.Utils
 import com.microbus.announcer.compose.BaseSettingItem
 import com.microbus.announcer.compose.SwitchSettingItem
 import com.microbus.announcer.databinding.DialogInputBinding
+import com.microbus.announcer.databinding.DialogLoadingBinding
 
 
 class AnSettingsFragment : Fragment() {
@@ -287,23 +288,36 @@ class AnSettingsFragment : Fragment() {
                     return@BaseSettingItem
                 }
 
+//                val loadingDialogBinding =
+//                    DialogLoadingBinding.inflate(LayoutInflater.from(requireContext()))
+//                loadingDialogBinding.title.text = "正在加载语音库"
+//
+//                val loadingDialog = MaterialAlertDialogBuilder(
+//                    requireContext(),
+//                    R.style.CustomAlertDialogStyle
+//                )
+//                    .setView(loadingDialogBinding.root)
+//                    .show()
+
+                val libraryList = utils.getAnnouncementLibraryList()
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                    .setTitle("选择语音播报库")
+                    .setTitle("选择语音库")
                     .setSingleChoiceItems(
-                        utils.getAnnouncementLibraryList().toTypedArray(),
-                        utils.getAnnouncementLibraryList().indexOf(utils.getAnnouncementLibrary())
+                        libraryList.toTypedArray(),
+                        libraryList.indexOf(utils.getAnnouncementLibrary())
                     ) { dialog, which ->
                         val sharedPreferences =
                             PreferenceManager.getDefaultSharedPreferences(requireContext())
                         sharedPreferences.edit {
                             putString(
                                 "announcementLibrary",
-                                utils.getAnnouncementLibraryList()[which]
+                                libraryList[which]
                             )
                         }
                         dialog.cancel()
                     }
                     .show()
+
             },
             isCustomLeft = true,
             leftContain = {
