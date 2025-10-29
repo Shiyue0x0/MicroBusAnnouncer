@@ -7,11 +7,9 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
-import android.util.Log
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -22,7 +20,6 @@ import com.microbus.announcer.Utils
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.databinding.ItemStationOfLineBinding
 import java.util.Locale
-import kotlin.math.ceil
 
 
 internal class StationOfLineAdapter(
@@ -105,12 +102,12 @@ internal class StationOfLineAdapter(
 
         holder.stationNameNestedScrollView.post {
 
-            val pixelMovePerSecond = 50
+            val pixelMovePerSecond = 100
             val frameCallback = object : FrameCallback {
 
-                val delay = 100
+                val delayPixel = pixelMovePerSecond * 3.0
                 var frameCount = 0
-                var scrollY = -delay
+                var scrollY = -delayPixel
 
                 override fun doFrame(frameTimeNanos: Long) {
 
@@ -132,19 +129,20 @@ internal class StationOfLineAdapter(
                         windowManager.defaultDisplay.refreshRate
                     }
 
-                    scrollY += ceil((pixelMovePerSecond.toFloat() / fps).toDouble()).toInt()
+//                    scrollY += ceil((pixelMovePerSecond.toFloat() / fps).toDouble()).toInt()
+                    scrollY += (pixelMovePerSecond.toDouble() / fps).toDouble()
+
 //                    Log.d("offset add", "${ceil((pixelMovePerSecond.toFloat() / fps).toDouble()).toInt()}")
 
                     val maxScrollY =
                         holder.stationNameNestedScrollView.getChildAt(0).height - holder.stationNameNestedScrollView.height
 
-                    if (scrollY > maxScrollY + delay) {
+                    if (scrollY > maxScrollY + delayPixel) {
 //                        Log.d("Station", "$lineName ${holder.layoutPosition} ${holder.stationName.text}")
-                        scrollY = -delay
+                        scrollY = -delayPixel
                     }
 
-                    holder.stationNameNestedScrollView.scrollTo(0, scrollY)
-
+                    holder.stationNameNestedScrollView.scrollTo(0, scrollY.toInt())
 
                     frameCount++
 

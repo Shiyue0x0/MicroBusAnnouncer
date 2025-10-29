@@ -324,7 +324,7 @@ class Utils(private val context: Context) {
     }
 
     fun getClickMapPauseAn(): Boolean {
-        return prefs.getBoolean("clickMapPauseAn", true)
+        return prefs.getBoolean("clickMapPauseAn", false)
     }
 
     fun getServiceLanguageStr(): String {
@@ -642,11 +642,18 @@ class Utils(private val context: Context) {
     }
 
     var hasGetLangList = false
-    var myLangList = ArrayList(listOf("cn", "en"))
+    var myLangList = ArrayList<String>()
+
     /**
      * 获取语种列表
      * */
     fun getLangList(): ArrayList<String> {
+
+        val defaultLangList = listOf("cn", "en")
+        for (defaultLang in defaultLangList) {
+            if (!myLangList.contains(defaultLang))
+                myLangList.add(defaultLang)
+        }
 
         if (hasGetLangList)
             return myLangList
@@ -953,6 +960,7 @@ class Utils(private val context: Context) {
                     "<speed>"
                 )
             )
+
         for (lang in getLangList()) {
             keywordList.add("<ns$lang>")
             keywordList.add("<ss$lang>")
@@ -1168,5 +1176,9 @@ class Utils(private val context: Context) {
         }
     }
 
+    fun getRandomNumByTime(min: Int, max: Int): Int {
+        val randomNum = System.currentTimeMillis()
+        return (randomNum % (max - min) + min).toInt()
+    }
 }
 

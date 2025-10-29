@@ -101,7 +101,8 @@ class MainActivity : AppCompatActivity() {
                         LocalBroadcastManager.getInstance(this)
                             .sendBroadcast(intent)
                     }
-                }                // 设置
+                }
+                // 设置
                 R.id.item3 -> binding.viewPager.currentItem = 3
             }
             if (lastItem != binding.viewPager.currentItem)

@@ -151,7 +151,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fadingEdgeLength="20dp"
-                android:requiresFadingEdge="horizontal"/>
+                android:requiresFadingEdge="horizontal" />
 
         </com.microbus.announcer.view.NestedScrollableHost>
 
@@ -230,110 +230,172 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
+                    android:layout_weight="2"
                     android:clickable="true"
                     android:focusable="true"
+
                     app:cardBackgroundColor="@color/an_contain_bg"
                     app:cardCornerRadius="24dp"
-
                     app:strokeWidth="0dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-
-                        <TextView
-                            android:id="@+id/currentStationState"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-
-                            android:text="@string/next" />
-
-                        <com.microbus.announcer.view.ScrollingTextView
-                            android:id="@+id/currentStationName"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:ellipsize="marquee"
-                            android:gravity="center"
-                            android:marqueeRepeatLimit="marquee_forever"
-                            android:paddingLeft="8dp"
-                            android:paddingRight="8dp"
-                            android:singleLine="true"
-                            android:text="@string/main_next_station_name"
-                            android:textColor="@color/md_theme_onSurface"
-                            android:textSize="@dimen/middleFontSize"
-                            android:textStyle="bold" />
-
-
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/currentDistanceToCurrentStationCard"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:cardBackgroundColor="@color/an_contain_bg"
-                    app:cardCornerRadius="24dp"
-
-                    app:strokeWidth="0dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
+                        android:baselineAligned="false"
+                        android:orientation="horizontal"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp">
 
                         <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:layout_weight="1"
                             android:gravity="center"
-                            android:orientation="horizontal">
+                            android:orientation="vertical">
+
 
                             <TextView
+                                android:id="@+id/currentStationState"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
 
-                                android:text="@string/main_distance_title" />
+                                android:text="@string/next" />
 
-                            <TextView
-                                android:id="@+id/currentDistanceToCurrentStationUnit"
-                                android:layout_width="wrap_content"
+                            <com.microbus.announcer.view.ScrollingTextView
+                                android:id="@+id/currentStationName"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:ellipsize="marquee"
+                                android:gravity="center"
+                                android:marqueeRepeatLimit="marquee_forever"
+                                android:paddingLeft="8dp"
+                                android:paddingRight="8dp"
+                                android:singleLine="true"
+                                android:text="@string/main_next_station_name"
+                                android:textColor="@color/md_theme_onSurface"
+                                android:textSize="@dimen/middleFontSize"
+                                android:textStyle="bold" />
 
-                                android:text="@string/main_distance_unit"
-                                android:textSize="12sp" />
+
                         </LinearLayout>
 
-                        <com.microbus.announcer.view.ScrollingTextView
-                            android:id="@+id/currentDistanceToCurrentStationValue"
-                            android:layout_width="match_parent"
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:ellipsize="marquee"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:layout_weight="1"
                             android:gravity="center"
-                            android:marqueeRepeatLimit="marquee_forever"
-                            android:paddingLeft="8dp"
-                            android:paddingRight="8dp"
-                            android:singleLine="true"
-                            android:text="@string/main_distance_value"
-                            android:textColor="@color/md_theme_onSurface"
-                            android:textSize="@dimen/middleFontSize"
-                            android:textStyle="bold" />
+                            android:orientation="vertical">
 
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+
+                                    android:text="@string/main_distance_title" />
+
+                                <TextView
+                                    android:id="@+id/currentDistanceToCurrentStationUnit"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+
+                                    android:text="@string/main_distance_unit"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+
+                            <com.microbus.announcer.view.ScrollingTextView
+                                android:id="@+id/currentDistanceToCurrentStationValue"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="marquee"
+                                android:gravity="center"
+                                android:marqueeRepeatLimit="marquee_forever"
+                                android:paddingLeft="8dp"
+                                android:paddingRight="8dp"
+                                android:singleLine="true"
+                                android:text="@string/main_distance_value"
+                                android:textColor="@color/md_theme_onSurface"
+                                android:textSize="@dimen/middleFontSize"
+                                android:textStyle="bold" />
+
+
+                        </LinearLayout>
 
                     </LinearLayout>
+
+
                 </com.google.android.material.card.MaterialCardView>
+
+                <!--                <com.google.android.material.card.MaterialCardView-->
+                <!--                    android:id="@+id/currentDistanceToCurrentStationCard"-->
+                <!--                    android:layout_width="0dp"-->
+                <!--                    android:layout_height="wrap_content"-->
+                <!--                    android:layout_marginEnd="8dp"-->
+                <!--                    android:layout_weight="1"-->
+                <!--                    android:clickable="true"-->
+                <!--                    android:focusable="true"-->
+                <!--                    app:cardBackgroundColor="@color/an_contain_bg"-->
+                <!--                    app:cardCornerRadius="24dp"-->
+
+                <!--                    app:strokeWidth="0dp">-->
+
+                <!--                    <LinearLayout-->
+                <!--                        android:layout_width="match_parent"-->
+                <!--                        android:layout_height="match_parent"-->
+                <!--                        android:layout_marginTop="12dp"-->
+                <!--                        android:layout_marginBottom="12dp"-->
+                <!--                        android:gravity="center"-->
+                <!--                        android:orientation="vertical">-->
+
+
+                <!--                        <LinearLayout-->
+                <!--                            android:layout_width="match_parent"-->
+                <!--                            android:layout_height="match_parent"-->
+                <!--                            android:gravity="center"-->
+                <!--                            android:orientation="horizontal">-->
+
+                <!--                            <TextView-->
+                <!--                                android:layout_width="wrap_content"-->
+                <!--                                android:layout_height="wrap_content"-->
+
+                <!--                                android:text="@string/main_distance_title" />-->
+
+                <!--                            <TextView-->
+                <!--                                android:id="@+id/currentDistanceToCurrentStationUnit"-->
+                <!--                                android:layout_width="wrap_content"-->
+                <!--                                android:layout_height="wrap_content"-->
+
+                <!--                                android:text="@string/main_distance_unit"-->
+                <!--                                android:textSize="12sp" />-->
+                <!--                        </LinearLayout>-->
+
+                <!--                        <com.microbus.announcer.view.ScrollingTextView-->
+                <!--                            android:id="@+id/currentDistanceToCurrentStationValue"-->
+                <!--                            android:layout_width="match_parent"-->
+                <!--                            android:layout_height="wrap_content"-->
+                <!--                            android:ellipsize="marquee"-->
+                <!--                            android:gravity="center"-->
+                <!--                            android:marqueeRepeatLimit="marquee_forever"-->
+                <!--                            android:paddingLeft="8dp"-->
+                <!--                            android:paddingRight="8dp"-->
+                <!--                            android:singleLine="true"-->
+                <!--                            android:text="@string/main_distance_value"-->
+                <!--                            android:textColor="@color/md_theme_onSurface"-->
+                <!--                            android:textSize="@dimen/middleFontSize"-->
+                <!--                            android:textStyle="bold" />-->
+
+
+                <!--                    </LinearLayout>-->
+                <!--                </com.google.android.material.card.MaterialCardView>-->
 
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/speedCard"
@@ -648,6 +710,23 @@
         app:iconTint="@color/md_theme_primary"
         app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
         app:layout_constraintStart_toEndOf="@+id/mapLocation"
+        app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/stopAnnouncement"
+        style="?attr/materialIconButtonFilledStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="60dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="4dp"
+        android:contentDescription="@string/starting_station"
+        android:visibility="gone"
+        app:backgroundTint="@color/md_theme_surface"
+        app:icon="@drawable/stop"
+        app:iconGravity="textTop"
+        app:iconTint="@color/md_theme_primary"
+        app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
+        app:layout_constraintStart_toEndOf="@+id/finishEditLine"
         app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
 
 

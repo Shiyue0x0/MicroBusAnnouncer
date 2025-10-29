@@ -140,6 +140,7 @@ import java.util.Timer
 import java.util.TimerTask
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.stream.Collectors
+import kotlin.random.Random
 
 
 class MainFragment : Fragment() {
@@ -322,6 +323,10 @@ class MainFragment : Fragment() {
 
     val locationInfoList = ArrayList<String>()
 
+    var isAnnouncing = false
+
+    val simRunningHandler = Handler(mLooper)
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -374,7 +379,7 @@ class MainFragment : Fragment() {
         initLine()
 
         // 初始化按钮回调
-        initButtonClickListener()
+        initButton()
 
         // 初始化电显
         initEs()
@@ -774,7 +779,7 @@ class MainFragment : Fragment() {
     /**
      * 初始化按钮回调
      */
-    fun initButtonClickListener() {
+    fun initButton() {
 
         binding.mapBtnGroup.check(binding.mapBtn.id)
         binding.locationBtnGroup.uncheck(binding.locationBtn.id)
@@ -1134,6 +1139,11 @@ class MainFragment : Fragment() {
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 0f
                 matchCount = 0
+                binding.currentDistanceToCurrentStationValue.text =
+                    getString(R.string.main_distance_value)
+                currentSpeedKmH = -1.0
+                binding.speedValue.text =
+                    getString(R.string.main_speed_value)
             }
         }
 
@@ -1327,6 +1337,47 @@ class MainFragment : Fragment() {
             utils.haptic(requireView())
         }
 
+        //模拟运行播报
+        binding.voiceAnnouncement.setOnLongClickListener {
+            if (isOperationLock) {
+                utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+                return@setOnLongClickListener true
+            }
+
+            // 关闭定位
+            binding.locationBtnGroup.uncheck(binding.locationBtn.id)
+
+            // 切换到起点站
+            if (currentLineStationCount != 0) {
+                setStationAndState(0, onNext)
+                utils.haptic(binding.startingStation)
+            }
+
+            val simRunningRunnable = object : Runnable {
+                override fun run() {
+
+//                    Log.d(tag, "simRunningRunnable running")
+
+                    simRunningHandler.postDelayed(this, 500L)
+
+                    if (!isAnnouncing) {
+                        if (nextStation()) {
+                            isAnnouncing = true
+                            announce()
+                        } else {
+                            simRunningHandler.removeCallbacksAndMessages(null)
+                        }
+                    }
+                }
+            }
+            simRunningHandler.postDelayed(simRunningRunnable, 0L)
+
+            utils.haptic(requireView())
+
+            true
+        }
+
+
         // 终点站卡片
         binding.terminalCard.setOnClickListener {
             utils.showMsg("${binding.terminalTitle.text} ${binding.terminalName.text}")
@@ -1335,10 +1386,6 @@ class MainFragment : Fragment() {
         // 当前站点卡片
         binding.currentStationCard.setOnClickListener {
             utils.showMsg("${binding.currentStationState.text} ${binding.currentStationName.text}")
-        }
-
-        // 距离卡片
-        binding.currentDistanceToCurrentStationCard.setOnClickListener {
             utils.showMsg("${binding.currentDistanceToCurrentStationValue.text}${binding.currentDistanceToCurrentStationUnit.text}")
         }
 
@@ -1535,6 +1582,11 @@ class MainFragment : Fragment() {
 
             }
 
+        }
+
+        // 停止播报
+        binding.stopAnnouncement.setOnClickListener {
+            pauseAnnounce()
         }
 
         binding.serviceBtn.setOnClickListener {
@@ -2001,8 +2053,9 @@ class MainFragment : Fragment() {
             if (event.action == MotionEvent.ACTION_UP) {
                 v.performClick()
             }
-            if (utils.getClickMapPauseAn())
+            if (utils.getClickMapPauseAn()) {
                 pauseAnnounce()
+            }
             return@setOnTouchListener true
         }
 
@@ -2059,8 +2112,9 @@ class MainFragment : Fragment() {
         }
 
         aMap.setOnMapTouchListener {
-            if (utils.getClickMapPauseAn())
+            if (utils.getClickMapPauseAn()) {
                 pauseAnnounce()
+            }
         }
 
         // 每隔1s刷新地图Text
@@ -2919,18 +2973,25 @@ class MainFragment : Fragment() {
     /**
      * 下一站
      */
-    private fun nextStation() {
-        if (currentLineStation.id == null) return
+    private fun nextStation(): Boolean {
+
+
+        if (currentLineStation.id == null) return false
         if (currentLineStationState == onNext || currentLineStationState == onWillArrive) {
             currentLineStationState = onArrive
+            refreshUI()
+            return true
         } else if (currentLineStationState == onArrive) {
-            if (currentLineStationCount >= currentLineStationList.size - 1) return
+            if (currentLineStationCount >= currentLineStationList.size - 1) return false
             currentLineStationCount++
             currentLineStation = currentLineStationList[currentLineStationCount]
             currentLineStationState = onNext
+            refreshUI()
+            return true
+        } else {
+            return false
         }
 
-        refreshUI()
     }
 
     /**
@@ -3146,6 +3207,10 @@ class MainFragment : Fragment() {
         var data: ByteArray?,
         var pcmEncoding: Int,
         var sampleRate: Int,
+        /**
+         * AudioFormat.CHANNEL_OUT_STEREO（双声道）
+         * or
+         * AudioFormat.CHANNEL_OUT_MONO（单声道） */
         var channelMask: Int,
         var durationUs: Long,
         var fileIndex: Int
@@ -3172,10 +3237,10 @@ class MainFragment : Fragment() {
         val pcmQueue = ArrayBlockingQueue<PcmWithInfo>(1024 * 1024)
 
         audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+        isAnnouncing = false
 
         if (::audioPlayScope.isInitialized)
             audioPlayScope.cancel()
-
 
         // 音频读取与解码
         audioStreamScope = CoroutineScope(Dispatchers.IO).launch {
@@ -3208,7 +3273,10 @@ class MainFragment : Fragment() {
                 return@launch
             }
 
-            val anExp = anExps.split("\n").random()
+            val anExpList = anExps.split("\n")
+            val chooseIndex = Random.nextInt(0, anExpList.size)
+            val anExp = anExpList[chooseIndex]
+//            Log.d("anExp", anExp)
 
             val anList = utils.getAnnouncements(anExp)
             for (item in anList) {
@@ -3482,9 +3550,9 @@ class MainFragment : Fragment() {
 
 
                 val channelMask = if (channelCount == 2) {
-                    AudioFormat.CHANNEL_OUT_STEREO
+                    AudioFormat.CHANNEL_OUT_STEREO  // 双声道
                 } else {
-                    AudioFormat.CHANNEL_OUT_MONO
+                    AudioFormat.CHANNEL_OUT_MONO  // 单声道
                 }
 
                 @Suppress("DEPRECATION")
@@ -3627,7 +3695,8 @@ class MainFragment : Fragment() {
             var hasPost = false
             val hasShowSubtitleMap = HashMap<Int, Boolean>() // <fileIndex, hasShow>
 
-            audioManager?.requestAudioFocus(audioFocusRequest!!)
+//            audioManager?.requestAudioFocus(audioFocusRequest!!)
+            isAnnouncing = true
 
             while (isActive) {
 
@@ -3635,13 +3704,14 @@ class MainFragment : Fragment() {
 
                 val pcm = pcmQueue.poll()
                 if (pcm != null) {
-
 //                    Log.d(tag, "play ${filePathList[pcm.fileIndex]} ${pcm.sampleRate}")
 
-                    // 初始化或重建audioTrack
+
+                    // 初始化audioTrack，或当音频格式变化时重建audioTrack
                     if (!hasInitAudioTrack ||
                         audioTrack.audioFormat != pcm.pcmEncoding ||
-                        audioTrack.sampleRate != pcm.sampleRate
+                        audioTrack.sampleRate != pcm.sampleRate ||
+                        audioTrack.channelConfiguration != pcm.channelMask
                     ) {
 
                         hasInitAudioTrack = true
@@ -3686,6 +3756,26 @@ class MainFragment : Fragment() {
                         }
                     }
 
+                    if (pcm.fileIndex == filePathList.size - 1 && !hasPost) {
+//                        Log.d(tag, "play finish")
+                        audioReleaseHandler.removeCallbacksAndMessages(null)
+                        audioReleaseHandler.postDelayed({
+                            requireActivity().runOnUiThread {
+                                audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+                                binding.stopAnnouncement.visibility = GONE
+                                audioPlayScope.cancel()
+                            }
+                            isAnnouncing = false
+                        }, pcm.durationUs / 1000 + 500) //附加500ms延迟
+                        hasPost = true
+                    } else {
+                        requireActivity().runOnUiThread {
+                            audioManager?.requestAudioFocus(audioFocusRequest!!)
+                            binding.stopAnnouncement.visibility = VISIBLE
+                        }
+
+                    }
+
                     synchronized(audioTrack) {
                         if (pcm.data != null && audioTrack.state == AudioTrack.STATE_INITIALIZED
                             && audioTrack.playState == AudioTrack.PLAYSTATE_PLAYING
@@ -3695,14 +3785,7 @@ class MainFragment : Fragment() {
                         }
                     }
 
-                    if (pcm.fileIndex == filePathList.size - 1 && !hasPost) {
-//                        Log.d(tag, "play finish")
-                        audioReleaseHandler.removeCallbacksAndMessages(null)
-                        audioReleaseHandler.postDelayed({
-                            audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-                        }, pcm.durationUs / 1000)
-                        hasPost = true
-                    }
+
                 }
             }
 
@@ -3980,7 +4063,12 @@ class MainFragment : Fragment() {
 
     fun pauseAnnounce() {
 
+        binding.stopAnnouncement.visibility = GONE
+
+        simRunningHandler.removeCallbacksAndMessages(null)
+
         audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+        isAnnouncing = false
 
         if (::audioPlayScope.isInitialized)
             audioPlayScope.cancel()

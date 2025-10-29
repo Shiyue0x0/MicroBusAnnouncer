@@ -216,7 +216,7 @@ class ESView : View {
         }
         // View宽度不足够容纳文本，轮播显示，羽化水平边缘
         else {
-            scrollX -= pixelMovePerSecond / fps
+            scrollX -= pixelMovePerSecond.toFloat() / fps
             canvas.drawText(
                 text,
                 scrollX,
