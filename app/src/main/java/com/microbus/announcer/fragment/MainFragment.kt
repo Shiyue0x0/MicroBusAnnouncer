@@ -585,6 +585,7 @@ class MainFragment : Fragment() {
         viewList.add(binding.nextStation)
         viewList.add(binding.terminal)
         viewList.add(binding.terminalCard)
+        viewList.add(binding.navCard)
         //显示|隐藏路线站点框和全站点路线按钮（渐出动画）
         if (currentLine.name != resources.getString(R.string.line_all) && currentLine.name != resources.getString(
                 R.string.main_line_0
@@ -1134,16 +1135,20 @@ class MainFragment : Fragment() {
                 locationClient.startLocation()
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 1f
+                binding.navStationCard.visibility = VISIBLE
+                binding.navSpeedCard.visibility = VISIBLE
             } else {
                 locationClient.stopLocation()
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 0f
                 matchCount = 0
-                binding.currentDistanceToCurrentStationValue.text =
-                    getString(R.string.main_distance_value)
+                binding.currentDistanceToCurrentStationValue.text
+                getString(R.string.main_distance_value)
                 currentSpeedKmH = -1.0
                 binding.speedValue.text =
                     getString(R.string.main_speed_value)
+                binding.navStationCard.visibility = GONE
+                binding.navSpeedCard.visibility = GONE
             }
         }
 
@@ -1347,27 +1352,43 @@ class MainFragment : Fragment() {
             // 关闭定位
             binding.locationBtnGroup.uncheck(binding.locationBtn.id)
 
+            //关闭报站
+            pauseAnnounce()
+
             // 切换到起点站
             if (currentLineStationCount != 0) {
                 setStationAndState(0, onNext)
                 utils.haptic(binding.startingStation)
             }
 
+            var lastAnFinishTimestamp = Long.MIN_VALUE
+            var lastIsAnnouncing = false
             val simRunningRunnable = object : Runnable {
                 override fun run() {
 
 //                    Log.d(tag, "simRunningRunnable running")
 
-                    simRunningHandler.postDelayed(this, 500L)
-
                     if (!isAnnouncing) {
-                        if (nextStation()) {
-                            isAnnouncing = true
-                            announce()
-                        } else {
-                            simRunningHandler.removeCallbacksAndMessages(null)
+
+                        if (lastIsAnnouncing) {
+                            lastAnFinishTimestamp = System.currentTimeMillis()
+                        }
+
+                        if (System.currentTimeMillis() >= lastAnFinishTimestamp + utils.getAutoAnInterval() * 1000L) {
+                            if (nextStation()) {
+                                isAnnouncing = true
+                                announce()
+
+                            } else {
+                                simRunningHandler.removeCallbacksAndMessages(null)
+                            }
                         }
                     }
+
+                    lastIsAnnouncing = isAnnouncing
+
+                    simRunningHandler.postDelayed(this, 100L)
+
                 }
             }
             simRunningHandler.postDelayed(simRunningRunnable, 0L)
@@ -1644,6 +1665,10 @@ class MainFragment : Fragment() {
 
             override fun run() {
 
+                esRefreshHandler.postDelayed(this, 100L)
+
+                if (!isAdded)
+                    return
 
                 val esSpeed = utils.getEsSpeed()
                 binding.headerLeftNew.pixelMovePerSecond = esSpeed
@@ -1691,8 +1716,20 @@ class MainFragment : Fragment() {
 
                 esRefreshCount++
 
+                val navCardVisibility =
+                    if (utils.getIsNavMode() &&
+                        !(currentLine.name == resources.getString(R.string.line_all) && utils.getIsMapEditLineMode()
+                                )
+                    )
+                        VISIBLE
+                    else
+                        GONE
 
-                esRefreshHandler.postDelayed(this, 100L)
+                if (binding.navCard.visibility != navCardVisibility) {
+                    binding.navCard.visibility = navCardVisibility
+                    binding.fill3.visibility = navCardVisibility
+                }
+
             }
         }
         esRefreshHandler.postDelayed(esRefreshRunnable, 0L)
@@ -1712,6 +1749,9 @@ class MainFragment : Fragment() {
 
         binding.headerLeftNew.minShowTimeMs = 500
         binding.headerRightNew.minShowTimeMs = 500
+
+        binding.navStationName.finishPositionOfLastWord = 0.0F
+
     }
 
     /**
@@ -2495,25 +2535,40 @@ class MainFragment : Fragment() {
 
         // 距离格式化
         if (currentLine.name == "") {
+            binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
             binding.currentDistanceToCurrentStationValue.text =
                 getString(R.string.main_distance_value)
         } else if (currentDistanceToCurrentStation >= 100000) {
             binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
             binding.currentDistanceToCurrentStationValue.text =
                 String.format(Locale.CHINA, "%.1f", currentDistanceToCurrentStation / 1000)
+            binding.navStationDistanceValue.text =
+                String.format(Locale.CHINA, "%.0f", currentDistanceToCurrentStation / 1000)
         } else if (currentDistanceToCurrentStation >= 10000) {
             binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
             binding.currentDistanceToCurrentStationValue.text =
                 String.format(Locale.CHINA, "%.2f", currentDistanceToCurrentStation / 1000)
+            binding.navStationDistanceValue.text =
+                String.format(Locale.CHINA, "%.0f", currentDistanceToCurrentStation / 1000)
         } else if (currentDistanceToCurrentStation >= 1000) {
             binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
             binding.currentDistanceToCurrentStationValue.text =
                 String.format(Locale.CHINA, "%.3f", currentDistanceToCurrentStation / 1000)
+            binding.navStationDistanceValue.text =
+                String.format(Locale.CHINA, "%.0f", currentDistanceToCurrentStation / 1000)
         } else {
             binding.currentDistanceToCurrentStationUnit.text = getString(R.string.m)
             binding.currentDistanceToCurrentStationValue.text =
                 String.format(Locale.CHINA, "%.1f", currentDistanceToCurrentStation)
+            binding.navStationDistanceValue.text =
+                String.format(Locale.CHINA, "%.0f", currentDistanceToCurrentStation)
         }
+
+
+
+        binding.navStationDistanceUnit.text =
+            binding.currentDistanceToCurrentStationUnit.text.toString().replace("(", "")
+                .replace(")", "")
 
 
         //更新速度
@@ -2529,6 +2584,9 @@ class MainFragment : Fragment() {
 
         binding.speedValue.text =
             String.format(Locale.CHINA, "%.1f", currentSpeedKmH)
+
+        binding.navStationSpeedValue.text =
+            String.format(Locale.CHINA, "%.0f", currentSpeedKmH)
 
 
         // 计算正向距离
@@ -3056,10 +3114,22 @@ class MainFragment : Fragment() {
         }
 
         binding.currentStationState.text = currentStationStateText
-        if (utils.getUILang() == "zh")
-            binding.currentStationName.text = currentLineStation.cnName
+        val stationName = if (utils.getUILang() == "zh")
+            currentLineStation.cnName
         else
-            binding.currentStationName.text = currentLineStation.enName
+            currentLineStation.enName
+
+        binding.currentStationName.text = stationName
+        binding.navStationName.showText(stationName)
+        binding.navStationName.requestLayout()
+
+        binding.navStationSign.text = when (currentLineStationState) {
+            onNext -> "→"
+            onWillArrive -> "↘"
+            onArrive -> "↓"
+            else -> ""
+        }
+
 
         //路线卡片滚动到当前站点
         binding.lineStationList.post {

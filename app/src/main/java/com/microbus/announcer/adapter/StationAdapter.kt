@@ -109,13 +109,13 @@ internal class StationAdapter(
         // LineViewHolder
         if (position == 0) {
             val holder = holder as StationHeaderViewHolder
-            holder.title.text = "查找到站点 ${stationList.size}个"
+            holder.title.text = "查找到站点 ${stationDatabaseHelper.getCount()}个"
         }
         // ItemLineHeaderHolder
         else {
             val holder = holder as StationViewHolder
             val position = position - 1
-            val station = stationDatabaseHelper.queryById(stationList[position].id ?: -1).first()
+            val station = stationDatabaseHelper.queryByCount(position)
 
             holder.station = station
             holder.stationId.text = station.id.toString()
@@ -145,8 +145,13 @@ internal class StationAdapter(
             holder.stationCard.setOnLongClickListener {
                 utils.showStationDialog(
                     "update",
-                    stationDatabaseHelper.queryById(station.id ?: -1).first(), onDone = {
+                    stationDatabaseHelper.queryById(station.id ?: -1).first(),
+                    onAddDone = {
                         notifyItemChanged(position + 1)
+                    },
+                    onDelDone = {
+                        notifyItemRemoved(position + 1)
+                        notifyItemRangeChanged(position + 1, itemCount - (position + 1))
                     }
                 )
                 return@setOnLongClickListener true
@@ -156,7 +161,7 @@ internal class StationAdapter(
     }
 
     override fun getItemCount(): Int {
-        return stationList.size + 1
+        return stationDatabaseHelper.getCount().toInt() + 1
     }
 
     override fun getItemId(position: Int): Long {

@@ -166,6 +166,10 @@ class SysAndEsSettingsFragment : Fragment() {
             mutableStateOf(utils.getIsOpenMidEs())
         }
 
+        val (isNavMode, setIsNavMode) = remember {
+            mutableStateOf(utils.getIsNavMode())
+        }
+
         DisposableEffect(prefs) {
             val listener = OnSharedPreferenceChangeListener { prefs, key ->
                 when (key) {
@@ -188,6 +192,7 @@ class SysAndEsSettingsFragment : Fragment() {
 
                     "isOpenLeftEs" -> setIsOpenLeftEs(prefs.getBoolean(key, true))
                     "isMidLeftEs" -> setIsMidLeftEs(prefs.getBoolean(key, true))
+                    "isNavMode" -> setIsNavMode(prefs.getBoolean(key, false))
 
                 }
             }
@@ -219,6 +224,7 @@ class SysAndEsSettingsFragment : Fragment() {
                         BottomBarItem(showBottomBar, setShowBottomBar)
                         SaveBackAfterExitItem(saveBackAfterExit, setSaveBackAfterExit)
                         NoticeItem(notice, setNotice)
+                        IsNavModeItem(isNavMode, setIsNavMode)
                         Text(
                             "电显基础",
                             fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
@@ -368,19 +374,45 @@ class SysAndEsSettingsFragment : Fragment() {
             "出站/即将到站/到站时发送通知",
             painterResource(id = R.drawable.notice),
             {
-                toggleIsSeedNotice(value, setValue, !value)
+                toggleNotice(value, setValue, !value)
             },
             rightContain = {
                 SwitchSettingItem(value) {
-                    toggleIsSeedNotice(value, setValue, it)
+                    toggleNotice(value, setValue, it)
                 }
             })
     }
 
-    fun toggleIsSeedNotice(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
+    fun toggleNotice(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
         setValue(it)
         prefs.edit {
             putBoolean("notice", it)
+        }
+        if (it) {
+            permissionManager.requestNoticePermission()
+        }
+    }
+
+    @Composable
+    fun IsNavModeItem(value: Boolean, setValue: (Boolean) -> Unit) {
+        BaseSettingItem(
+            "巡航模式",
+            "在主控顶部显示巡航信息",
+            painterResource(id = R.drawable.nav),
+            {
+                toggleIsNavMode(value, setValue, !value)
+            },
+            rightContain = {
+                SwitchSettingItem(value) {
+                    toggleIsNavMode(value, setValue, it)
+                }
+            })
+    }
+
+    fun toggleIsNavMode(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
+        setValue(it)
+        prefs.edit {
+            putBoolean("isNavMode", it)
         }
         if (it) {
             permissionManager.requestNoticePermission()

@@ -154,6 +154,13 @@ class Utils(private val context: Context) {
     }
 
     /**
+     * 从设置中获取是否启用巡航模式
+     */
+    fun getIsNavMode(): Boolean {
+        return prefs.getBoolean("isNavMode", false)
+    }
+
+    /**
      * 从设置中获取界面语言
      * @return zh中文，en英文
      */
@@ -332,6 +339,11 @@ class Utils(private val context: Context) {
         return prefs.getString("serviceLanguageStr", default) ?: default
     }
 
+
+    fun getAutoAnInterval(): Int {
+        return prefs.getInt("autoAnInterval", 0)
+    }
+
     /**
      * 从设置中获取播报语音库
      */
@@ -461,8 +473,8 @@ class Utils(private val context: Context) {
         latLng: LatLng = LatLng(0.0, 0.0),
         isOrderLatLng: Boolean = false,
         stationFragment: StationFragment = StationFragment(),
-        onDone: () -> Unit = {},
-
+        onAddDone: () -> Unit = {},
+        onDelDone: () -> Unit = {}
         ) {
 
         val stationDatabaseHelper = StationDatabaseHelper(context)
@@ -473,6 +485,7 @@ class Utils(private val context: Context) {
         val alertDialog =
             MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
                 .setView(binding.root)
+                .setNeutralButton("删除", null)
                 .setNegativeButton(
                     context.resources.getString(android.R.string.cancel), null
                 )
@@ -502,6 +515,8 @@ class Utils(private val context: Context) {
             alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
                 .setOnClickListener {
                     stationDatabaseHelper.delById(oldStation.id!!)
+                    alertDialog.dismiss()
+                    onDelDone()
                 }
         }
 
@@ -580,7 +595,7 @@ class Utils(private val context: Context) {
                     stationDatabaseHelper.updateById(oldStation.id!!, stationNew)
                 }
 
-                onDone()
+                onAddDone()
                 alertDialog.cancel()
 
 

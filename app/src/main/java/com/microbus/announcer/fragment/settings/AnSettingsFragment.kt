@@ -53,6 +53,7 @@ import com.microbus.announcer.compose.BaseSettingItem
 import com.microbus.announcer.compose.SwitchSettingItem
 import com.microbus.announcer.databinding.DialogInputBinding
 import com.microbus.announcer.databinding.DialogLoadingBinding
+import com.microbus.announcer.databinding.DialogSliderBinding
 
 
 class AnSettingsFragment : Fragment() {
@@ -156,6 +157,10 @@ class AnSettingsFragment : Fragment() {
             mutableStateOf(utils.getServiceLanguageStr())
         }
 
+        val (autoAnInterval, setAutoAnInterval) = remember {
+            mutableStateOf(utils.getAutoAnInterval())
+        }
+
         val anFormatArrayOri = Array(3) { Array(4) { "" } }
 
         val stationStateList = utils.getStationStateList()
@@ -209,6 +214,9 @@ class AnSettingsFragment : Fragment() {
                     "serviceLanguageStr" -> {
                         setServiceLanguageStr(utils.getServiceLanguageStr())
                     }
+                    "autoAnInterval" -> {
+                        setAutoAnInterval(utils.getAutoAnInterval())
+                    }
 
                     else -> {
                         val anFormatArrayOri = Array(3) { Array(4) { "" } }
@@ -255,6 +263,7 @@ class AnSettingsFragment : Fragment() {
                         AnSubtitleItem(anSubtitle, setAnSubtitle)
                         ClickMapPauseAnItem(clickMapPauseAn, setClickMapPauseAn)
                         ServiceLanguageItem(serviceLanguageStr)
+                        AutoAnIntervalItem(autoAnInterval)
                         AnFormatGroup(anFormatArray)
                         Spacer(modifier = Modifier.height(1.dp))
                     }
@@ -526,6 +535,46 @@ class AnSettingsFragment : Fragment() {
                     .show(WindowInsetsCompat.Type.ime())
             })
     }
+
+    @Composable
+    fun AutoAnIntervalItem(interval: Int) {
+        BaseSettingItem(
+            "自动播报间隔", "每次报站间隔 $interval 秒", painterResource(id = R.drawable.time), {
+                val binding = DialogSliderBinding.inflate(LayoutInflater.from(context))
+                val dialog = MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                ).setTitle("设置自动播报间隔").setView(binding.root)
+                    .setPositiveButton("保存", null)
+                    .setNegativeButton(getString(android.R.string.cancel), null).show()
+
+                binding.slider.contentDescription = "拖动以调整自动播报间隔"
+                binding.slider.stepSize = 1F
+                binding.slider.valueFrom = 0F
+                binding.slider.valueTo = 60F
+                binding.slider.value = interval.toFloat()
+
+                binding.es.visibility = ViewGroup.GONE
+
+                binding.text.visibility = ViewGroup.VISIBLE
+                binding.text.text = getString(R.string.autoAnPerSecond, interval)
+
+                binding.slider.addOnChangeListener { slider, value, fromUser ->
+                    binding.text.text = getString(R.string.autoAnPerSecond, value.toInt())
+                }
+
+                dialog.setCanceledOnTouchOutside(false)
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    prefs.edit {
+                        putInt("autoAnInterval", binding.slider.value.toInt())
+                    }
+                    utils.showMsg("自动播报间隔设置成功")
+                    dialog.dismiss()
+                }
+
+            })
+    }
+
 
     @Composable
     fun AnFormatGroup(anFormatArray: Array<Array<String>>) {

@@ -189,9 +189,9 @@ class StationFragment : Fragment() {
     }
 
     private fun addStation() {
-        utils.showStationDialog("new", stationFragment = this, onDone = {
-            @SuppressLint("NotifyDataSetChanged")
-            binding!!.stationRecyclerView.adapter!!.notifyDataSetChanged()
+        utils.showStationDialog("new", stationFragment = this, onAddDone = {
+            val adapter = binding!!.stationRecyclerView.adapter!!
+            adapter.notifyItemInserted(adapter.itemCount)
         })
     }
 

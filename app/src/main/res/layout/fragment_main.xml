@@ -36,10 +36,6 @@
         android:orientation="horizontal"
         app:layout_constraintTop_toTopOf="parent" />
 
-
-    <!-- 电显 新 -->
-    <!--    app:cardBackgroundColor="?attr/cardBackgroundColor"-->
-
     <LinearLayout
         android:id="@+id/topFill"
         android:layout_width="match_parent"
@@ -47,6 +43,7 @@
         android:orientation="horizontal"
         app:layout_constraintTop_toBottomOf="@+id/bar" />
 
+    <!-- 电显 新 -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/headerNew"
         android:layout_width="match_parent"
@@ -118,12 +115,207 @@
 
     </com.google.android.material.card.MaterialCardView>
 
+
     <LinearLayout
         android:id="@+id/fill2"
         android:layout_width="match_parent"
         android:layout_height="8dp"
         android:orientation="horizontal"
         app:layout_constraintTop_toBottomOf="@+id/headerNew" />
+
+
+    <!-- 巡航信息栏 新 -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/navCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="visible"
+        app:cardBackgroundColor="@color/an_contain_bg"
+        app:cardCornerRadius="24dp"
+        app:layout_constraintTop_toBottomOf="@+id/fill2"
+        app:strokeWidth="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.microbus.announcer.view.ScrollingTextView
+                    android:id="@+id/navStationSign"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:layout_marginStart="2dp"
+                    android:layout_marginEnd="2dp"
+                    android:ellipsize="marquee"
+                    android:gravity="start"
+                    android:marqueeRepeatLimit="marquee_forever"
+                    android:paddingStart="8dp"
+                    android:singleLine="true"
+                    android:text="→"
+                    android:textColor="@color/md_theme_onSurface"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    app:background="@color/an_contain_bg" />
+
+                <com.microbus.announcer.view.ESView
+                    android:id="@+id/navStationName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:ellipsize="marquee"
+                    android:gravity="start"
+                    android:marqueeRepeatLimit="marquee_forever"
+                    android:maxWidth="160dp"
+                    android:singleLine="true"
+                    android:text="Station"
+                    android:textColor="@color/md_theme_onSurface"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    app:background="@color/an_contain_bg" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/navStationCard"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:cardBackgroundColor="@color/md_theme_surface"
+                    app:cardCornerRadius="16dp"
+                    app:layout_constraintTop_toBottomOf="@+id/topFill"
+                    app:strokeWidth="0dp">
+
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.microbus.announcer.view.ScrollingTextView
+                            android:id="@+id/navStationDistanceValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="marquee"
+                            android:gravity="center"
+                            android:marqueeRepeatLimit="marquee_forever"
+                            android:singleLine="true"
+                            android:text="100"
+                            android:textColor="@color/md_theme_onSurface"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent" />
+
+                        <com.microbus.announcer.view.ScrollingTextView
+                            android:id="@+id/navStationDistanceUnit"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="marquee"
+                            android:gravity="center"
+                            android:marqueeRepeatLimit="marquee_forever"
+                            android:singleLine="true"
+                            android:text="m"
+                            android:textColor="@color/md_theme_onSurface"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            app:layout_constraintBaseline_toBaselineOf="@id/navStationDistanceValue"
+                            app:layout_constraintStart_toEndOf="@+id/navStationDistanceValue" />
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+
+            <!--            <LinearLayout-->
+            <!--                android:id="@+id/navCardFill"-->
+            <!--                android:layout_width="0dp"-->
+            <!--                android:layout_height="match_parent"-->
+            <!--                android:layout_weight="1"-->
+            <!--                android:orientation="horizontal"-->
+            <!--                app:layout_constraintTop_toTopOf="parent" />-->
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/navSpeedCard"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardBackgroundColor="@color/md_theme_surface"
+                app:cardCornerRadius="16dp"
+                app:layout_constraintTop_toBottomOf="@+id/topFill"
+                app:strokeWidth="0dp">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.microbus.announcer.view.ScrollingTextView
+                        android:id="@+id/navStationSpeedValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="marquee"
+                        android:gravity="center"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:singleLine="true"
+                        android:text="25"
+                        android:textColor="@color/md_theme_onSurface"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <com.microbus.announcer.view.ScrollingTextView
+                        android:id="@+id/navStationSpeedUnit"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="marquee"
+                        android:gravity="center"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:singleLine="true"
+                        android:text="khm"
+                        android:textColor="@color/md_theme_onSurface"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        app:layout_constraintBaseline_toBaselineOf="@id/navStationSpeedValue"
+                        app:layout_constraintStart_toEndOf="@+id/navStationSpeedValue" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+
+    <LinearLayout
+        android:id="@+id/fill3"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:orientation="horizontal"
+        android:visibility="visible"
+        app:layout_constraintTop_toBottomOf="@+id/navCard" />
+
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/lineStationCard"
@@ -136,7 +328,7 @@
         android:visibility="invisible"
         app:cardBackgroundColor="@color/an_contain_bg"
         app:cardCornerRadius="24dp"
-        app:layout_constraintTop_toBottomOf="@+id/fill2"
+        app:layout_constraintTop_toBottomOf="@+id/fill3"
         app:strokeWidth="0dp">
 
         <com.microbus.announcer.view.NestedScrollableHost

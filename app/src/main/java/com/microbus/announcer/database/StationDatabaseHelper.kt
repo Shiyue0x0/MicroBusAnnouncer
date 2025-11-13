@@ -137,6 +137,30 @@ class StationDatabaseHelper(
         return list
     }
 
+
+    fun queryByCount(count: Int): Station {
+        val cursor: Cursor = readableDatabase.query(tableName, null, null, null, null, null, null)
+        var cursorCount = 0
+        val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
+
+        while (cursor.moveToNext()) {
+            if (count == cursorCount) {
+                station.id = cursor.getInt(0)
+                station.cnName = cursor.getString(1)
+                station.enName = cursor.getString(2)
+                station.longitude = cursor.getDouble(3)
+                station.latitude = cursor.getDouble(4)
+                if (!cursor.isNull(5))
+                    station.type = cursor.getString(5)
+                return station
+            }
+            cursorCount++
+        }
+
+        return station
+
+    }
+
     fun queryAll(): MutableList<Station> {
         val list: MutableList<Station> = ArrayList()
         val cursor: Cursor = readableDatabase.query(tableName, null, null, null, null, null, null)
@@ -161,5 +185,24 @@ class StationDatabaseHelper(
                     "longitude = ${station.longitude}, latitude = ${station.latitude}, type = '${station.type}'" +
                     "where id = $id;"
         writableDatabase.execSQL(sql)
+    }
+
+    fun getCount(): Long {
+        val db = readableDatabase
+        var count: Long = 0
+
+        try {
+            val cursor = db.rawQuery("SELECT COUNT(*) FROM $tableName", null)
+            if (cursor.moveToFirst()) {
+                count = cursor.getLong(0)
+            }
+            cursor.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            db.close()
+        }
+
+        return count
     }
 }
