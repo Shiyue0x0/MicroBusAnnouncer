@@ -12,6 +12,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -48,7 +50,6 @@ class LineFragment : Fragment() {
         Log.d(tag, "onCreate")
     }
 
-    @SuppressLint("InflateParams", "InternalInsetResource", "DiscouragedApi")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -65,8 +66,13 @@ class LineFragment : Fragment() {
         (requireActivity() as AppCompatActivity).setSupportActionBar(binding!!.toolbar)
 
         //设置状态栏填充高度
-        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
-        binding!!.bar.layoutParams.height = resources.getDimensionPixelSize(resourceId)
+//        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
+//        binding!!.bar.layoutParams.height = resources.getDimensionPixelSize(resourceId)
+        ViewCompat.setOnApplyWindowInsetsListener(binding!!.main) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
 
         //binding!!.lineRecyclerView.itemAnimator = null
         refreshLineList()

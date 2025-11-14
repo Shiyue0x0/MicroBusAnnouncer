@@ -551,7 +551,7 @@ class AnSettingsFragment : Fragment() {
                 binding.slider.contentDescription = "拖动以调整自动播报间隔"
                 binding.slider.stepSize = 1F
                 binding.slider.valueFrom = 0F
-                binding.slider.valueTo = 60F
+                binding.slider.valueTo = 180F
                 binding.slider.value = interval.toFloat()
 
                 binding.es.visibility = ViewGroup.GONE
@@ -699,7 +699,6 @@ class AnSettingsFragment : Fragment() {
                             // 中断播报
                             dialog.setOnDismissListener {
                                 val intent = Intent()
-                                    .setAction(utils.tryListeningAnActionName)
                                     .setAction(utils.tryListeningAnActionName)
                                     .putExtra("stateStr", "")
                                     .putExtra("typeStr", "")

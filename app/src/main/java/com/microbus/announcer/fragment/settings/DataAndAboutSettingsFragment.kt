@@ -581,17 +581,12 @@ class DataAndAboutSettingsFragment : Fragment() {
 
                                     newVerDialog.getButton(AlertDialog.BUTTON_POSITIVE)
                                         .setOnClickListener {
-                                            val uri = when (which) {
-                                                0 -> "https://github.com/Shiyue0x0/MicroBusAnnouncer/releases".toUri()
-                                                1 -> "https://gitee.com/shiyue0x0/micro-bus-announcer/releases".toUri()
-                                                else -> "".toUri()
+                                            val uriStr = when (which) {
+                                                0 -> "https://github.com/Shiyue0x0/MicroBusAnnouncer/releases"
+                                                1 -> "https://gitee.com/shiyue0x0/micro-bus-announcer/releases"
+                                                else -> ""
                                             }
-                                            val intent = Intent(Intent.ACTION_VIEW, uri)
-                                            if (intent.resolveActivity(requireContext().packageManager) != null) {
-                                                startActivity(intent)
-                                            } else {
-                                                utils.showMsg("打开失败，请检查设备是否安装浏览器")
-                                            }
+                                            utils.openUri(uriStr)
 
 
                                         }
@@ -621,17 +616,12 @@ class DataAndAboutSettingsFragment : Fragment() {
                 ).setTitle("选择仓库").setSingleChoiceItems(
                     urlList, -1
                 ) { dialog, which ->
-                    val uri = when (which) {
-                        0 -> "https://github.com/Shiyue0x0/MicroBusAnnouncer".toUri()
-                        1 -> "https://gitee.com/shiyue0x0/micro-bus-announcer".toUri()
-                        else -> "https://github.com/Shiyue0x0/MicroBusAnnouncer".toUri()
+                    val uriStr = when (which) {
+                        0 -> "https://github.com/Shiyue0x0/MicroBusAnnouncer"
+                        1 -> "https://gitee.com/shiyue0x0/micro-bus-announcer"
+                        else -> "https://github.com/Shiyue0x0/MicroBusAnnouncer"
                     }
-                    val intent = Intent(Intent.ACTION_VIEW, uri)
-                    if (intent.resolveActivity(requireContext().packageManager) != null) {
-                        startActivity(intent)
-                    } else {
-                        utils.showMsg("打开失败，请检查设备是否安装浏览器")
-                    }
+                    utils.openUri(uriStr)
                     dialog.cancel()
                 }.show()
 
@@ -645,13 +635,8 @@ class DataAndAboutSettingsFragment : Fragment() {
             "Bilibili@Shiyue0x0",
             painterResource(id = R.drawable.github),
             {
-                val uri = "https://space.bilibili.com/34943744".toUri()
-                val intent = Intent(Intent.ACTION_VIEW, uri)
-                if (intent.resolveActivity(requireContext().packageManager) != null) {
-                    startActivity(intent)
-                } else {
-                    utils.showMsg("打开失败，请检查设备是否安装浏览器")
-                }
+                val uriStr = "https://space.bilibili.com/34943744"
+                utils.openUri(uriStr)
             })
     }
 

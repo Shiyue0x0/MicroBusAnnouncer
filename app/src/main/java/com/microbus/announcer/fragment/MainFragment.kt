@@ -4296,7 +4296,7 @@ class MainFragment : Fragment() {
 
     fun refreshEsOnlyText(isUseSet: Boolean = false) {
 
-        Log.d(tag, "refreshEsOnlyText S")
+//        Log.d(tag, "refreshEsOnlyText S")
 
         var leftText: String
         var rightText: String
@@ -4333,7 +4333,7 @@ class MainFragment : Fragment() {
             binding.headerRightNew.showText(rightText)
         }
 
-        Log.d(tag, "refreshEsOnlyText E")
+//        Log.d(tag, "refreshEsOnlyText E")
 
 
     }
@@ -4572,15 +4572,16 @@ class MainFragment : Fragment() {
                 if (isAdded) {
                     when (intent.action) {
                         utils.tryListeningAnActionName -> {
+                            val stateStr = intent.getStringExtra("stateStr")
+                            val typeStr = intent.getStringExtra("typeStr")
+                            val format = intent.getStringExtra("format")
                             if (currentLine.name != "") {
-                                val stateStr = intent.getStringExtra("stateStr")
-                                val typeStr = intent.getStringExtra("typeStr")
-                                val format = intent.getStringExtra("format")
                                 if (!stateStr.isNullOrBlank() && !typeStr.isNullOrBlank())
                                     utils.showMsg("正在试听${stateStr}${typeStr}播报")
                                 announce(format = format ?: "")
                             } else {
-                                utils.showMsg("还没有选择路线，请前往“主控”选择")
+                                if (stateStr != "")
+                                    utils.showMsg("还没有选择路线，请前往“主控”选择")
                             }
                         }
 

@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
@@ -24,7 +26,6 @@ class SettingFragment : Fragment() {
 
     val fragmentList: MutableList<Fragment> = ArrayList()
 
-    @SuppressLint("DiscouragedApi", "InternalInsetResource")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -33,8 +34,13 @@ class SettingFragment : Fragment() {
         _binding = FragmentSettingBinding.inflate(inflater, container, false)
 
         //设置状态栏填充高度
-        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
-        binding.bar.layoutParams.height = resources.getDimensionPixelSize(resourceId)
+//        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
+//        binding.bar.layoutParams.height = resources.getDimensionPixelSize(resourceId)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
 
         fragmentList.add(SysAndEsSettingsFragment())
         fragmentList.add(AnSettingsFragment())

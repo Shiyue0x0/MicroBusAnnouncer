@@ -1087,12 +1087,7 @@ class Utils(private val context: Context) {
                     1 -> "https://gitee.com/shiyue0x0/micro-bus-announcer/blob/master/$url"
                     else -> "https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/master/$url"
                 }
-                val intent = Intent(Intent.ACTION_VIEW, uriStr.toUri())
-                if (intent.resolveActivity(context.packageManager) != null) {
-                    context.startActivity(intent)
-                } else {
-                    showMsg("打开失败，请检查设备是否安装浏览器")
-                }
+                openUri(uriStr)
             }
             .show()
     }
@@ -1194,6 +1189,19 @@ class Utils(private val context: Context) {
     fun getRandomNumByTime(min: Int, max: Int): Int {
         val randomNum = System.currentTimeMillis()
         return (randomNum % (max - min) + min).toInt()
+    }
+
+    fun openUri(uriStr: String){
+        val intent = Intent(Intent.ACTION_VIEW, uriStr.toUri())
+        if (intent.resolveActivity(context.packageManager) != null) {
+            context.startActivity(intent)
+        } else {
+            val webviewIntent = Intent(context, WebviewActivity::class.java)
+            webviewIntent.putExtra("uriStr", uriStr)
+            context.startActivity(webviewIntent)
+        }
+
+
     }
 }
 

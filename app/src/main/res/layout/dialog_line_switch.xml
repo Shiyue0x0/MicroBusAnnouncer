@@ -7,30 +7,36 @@
     android:orientation="vertical"
     android:padding="20dp">
 
-
-    <com.google.android.material.textfield.TextInputLayout
-        style="?attr/textInputFilledStyle"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:autofillHints=""
-        android:ems="10"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        android:hint="@string/input_line_name"
-        android:imeOptions="actionSearch"
-        android:inputType="text"
-        android:text=""
-        app:boxBackgroundColor="@color/an_window_bg"
-        app:startIconDrawable="@drawable/search">
+        app:cardCornerRadius="24dp"
+        app:strokeWidth="0dp">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/lineNameInput"
+        <com.google.android.material.textfield.TextInputLayout
+            style="?attr/textInputFilledStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:singleLine="true"
-            android:textColor="@color/md_theme_primary" />
+            android:autofillHints=""
+            android:ems="10"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:hint="@string/input_line_name"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:text=""
+            app:boxBackgroundColor="@color/an_window_bg"
+            app:startIconDrawable="@drawable/search">
 
-    </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/lineNameInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="@color/md_theme_primary" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+    </com.google.android.material.card.MaterialCardView>
 
 
     <LinearLayout
