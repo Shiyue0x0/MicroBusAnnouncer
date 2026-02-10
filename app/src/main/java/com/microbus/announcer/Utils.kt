@@ -27,6 +27,7 @@ import androidx.preference.PreferenceManager
 import com.amap.api.maps.model.LatLng
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonArray
 import com.google.gson.JsonParser
 import com.microbus.announcer.bean.EsItem
 import com.microbus.announcer.bean.Line
@@ -345,7 +346,7 @@ class Utils(private val context: Context) {
     }
 
     /**
-     * 从设置中获取播报语音库
+     * 从设置中获取播报语音库名称
      */
     fun getAnnouncementLibrary(): String {
 
@@ -475,7 +476,7 @@ class Utils(private val context: Context) {
         stationFragment: StationFragment = StationFragment(),
         onAddDone: () -> Unit = {},
         onDelDone: () -> Unit = {}
-        ) {
+    ) {
 
         val stationDatabaseHelper = StationDatabaseHelper(context)
 
@@ -1092,6 +1093,8 @@ class Utils(private val context: Context) {
             .show()
     }
 
+    lateinit var stationLangTableList: JsonArray
+
     /**
      * 根据站点中文名称获取对应语言名称
      * @param cnName 要查找的中文名
@@ -1101,36 +1104,42 @@ class Utils(private val context: Context) {
      * */
     fun getStationNameFromCn(cnName: String, lang: String): String {
 
-        if (lang == "cn") {
-            return cnName
-        }
+//        if (lang == "cn") {
+//            return cnName
+//        }
 
+
+        var enName = cnName
         if (lang == "en") {
             val stationDatabaseHelper = StationDatabaseHelper(context)
             val queryStationList = stationDatabaseHelper.queryByCnName(cnName)
-            return if (queryStationList.isNotEmpty())
-                queryStationList.first().enName
-            else
-                cnName
+            if (queryStationList.isNotEmpty()) {
+                enName = queryStationList.first().enName
+            }
         }
 
         if (!isGrantManageFilesAccessPermission()) {
-            return cnName
+            return if (lang == "en") enName else cnName
         }
 
-        val langTableFile = File("$appRootPath/stationLangTable.json")
+        if (!this::stationLangTableList.isInitialized) {
 
-        if (!langTableFile.exists()) {
+            val langTableFile = File("$appRootPath/stationLangTable.json")
+
+            if (!langTableFile.exists()) {
 //            showMsg("stationLangTable.json文件不存在，请先创建")
-            return cnName
+                return if (lang == "en") enName else cnName
+            }
+
+            val element = JsonParser.parseString(langTableFile.readText())
+
+            if (!element.isJsonArray)
+                return if (lang == "en") enName else cnName
+
+            stationLangTableList = element.asJsonArray
         }
 
-        val element = JsonParser.parseString(langTableFile.readText())
-
-        if (!element.isJsonArray)
-            return cnName
-
-        val stationList = element.asJsonArray
+        val stationList = stationLangTableList
 
         for (station in stationList) {
 
@@ -1139,13 +1148,25 @@ class Utils(private val context: Context) {
             if (obj.get("cn") == null || obj.get("cn").asString != cnName)
                 continue
 
-            return if (obj.get(lang) != null)
-                obj.get(lang).asString
-            else
-                cnName
+
+            if (lang == "cn" && obj.get("cnrp") != null) {
+                return obj.get("cnrp").asString
+            }
+
+            if (lang == "en" && obj.get("enrp") != null) {
+                return obj.get("enrp").asString
+            }
+
+            if (obj.get(lang) != null)
+                return obj.get(lang).asString
+
         }
 
-        return cnName
+        return if (lang == "en") {
+            enName
+        } else {
+            cnName
+        }
 
     }
 
@@ -1191,7 +1212,7 @@ class Utils(private val context: Context) {
         return (randomNum % (max - min) + min).toInt()
     }
 
-    fun openUri(uriStr: String){
+    fun openUri(uriStr: String) {
         val intent = Intent(Intent.ACTION_VIEW, uriStr.toUri())
         if (intent.resolveActivity(context.packageManager) != null) {
             context.startActivity(intent)

@@ -138,8 +138,23 @@ class StationDatabaseHelper(
     }
 
 
-    fun queryByCount(count: Int): Station {
-        val cursor: Cursor = readableDatabase.query(tableName, null, null, null, null, null, null)
+    fun queryByCount(count: Int, key: String): Station {
+
+        val selection = if (key != "")
+            "(id like ?) or (cnName like ?) or (enName like ?)"
+        else
+            null
+
+        val selectionArgs = if (key != "")
+            arrayOf("%${key}%", "%${key}%", "%${key}%")
+        else
+            null
+
+
+        val cursor: Cursor = readableDatabase.query(
+            tableName, null, selection,
+            selectionArgs, null, null, null
+        )
         var cursorCount = 0
         val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
 
@@ -156,7 +171,7 @@ class StationDatabaseHelper(
             }
             cursorCount++
         }
-
+        cursor.close()
         return station
 
     }
@@ -193,6 +208,33 @@ class StationDatabaseHelper(
 
         try {
             val cursor = db.rawQuery("SELECT COUNT(*) FROM $tableName", null)
+            if (cursor.moveToFirst()) {
+                count = cursor.getLong(0)
+            }
+            cursor.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            db.close()
+        }
+
+        return count
+    }
+
+    fun getCountByKey(key: String): Long {
+        val db = readableDatabase
+        var count: Long = 0
+
+        val where = if (key != "")
+            "WHERE id LIKE '%$key%' OR cnName LIKE '%$key%' OR enName LIKE '%$key%'"
+        else
+            ""
+
+        try {
+            val cursor = db.rawQuery(
+                "SELECT COUNT(*) FROM $tableName $where",
+                null
+            )
             if (cursor.moveToFirst()) {
                 count = cursor.getLong(0)
             }

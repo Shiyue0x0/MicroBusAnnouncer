@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -47,8 +48,8 @@ class StationFragment : Fragment() {
 
         //获取ViewBinding
         binding = FragmentStationBinding.inflate(inflater, container, false)
-        stationDatabaseHelper = StationDatabaseHelper(context)
-        lineDatabaseHelper = LineDatabaseHelper(context)
+        stationDatabaseHelper = StationDatabaseHelper(requireContext())
+        lineDatabaseHelper = LineDatabaseHelper(requireContext())
 
         //获取Utils
         utils = Utils(requireContext())
@@ -92,21 +93,20 @@ class StationFragment : Fragment() {
                 searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
 
                     override fun onQueryTextSubmit(query: String?): Boolean {
-                        val stationList = stationDatabaseHelper.queryByKey(query!!)
-                        refreshStationList(stationList)
-                        searchView.clearFocus()
+                        refreshStationList(query!!)
+//                        searchView.clearFocus()
                         return true
                     }
 
                     override fun onQueryTextChange(newText: String?): Boolean {
+                        refreshStationList(newText!!)
                         return true
                     }
 
                 })
 
                 searchView.setOnCloseListener {
-                    val stationList = stationDatabaseHelper.queryAll()
-                    refreshStationList(stationList)
+                    refreshStationList("")
                     false
                 }
 
@@ -119,8 +119,7 @@ class StationFragment : Fragment() {
 
         })
 
-        val stationList = stationDatabaseHelper.queryAll()
-        refreshStationList(stationList)
+        refreshStationList("")
         initSwipeRefreshLayout()
 
         //添加点击添加站点事件
@@ -163,13 +162,13 @@ class StationFragment : Fragment() {
     /**
      * 刷新站点列表
      */
-    private fun refreshStationList(stationList: List<Station>) {
+    private fun refreshStationList(key: String) {
 
-        //获取所有站点，加载到界面
+        //获取站点，加载到界面
         val adapter = StationAdapter(
             requireContext(),
-            stationList,
-            lineDatabaseHelper
+            lineDatabaseHelper,
+            key
         )
 
         val layoutManager = LinearLayoutManager(requireContext())
@@ -191,6 +190,8 @@ class StationFragment : Fragment() {
                     .sendBroadcast(intent)
             }
         })
+        @SuppressLint("NotifyDataSetChanged")
+        adapter.notifyDataSetChanged()
 
     }
 

@@ -17,8 +17,8 @@ import com.microbus.announcer.databinding.ItemStationHeaderBinding
 
 internal class StationAdapter(
     private val context: Context,
-    private val stationList: List<Station>,
     private val lineDatabaseHelper: LineDatabaseHelper,
+    private val key: String,
 ) :
     RecyclerView.Adapter<ViewHolder>() {
 
@@ -109,13 +109,13 @@ internal class StationAdapter(
         // LineViewHolder
         if (position == 0) {
             val holder = holder as StationHeaderViewHolder
-            holder.title.text = "查找到站点 ${stationDatabaseHelper.getCount()}个"
+            holder.title.text = "查找到站点 ${stationDatabaseHelper.getCountByKey(key)}个"
         }
         // ItemLineHeaderHolder
         else {
             val holder = holder as StationViewHolder
             val position = position - 1
-            val station = stationDatabaseHelper.queryByCount(position)
+            val station = stationDatabaseHelper.queryByCount(position, key)
 
             holder.station = station
             holder.stationId.text = station.id.toString()
@@ -124,7 +124,7 @@ internal class StationAdapter(
             holder.stationEnName.text = station.enName
 
             val lineNameList = ArrayList<String>()
-            val lineList = ArrayList(lineDatabaseHelper.queryAll().sortedWith(comparator))
+            val lineList = ArrayList(lineDatabaseHelper.queryByKey(key).sortedWith(comparator))
             val lineStationIndexStrSet = HashSet<String>()
             for (line in lineList) {
                 lineStationIndexStrSet.clear()
@@ -161,7 +161,7 @@ internal class StationAdapter(
     }
 
     override fun getItemCount(): Int {
-        return stationDatabaseHelper.getCount().toInt() + 1
+        return stationDatabaseHelper.getCountByKey(key).toInt() + 1
     }
 
     override fun getItemId(position: Int): Long {

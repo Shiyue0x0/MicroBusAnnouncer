@@ -50,7 +50,7 @@ internal class StationOfLineAdapter(
 
     internal class StationOfLineViewHolder(
         binding: ItemStationOfLineBinding,
-        clickListener: OnItemClickListener
+        clickListener: OnItemClickListener?
     ) :
         ViewHolder(binding.root), View.OnClickListener {
         private var mClickListener: OnItemClickListener? = null // 声明自定义监听接口
@@ -63,12 +63,12 @@ internal class StationOfLineAdapter(
 
         init {
             mClickListener = clickListener
-            stationNameNestedScrollView.setOnClickListener(this)
+            main.setOnClickListener(this)
             stationName.setOnClickListener(this)
         }
 
         override fun onClick(v: View?) {
-            mClickListener!!.onItemClick(v, layoutPosition)
+            mClickListener?.onItemClick(v, layoutPosition)
         }
 
     }
@@ -151,8 +151,10 @@ internal class StationOfLineAdapter(
             Choreographer.getInstance().postFrameCallback(frameCallback)
         }
 
-        @SuppressLint("ClickableViewAccessibility")
-        holder.stationNameNestedScrollView.setOnTouchListener { v, event -> true }
+//        holder.stationNameNestedScrollView.isNestedScrollingEnabled = false
+        holder.stationNameNestedScrollView.setOnTouchListener { v, event ->
+            return@setOnTouchListener true
+        }
 
 
         return holder
@@ -182,9 +184,9 @@ internal class StationOfLineAdapter(
 
         // todo 适配英文
         holder.stationName.text = if (utils.getUILang() == "zh") {
-            stationList[position].cnName
+            utils.getStationNameFromCn(stationList[position].cnName, "cn")
         } else {
-            stationList[position].cnName
+            utils.getStationNameFromCn(stationList[position].cnName, "cn")
         }
 
         //当前站点样式

@@ -327,6 +327,7 @@ class MainFragment : Fragment() {
 
     val simRunningHandler = Handler(mLooper)
 
+    var lastTouchMapTime = 0L
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -565,9 +566,9 @@ class MainFragment : Fragment() {
 
             //更新终点站卡片
             binding.terminalName.text = if (utils.getUILang() == "zh")
-                currentLineStationList.last().cnName
+                utils.getStationNameFromCn(currentLineStationList.last().cnName, "cn")
             else
-                currentLineStationList.last().enName
+                utils.getStationNameFromCn(currentLineStationList.last().cnName, "en")
 
         } else {
             binding.terminalName.text = getString(R.string.main_to_station_name)
@@ -800,8 +801,15 @@ class MainFragment : Fragment() {
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
                     .setView(dialogBinding.root)
 //                    .setTitle(resources.getString(R.string.switch_line))
-                    .setNeutralButton(resources.getString(R.string.line_all)) { dialog, which ->
-                        loadLineAll()
+                    .setNeutralButton(resources.getString(R.string.setAsLineName)) { dialog, which ->
+
+                        //                    Log.d(tag, "设为临时路线")
+                        currentLine = Line(name = dialogBinding.lineNameInput.text.toString())
+                        initLineInterval()
+                        originLine = currentLine
+                        currentLineStationState = onNext
+                        binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
+                        loadLine(currentLine)
                     }
                     .setPositiveButton(
                         resources.getString(R.string.out_line_running)
@@ -1031,14 +1039,8 @@ class MainFragment : Fragment() {
                 busLineSearch.searchBusLineAsyn()
             }
 
-            dialogBinding.setAsLineName.setOnClickListener {
-                //                    Log.d(tag, "设为临时路线")
-                currentLine = Line(name = dialogBinding.lineNameInput.text.toString())
-                initLineInterval()
-                originLine = currentLine
-                currentLineStationState = onNext
-                binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-                loadLine(currentLine)
+            dialogBinding.switchToLineAll.setOnClickListener {
+                loadLineAll()
                 alertDialog.cancel()
             }
 
@@ -1349,6 +1351,7 @@ class MainFragment : Fragment() {
                 return@setOnLongClickListener true
             }
 
+            utils.showMsg("开始模拟运行报站")
             // 关闭定位
             binding.locationBtnGroup.uncheck(binding.locationBtn.id)
 
@@ -1368,6 +1371,9 @@ class MainFragment : Fragment() {
 
 //                    Log.d(tag, "simRunningRunnable running")
 
+                    simRunningHandler.postDelayed(this, 100L)
+
+
                     if (!isAnnouncing) {
 
                         if (lastIsAnnouncing) {
@@ -1378,20 +1384,20 @@ class MainFragment : Fragment() {
                             if (nextStation()) {
                                 isAnnouncing = true
                                 announce()
-
                             } else {
                                 simRunningHandler.removeCallbacksAndMessages(null)
+                                utils.showMsg("模拟运行报站结束")
+
                             }
                         }
                     }
 
                     lastIsAnnouncing = isAnnouncing
 
-                    simRunningHandler.postDelayed(this, 100L)
 
                 }
             }
-            simRunningHandler.postDelayed(simRunningRunnable, 0L)
+            simRunningHandler.postDelayed(simRunningRunnable, 1000L)
 
             utils.haptic(requireView())
 
@@ -2096,6 +2102,9 @@ class MainFragment : Fragment() {
             if (utils.getClickMapPauseAn()) {
                 pauseAnnounce()
             }
+
+            lastTouchMapTime = System.currentTimeMillis()
+
             return@setOnTouchListener true
         }
 
@@ -2155,6 +2164,7 @@ class MainFragment : Fragment() {
             if (utils.getClickMapPauseAn()) {
                 pauseAnnounce()
             }
+            lastTouchMapTime = System.currentTimeMillis()
         }
 
         // 每隔1s刷新地图Text
@@ -2484,21 +2494,24 @@ class MainFragment : Fragment() {
         lastLngLat = currentLngLat
         currentLngLat = LatLng(location.latitude, location.longitude)
 
-        // 更新地图
-        CoroutineScope(Dispatchers.IO).launch {
-            if (isAdded) {
-                requireActivity().runOnUiThread {
-                    aMap.stopAnimation()
-                    aMap.animateCamera(CameraUpdateFactory.changeLatLng(lastLngLat))
-                }
-                Thread.sleep(250L)
-                CoroutineScope(Dispatchers.Main).launch {
-                    aMap.stopAnimation()
-                    aMap.animateCamera(
-                        CameraUpdateFactory.changeBearing(
-                            sensorHelper.getAzimuth().toFloat()
+        if (System.currentTimeMillis() - lastTouchMapTime > 15 * 1000) {
+
+            // 更新地图
+            CoroutineScope(Dispatchers.IO).launch {
+                if (isAdded) {
+                    requireActivity().runOnUiThread {
+                        aMap.stopAnimation()
+                        aMap.animateCamera(CameraUpdateFactory.changeLatLng(lastLngLat))
+                    }
+                    Thread.sleep(250L)
+                    CoroutineScope(Dispatchers.Main).launch {
+                        aMap.stopAnimation()
+                        aMap.animateCamera(
+                            CameraUpdateFactory.changeBearing(
+                                sensorHelper.getAzimuth().toFloat()
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
@@ -2648,7 +2661,10 @@ class MainFragment : Fragment() {
             false -> currentDistanceToStationList
         }
 
-        for (i in lineStationList.indices) {
+        val rangeAfter = currentLineStationCount until lineStationList.size
+        val rangeBefore = currentLineStationCount - 1 downTo 0
+        for (i in rangeAfter + rangeBefore) {
+//            Log.d(tag, "find station $i")
             //进站条件：现在定位在这个站点内
             if (currentDistanceToStationList[i] <= arriveStationDistance) {
 
@@ -2838,7 +2854,9 @@ class MainFragment : Fragment() {
                 if (currentLine.name != resources.getString(R.string.line_all)) {
                     indexText = if (i < 9) "0${i + 1}"
                     else "${i + 1}"
-                    "$indexText ${currentLineStationList[i].cnName}"
+                    "$indexText ${
+                        utils.getStationNameFromCn(currentLineStationList[i].cnName, "cn")
+                    }"
                 } else {
                     indexText = if (utils.getIsMapEditLineMode()) {
                         var findStationIndex = -1
@@ -2855,7 +2873,7 @@ class MainFragment : Fragment() {
                     } else {
                         ""
                     }
-                    "${indexText}${currentLineStationList[i].cnName}[${currentLineStationList[i].id!!}]"
+                    "${indexText}${ utils.getStationNameFromCn(currentLineStationList[i].cnName, "cn")}[${currentLineStationList[i].id!!}]"
                 }
 
 
@@ -3032,8 +3050,6 @@ class MainFragment : Fragment() {
      * 下一站
      */
     private fun nextStation(): Boolean {
-
-
         if (currentLineStation.id == null) return false
         if (currentLineStationState == onNext || currentLineStationState == onWillArrive) {
             currentLineStationState = onArrive
@@ -3115,9 +3131,9 @@ class MainFragment : Fragment() {
 
         binding.currentStationState.text = currentStationStateText
         val stationName = if (utils.getUILang() == "zh")
-            currentLineStation.cnName
+            utils.getStationNameFromCn(currentLineStation.cnName, "cn")
         else
-            currentLineStation.enName
+            utils.getStationNameFromCn(currentLineStation.cnName, "en")
 
         binding.currentStationName.text = stationName
         binding.navStationName.showText(stationName)
@@ -3232,15 +3248,15 @@ class MainFragment : Fragment() {
 
 
         val stationName = if (utils.getUILang() == "zh")
-            currentLineStation.cnName
+            utils.getStationNameFromCn(currentLineStation.cnName, "cn")
         else
-            currentLineStation.enName
+            utils.getStationNameFromCn(currentLineStation.cnName, "en")
 
         val terminalName = if (currentLineStationList.isNotEmpty()) {
             if (utils.getUILang() == "zh")
-                currentLineStationList.last().cnName
+                utils.getStationNameFromCn(currentLineStation.cnName, "cn")
             else
-                currentLineStationList.last().enName
+                utils.getStationNameFromCn(currentLineStation.cnName, "en")
         } else {
             ""
         }
@@ -3421,21 +3437,12 @@ class MainFragment : Fragment() {
                                 item.substring(3, 5)
                             } else
                                 item.drop(3).dropLast(1)
-                            when (lang) {
-                                "cn" ->
-                                    mediaList.add("/${lang}/station/" + station.cnName)
-
-                                "en" ->
-                                    mediaList.add("/${lang}/station/" + station.enName)
-
-                                else ->
-                                    mediaList.add(
-                                        "/${lang}/station/" + utils.getStationNameFromCn(
-                                            station.cnName,
-                                            lang
-                                        )
-                                    )
-                            }
+                            mediaList.add(
+                                "/${lang}/station/" + utils.getStationNameFromCn(
+                                    station.cnName,
+                                    lang
+                                )
+                            )
                         }
                     }
                 } else {
@@ -3500,6 +3507,7 @@ class MainFragment : Fragment() {
                     val file =
                         File("$appRootPath/Media/${utils.getAnnouncementLibrary()}/${voice}.${format}")
                     if (file.exists()) {
+                        // 尝试从
                         localFile = file
                         break
                     }
@@ -4746,8 +4754,8 @@ class MainFragment : Fragment() {
 
                     "ss" -> if (currentLineStationList.isEmpty())
                         Station(
-                            cnName = getString(R.string.terminal),
-                            enName = getString(R.string.terminal)
+                            cnName = getString(R.string.starting_station),
+                            enName = getString(R.string.starting_station)
                         )
                     else currentLineStationList.first()
 
@@ -4764,11 +4772,7 @@ class MainFragment : Fragment() {
                     key.substring(3, 5)
                 } else
                     key.drop(3).dropLast(1)
-                when (lang) {
-                    "cn" -> station.cnName
-                    "en" -> station.enName
-                    else -> utils.getStationNameFromCn(station.cnName, lang)
-                }
+                utils.getStationNameFromCn(station.cnName, lang)
             }
         }
     }

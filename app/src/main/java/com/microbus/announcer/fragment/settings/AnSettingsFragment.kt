@@ -52,7 +52,6 @@ import com.microbus.announcer.Utils
 import com.microbus.announcer.compose.BaseSettingItem
 import com.microbus.announcer.compose.SwitchSettingItem
 import com.microbus.announcer.databinding.DialogInputBinding
-import com.microbus.announcer.databinding.DialogLoadingBinding
 import com.microbus.announcer.databinding.DialogSliderBinding
 
 
@@ -214,6 +213,7 @@ class AnSettingsFragment : Fragment() {
                     "serviceLanguageStr" -> {
                         setServiceLanguageStr(utils.getServiceLanguageStr())
                     }
+
                     "autoAnInterval" -> {
                         setAutoAnInterval(utils.getAutoAnInterval())
                     }
@@ -259,6 +259,7 @@ class AnSettingsFragment : Fragment() {
                             customLangListStr
                         )
                         TTSItem(useTTS, setUseTTS)
+                        TTSSetting()
                         StationChangeVibratorItem(stationChangeVibrator, setStationChangeVibrator)
                         AnSubtitleItem(anSubtitle, setAnSubtitle)
                         ClickMapPauseAnItem(clickMapPauseAn, setClickMapPauseAn)
@@ -402,6 +403,20 @@ class AnSettingsFragment : Fragment() {
                 SwitchSettingItem(tts) {
                     toggleTTS(setTTS, it)
                 }
+            })
+    }
+
+    @Composable
+    fun TTSSetting() {
+        BaseSettingItem(
+            "系统文字转语音设置",
+            "TTS设置",
+            painterResource(id = R.drawable.tts),
+            {
+                val intent = Intent()
+                intent.setAction("com.android.settings.TTS_SETTINGS")
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                requireContext().startActivity(intent);
             })
     }
 
