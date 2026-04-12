@@ -3373,7 +3373,7 @@ class MainFragment : Fragment() {
                 } else if (item[0] == '<') {
                     when (item) {
                         in listOf(
-                            "<line>",
+//                            "<line>",
                             "<year>",
                             "<years>",
                             "<month>",
@@ -3383,7 +3383,7 @@ class MainFragment : Fragment() {
                             "<second>"
                         ) -> {
                             val str = when (item) {
-                                "<line>" -> currentLine.name
+//                                "<line>" -> currentLine.name
                                 "<year>" -> LocalDate.now().year.toString()
                                 "<years>" -> (LocalDate.now().year % 100).toString()
                                 "<month>" -> LocalDate.now().monthValue.toString()
@@ -3407,6 +3407,26 @@ class MainFragment : Fragment() {
                                     "cn/number/"
                                 )
                             )
+                        }
+
+                        "<line>" -> {
+                            // 寻找line音频
+                            var hasLocalVoice = false
+                            for (lang in announcementLangList) {
+                                val file =
+                                    File("$appRootPath/Media/${utils.getAnnouncementLibrary()}/${lang}/line")
+                                val fileList = file.walk()
+                                    .filter { it.isFile && it.nameWithoutExtension == currentLine.name }
+                                    .toList()
+                                if (fileList.isNotEmpty()) {
+                                    mediaList.add("/${lang}/line/" + currentLine.name)
+                                    hasLocalVoice = true
+                                    break
+                                }
+                            }
+                            if (!hasLocalVoice) {
+                                mediaList.addAll(utils.getNumOrLetterVoiceList(currentLine.name))
+                            }
                         }
 
                         else -> {

@@ -216,7 +216,8 @@ class LineAdapter(
             stationOfLineAdapter.setOnItemClickListener(object :
                 StationOfLineAdapter.OnItemClickListener {
                 override fun onItemClick(view: View?, position: Int) {
-                    val station = stationList[position]
+                    val adapter = holder.lineStationList.adapter as StationOfLineAdapter
+                    val station = adapter.stationList[position]
                     utils.showMsg("${station.cnName}[${station.id}]\n${station.enName}")
                     utils.haptic(holder.lineStationList)
 
