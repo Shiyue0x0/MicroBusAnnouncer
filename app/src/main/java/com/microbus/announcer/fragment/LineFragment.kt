@@ -60,7 +60,7 @@ class LineFragment : Fragment() {
         lineDatabaseHelper = LineDatabaseHelper(context)
 
         //获取Utils
-        utils = Utils(requireContext())
+        utils = Utils(requireContext(), requireActivity())
 
         //设置Toolbar
         (requireActivity() as AppCompatActivity).setSupportActionBar(binding!!.toolbar)
@@ -124,6 +124,7 @@ class LineFragment : Fragment() {
         //获取所有路线，加载到界面
         adapter = LineAdapter(
             requireContext(),
+            requireActivity(),
             lineDatabaseHelper
         )
 

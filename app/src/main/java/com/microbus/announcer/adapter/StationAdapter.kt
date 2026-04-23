@@ -2,6 +2,7 @@ package com.microbus.announcer.adapter
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.app.Activity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,6 +18,7 @@ import com.microbus.announcer.databinding.ItemStationHeaderBinding
 
 internal class StationAdapter(
     private val context: Context,
+    private val activity: Activity,
     private val lineDatabaseHelper: LineDatabaseHelper,
     private val key: String,
 ) :
@@ -30,7 +32,7 @@ internal class StationAdapter(
 
     val stationDatabaseHelper = StationDatabaseHelper(context)
 
-    val utils = Utils(context)
+    val utils = Utils(context, activity)
     val comparator = utils.getDefaultLineComparator()
 
     internal class StationViewHolder(

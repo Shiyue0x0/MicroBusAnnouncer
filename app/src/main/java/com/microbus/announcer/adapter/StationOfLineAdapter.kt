@@ -1,6 +1,7 @@
 package com.microbus.announcer.adapter
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.graphics.Typeface
 import android.os.Build
@@ -24,6 +25,8 @@ import java.util.Locale
 
 internal class StationOfLineAdapter(
     private val context: Context,
+
+    private val activity: Activity,
     mStationList: ArrayList<Station>,
     mStationCount: Int,
     mStationState: Int = -1     // onNext 0, onWillArrive 1, onArrive, 2
@@ -43,7 +46,7 @@ internal class StationOfLineAdapter(
     var stationCount = mStationCount
     var stationState = mStationState
 
-    val utils = Utils(context)
+    val utils = Utils(context, activity)
 
     var firstVisibleItem = -1
     var lastVisibleItem = -1

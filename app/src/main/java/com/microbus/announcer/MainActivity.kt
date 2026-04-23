@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
 
-        utils = Utils(this)
+        utils = Utils(this, this)
 
         utils.loadAnnouncementFormatFromConfig()
 

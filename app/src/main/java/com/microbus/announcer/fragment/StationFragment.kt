@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -52,7 +51,7 @@ class StationFragment : Fragment() {
         lineDatabaseHelper = LineDatabaseHelper(requireContext())
 
         //获取Utils
-        utils = Utils(requireContext())
+        utils = Utils(requireContext(), requireActivity())
 
         //设置Toolbar
         (requireActivity() as AppCompatActivity).setSupportActionBar(binding!!.toolbar)
@@ -167,6 +166,7 @@ class StationFragment : Fragment() {
         //获取站点，加载到界面
         val adapter = StationAdapter(
             requireContext(),
+            requireActivity(),
             lineDatabaseHelper,
             key
         )
@@ -196,7 +196,7 @@ class StationFragment : Fragment() {
     }
 
     private fun addStation() {
-        utils.showStationDialog("new", stationFragment = this, onAddDone = {
+        utils.showStationDialog("new", onAddDone = {
             val adapter = binding!!.stationRecyclerView.adapter!!
             adapter.notifyItemInserted(adapter.itemCount)
         })

@@ -21,7 +21,7 @@ class WebviewActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
 
-        utils = Utils(this)
+        utils = Utils(this, this)
 
         binding = ActivityWebviewBinding.inflate(layoutInflater)
 

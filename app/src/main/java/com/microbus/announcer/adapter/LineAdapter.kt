@@ -1,6 +1,7 @@
 package com.microbus.announcer.adapter
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.view.LayoutInflater
@@ -19,11 +20,14 @@ import com.microbus.announcer.databinding.DialogLineInfoBinding
 import com.microbus.announcer.databinding.ItemLineBinding
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.microbus.announcer.MainActivity
 import com.microbus.announcer.R
+import com.microbus.announcer.databinding.ActivityMainBinding
 import com.microbus.announcer.databinding.ItemLineHeaderBinding
 
 class LineAdapter(
     private val context: Context,
+    private val activity: Activity,
     private val lineDatabaseHelper: LineDatabaseHelper,
 ) :
     RecyclerView.Adapter<ViewHolder>() {
@@ -40,7 +44,7 @@ class LineAdapter(
 
     var allLineList: MutableList<Line>
 
-    val utils = Utils(context)
+    val utils = Utils(context, activity)
 
 
 //    var firstVisibleItem = -1
@@ -188,7 +192,7 @@ class LineAdapter(
             holder.lineStationList.setHasFixedSize(true)
             holder.lineStationList.layoutManager = linearLayoutManager
             val stationOfLineAdapter =
-                StationOfLineAdapter(context, stationList, -1)
+                StationOfLineAdapter(context, activity,stationList, -1)
 
             holder.lineStationList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {

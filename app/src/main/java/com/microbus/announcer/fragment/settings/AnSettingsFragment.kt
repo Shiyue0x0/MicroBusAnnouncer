@@ -64,7 +64,7 @@ class AnSettingsFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
 
-        utils = Utils(requireContext())
+        utils = Utils(requireContext(), requireActivity())
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
 
         val composeView = ComposeView(requireContext())
@@ -288,26 +288,24 @@ class AnSettingsFragment : Fragment() {
         }
 
         BaseSettingItem(
-            "",
-            "",
-            painterResource(id = R.drawable.library),
-            {
+            painter = painterResource(id = R.drawable.library),
+            clickFun = {
 
                 if (!utils.isGrantManageFilesAccessPermission()) {
                     utils.requestManageFilesAccessPermission(requireActivity())
                     return@BaseSettingItem
                 }
 
-//                val loadingDialogBinding =
-//                    DialogLoadingBinding.inflate(LayoutInflater.from(requireContext()))
-//                loadingDialogBinding.title.text = "正在加载语音库"
-//
-//                val loadingDialog = MaterialAlertDialogBuilder(
-//                    requireContext(),
-//                    R.style.CustomAlertDialogStyle
-//                )
-//                    .setView(loadingDialogBinding.root)
-//                    .show()
+            //                val loadingDialogBinding =
+            //                    DialogLoadingBinding.inflate(LayoutInflater.from(requireContext()))
+            //                loadingDialogBinding.title.text = "正在加载语音库"
+            //
+            //                val loadingDialog = MaterialAlertDialogBuilder(
+            //                    requireContext(),
+            //                    R.style.CustomAlertDialogStyle
+            //                )
+            //                    .setView(loadingDialogBinding.root)
+            //                    .show()
 
                 val libraryList = utils.getAnnouncementLibraryList()
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
@@ -387,7 +385,8 @@ class AnSettingsFragment : Fragment() {
                         )
                     }
                 }
-            })
+            },
+        )
     }
 
     @Composable
@@ -403,7 +402,8 @@ class AnSettingsFragment : Fragment() {
                 SwitchSettingItem(tts) {
                     toggleTTS(setTTS, it)
                 }
-            })
+            },
+        )
     }
 
     @Composable
@@ -417,7 +417,8 @@ class AnSettingsFragment : Fragment() {
                 intent.setAction("com.android.settings.TTS_SETTINGS")
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 requireContext().startActivity(intent);
-            })
+            },
+        )
     }
 
     fun toggleTTS(setTTS: (Boolean) -> Unit, it: Boolean) {
@@ -440,7 +441,8 @@ class AnSettingsFragment : Fragment() {
                 SwitchSettingItem(value) {
                     toggleStationChangeVibrator(setValue, it)
                 }
-            })
+            },
+        )
     }
 
     fun toggleStationChangeVibrator(setValue: (Boolean) -> Unit, it: Boolean) {
@@ -463,7 +465,8 @@ class AnSettingsFragment : Fragment() {
                 SwitchSettingItem(value) {
                     toggleAnSubtitle(setValue, it)
                 }
-            })
+            },
+        )
     }
 
     fun toggleAnSubtitle(setValue: (Boolean) -> Unit, it: Boolean) {
@@ -486,7 +489,8 @@ class AnSettingsFragment : Fragment() {
                 SwitchSettingItem(value) {
                     toggleClickMapPauseAn(setValue, it)
                 }
-            })
+            },
+        )
     }
 
     fun toggleClickMapPauseAn(setValue: (Boolean) -> Unit, it: Boolean) {
@@ -499,7 +503,8 @@ class AnSettingsFragment : Fragment() {
     @Composable
     fun ServiceLanguageItem(value: String) {
         BaseSettingItem(
-            "服务语", value, painterResource(id = R.drawable.service), {
+            "服务语", value, painterResource(id = R.drawable.service),
+            {
                 val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
@@ -548,13 +553,15 @@ class AnSettingsFragment : Fragment() {
                 binding.textInputLayout.requestFocus()
                 WindowCompat.getInsetsController(requireActivity().window, binding.editText)
                     .show(WindowInsetsCompat.Type.ime())
-            })
+            },
+        )
     }
 
     @Composable
     fun AutoAnIntervalItem(interval: Int) {
         BaseSettingItem(
-            "自动播报间隔", "每次报站间隔 $interval 秒", painterResource(id = R.drawable.time), {
+            "自动播报间隔", "每次报站间隔 $interval 秒", painterResource(id = R.drawable.time),
+            {
                 val binding = DialogSliderBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
@@ -587,7 +594,8 @@ class AnSettingsFragment : Fragment() {
                     dialog.dismiss()
                 }
 
-            })
+            },
+        )
     }
 
 
@@ -729,7 +737,8 @@ class AnSettingsFragment : Fragment() {
                                 binding.editText
                             )
                                 .show(WindowInsetsCompat.Type.ime())
-                        })
+                        },
+                    )
                 }
             }
         }

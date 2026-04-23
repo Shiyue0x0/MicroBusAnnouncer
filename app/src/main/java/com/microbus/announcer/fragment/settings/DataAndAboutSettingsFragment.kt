@@ -70,7 +70,7 @@ class DataAndAboutSettingsFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
 
-        utils = Utils(requireContext())
+        utils = Utils(requireContext(), requireActivity())
 
         val composeView = ComposeView(requireContext())
 
@@ -164,9 +164,11 @@ class DataAndAboutSettingsFragment : Fragment() {
                 utils.showMsg("站点和路线已备份至\nAnnouncer/Backups")
 
 
-            }) {
+            },
+            rightContain = {
 
-        }
+            },
+        )
     }
 
     private fun backupFile(
@@ -229,9 +231,11 @@ class DataAndAboutSettingsFragment : Fragment() {
                 @Suppress("DEPRECATION")
                 startActivityForResult(intent, code)
 
-            }) {
+            },
+            rightContain = {
 
-        }
+            },
+        )
     }
 
     @Composable
@@ -271,7 +275,8 @@ class DataAndAboutSettingsFragment : Fragment() {
                     restorePreset(station = false, line = true, chooseDialog = chooseDialog)
                 }
 
-            })
+            },
+        )
     }
 
     /**
@@ -459,11 +464,12 @@ class DataAndAboutSettingsFragment : Fragment() {
             getString(R.string.app_name),
             info.versionName ?: "",
             painterResource(id = R.mipmap.an_round),
-            isIcon = false,
             clickFun = {
                 utils.showMsg("MicroBus 欢迎您")
                 utils.showMsg("鸣谢 yukonga Updater")
-            })
+            },
+            isIcon = false,
+        )
     }
 
     @Composable
@@ -471,8 +477,7 @@ class DataAndAboutSettingsFragment : Fragment() {
         val wayList = listOf("GitHub", "Gitee")
         BaseSettingItem(
             "检查更新",
-            "",
-            painterResource(id = R.drawable.update),
+            painter = painterResource(id = R.drawable.update),
             clickFun = {
                 MaterialAlertDialogBuilder(
                     requireContext(),
@@ -599,7 +604,8 @@ class DataAndAboutSettingsFragment : Fragment() {
                     }
                     dialog.cancel()
                 }.show()
-            })
+            },
+        )
     }
 
     @Composable
@@ -625,7 +631,8 @@ class DataAndAboutSettingsFragment : Fragment() {
                     dialog.cancel()
                 }.show()
 
-            })
+            },
+        )
     }
 
     @Composable
@@ -637,7 +644,8 @@ class DataAndAboutSettingsFragment : Fragment() {
             {
                 val uriStr = "https://space.bilibili.com/34943744"
                 utils.openUri(uriStr)
-            })
+            },
+        )
     }
 
     @Composable
@@ -648,7 +656,8 @@ class DataAndAboutSettingsFragment : Fragment() {
             painterResource(id = R.drawable.doc),
             {
                 utils.openHelperDialog("要在哪里阅读？", "README.md")
-            })
+            },
+        )
     }
 
 }

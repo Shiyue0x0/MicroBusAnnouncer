@@ -338,7 +338,7 @@ class MainFragment : Fragment() {
 
         _binding = FragmentMainBinding.inflate(inflater, container, false)
 
-        utils = Utils(requireContext())
+        utils = Utils(requireContext(), requireActivity())
 
         sensorHelper = SensorHelper(requireContext())
 
@@ -348,9 +348,9 @@ class MainFragment : Fragment() {
         stationDatabaseHelper = StationDatabaseHelper(context)
 
         currentDistanceToCurrentStation =
-            utils.getStationRangeByLineType(currentLine.type).toDouble() + 1
+            utils.getStationRangeByLineType(currentLine.type, "In").toDouble() + 1
         lastDistanceToCurrentStation =
-            utils.getStationRangeByLineType(currentLine.type).toDouble() + 1
+            utils.getStationRangeByLineType(currentLine.type, "In").toDouble() + 1
 
         /**设置屏幕唤醒锁*/
         powerManager =
@@ -2249,6 +2249,7 @@ class MainFragment : Fragment() {
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         val adapter = StationOfLineAdapter(
             requireContext(),
+            requireActivity(),
             ArrayList(),
             0
         )
@@ -2642,9 +2643,15 @@ class MainFragment : Fragment() {
         matchCount = (matchCount + 1) % Int.MAX_VALUE
         if (matchCount < 2) return false
 
-        val arriveStationDistance = utils.getStationRangeByLineType(currentLine.type)    // 进站临界距离
-        val outStationDistance = arriveStationDistance * 3.0            // 出站临界距离
-        val willArriveStationDistance = arriveStationDistance * 2.4     // 即将进站临界距离
+        val willInStationDistance =
+            utils.getStationRangeByLineType(currentLine.type, "WillIn")     // 即将进站临界距离
+        val inStationDistance =
+            utils.getStationRangeByLineType(currentLine.type, "In")    // 进站临界距离
+        val outStationDistance =
+            utils.getStationRangeByLineType(currentLine.type, "Out")         // 出站临界距离
+
+//        val outStationDistance = inStationDistance * 3.0         // 出站临界距离
+//        val willInStationDistance = inStationDistance * 2.4     // 即将进站临界距离
 
         val lineStationList = when (isReverseLine) {
             true -> currentReverseLineStationList
@@ -2666,7 +2673,8 @@ class MainFragment : Fragment() {
         for (i in rangeAfter + rangeBefore) {
 //            Log.d(tag, "find station $i")
             //进站条件：现在定位在这个站点内
-            if (currentDistanceToStationList[i] <= arriveStationDistance) {
+            if (currentDistanceToStationList[i] <= inStationDistance &&
+                utils.getAutoSwitchStationState("In")) {
 
                 //当前站点及状态相同，直接返回
                 if ((lineStationList[i].id == currentLineStation.id && currentLineStationState == onArrive)) {
@@ -2675,7 +2683,7 @@ class MainFragment : Fragment() {
 
                 Log.d(
                     tag,
-                    "自动到达站：${lineStationList[i].cnName} for ${currentDistanceToStationList[i]} <= $arriveStationDistance"
+                    "自动到达站：${lineStationList[i].cnName} for ${currentDistanceToStationList[i]} <= $inStationDistance"
                 )
 
                 if (isReverseLine) {
@@ -2704,8 +2712,9 @@ class MainFragment : Fragment() {
                 return true
             }
             //即将进站条件：现在位于即将进站范围内，且现在不位于进站进站内
-            else if (currentDistanceToStationList[i] <= willArriveStationDistance
-                && currentDistanceToStationList[i] > arriveStationDistance
+            else if (currentDistanceToStationList[i] <= willInStationDistance &&
+                currentDistanceToStationList[i] > inStationDistance &&
+                utils.getAutoSwitchStationState("WillIn")
             ) {
 
                 //当前站点及状态相同，直接返回
@@ -2740,7 +2749,8 @@ class MainFragment : Fragment() {
                 currentDistanceToStationList[i] > outStationDistance &&
                 currentLine.name != resources.getString(
                     R.string.line_all
-                )
+                ) &&
+                utils.getAutoSwitchStationState("Out")
             ) {
 
                 Log.d(
@@ -2836,7 +2846,7 @@ class MainFragment : Fragment() {
                 val circle = aMap.addCircle(
                     CircleOptions()
                         .center(latLng)
-                        .radius(utils.getStationRangeByLineType(currentLine.type).toDouble())
+                        .radius(utils.getStationRangeByLineType(currentLine.type, "In").toDouble())
                         .fillColor(fillColor)
                         .strokeWidth(0F)
                         .zIndex(-100F)
@@ -2873,7 +2883,12 @@ class MainFragment : Fragment() {
                     } else {
                         ""
                     }
-                    "${indexText}${ utils.getStationNameFromCn(currentLineStationList[i].cnName, "cn")}[${currentLineStationList[i].id!!}]"
+                    "${indexText}${
+                        utils.getStationNameFromCn(
+                            currentLineStationList[i].cnName,
+                            "cn"
+                        )
+                    }[${currentLineStationList[i].id!!}]"
                 }
 
 
@@ -3254,9 +3269,9 @@ class MainFragment : Fragment() {
 
         val terminalName = if (currentLineStationList.isNotEmpty()) {
             if (utils.getUILang() == "zh")
-                utils.getStationNameFromCn(currentLineStation.cnName, "cn")
+                utils.getStationNameFromCn(currentLineStationList.last().cnName, "cn")
             else
-                utils.getStationNameFromCn(currentLineStation.cnName, "en")
+                utils.getStationNameFromCn(currentLineStationList.last().cnName, "en")
         } else {
             ""
         }
@@ -3508,6 +3523,7 @@ class MainFragment : Fragment() {
                         utteranceIdDoneList.add(utteranceId)
                     }
 
+                    @Deprecated("Deprecated in Java")
                     override fun onError(utteranceId: String?) {
                         utils.showMsg("TTS合成异常，请检查系统设置")
                     }

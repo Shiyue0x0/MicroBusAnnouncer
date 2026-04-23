@@ -40,5 +40,35 @@
         android:gravity="center"
         android:visibility="gone" />
 
+    <LinearLayout
+        android:id="@+id/editableLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:visibility="gone" >
+
+        <TextView
+            android:id="@+id/text1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="将参数设为"
+            />
+
+        <EditText
+            android:id="@+id/editValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"/>
+
+        <TextView
+            android:id="@+id/text2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="米" />
+
+    </LinearLayout>
+
 
 </LinearLayout>

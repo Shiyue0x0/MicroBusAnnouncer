@@ -29,7 +29,6 @@ class StationOfRunningInfoAdapter(
 
     init {
         runningInfoList.forEachIndexed { i, info ->
-
             val currentInfo = runningInfoList[i]
             val lastInfo = if (i > 0) runningInfoList[i - 1] else runningInfoList[i]
 
@@ -94,7 +93,8 @@ class StationOfRunningInfoAdapter(
                 stateView.visibility = ViewGroup.VISIBLE
         }
 
-        if(position > 0 && stationInfoList[position].lineName == stationInfoList[position - 1].lineName){
+        if(position > 0
+            && stationInfoList[position].lineName == stationInfoList[position - 1].lineName){
             holder.lineName.visibility = ViewGroup.GONE
         }
         else{

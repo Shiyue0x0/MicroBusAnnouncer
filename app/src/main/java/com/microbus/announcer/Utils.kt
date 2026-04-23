@@ -24,6 +24,8 @@ import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.core.os.LocaleListCompat
 import androidx.preference.PreferenceManager
+import com.amap.api.location.AMapLocationClient
+import com.amap.api.location.AMapLocationClientOption
 import com.amap.api.maps.model.LatLng
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.GsonBuilder
@@ -34,7 +36,6 @@ import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogStationInfoBinding
-import com.microbus.announcer.fragment.StationFragment
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileWriter
@@ -48,7 +49,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 
-class Utils(private val context: Context) {
+class Utils(private val context: Context, private val activity: Activity) {
 
     var tag: String = javaClass.simpleName
     private var prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -239,26 +240,58 @@ class Utils(private val context: Context) {
     /**
      * 根据路线类型获取进站范围半径
      * @param type 路线类型：C社区|B公交|U地铁|T火车
+     * @param action 动作： WillIn | In | Out
      */
-    fun getStationRangeByLineType(type: String): Float {
-        val default = when (type) {
+    fun getStationRangeByLineType(
+        type: String,
+        action: String,
+        useDefault: Boolean = false
+    ): Float {
+        var default = when (type) {
             "C" -> 20F
             "B" -> 30F
             "U" -> 300F
             "T" -> 500F
             else -> 30F
         }
-        return prefs.getFloat("${type}LineStationRange", default)
+        when (action) {
+            "WillIn" -> default *= 2.4F
+            "In" -> default *= 1.0F
+            "Out" -> default *= 3.0F
+        }
+
+        if (useDefault) {
+            return default
+        }
+
+        return prefs.getFloat("${type}Line${action}StationRange", default)
     }
 
     /**
-     * 根据路线类型设置进站范围半径
+     * 根据 路线类型 和 动作 设置进站范围半径
      * @param type 路线类型：C社区|B公交|U地铁|T火车
      * @param range 半径
+     * @param action 动作： WillIn | In | Out
      */
-    fun setStationRangeByLineType(type: String, range: Float) {
+    fun setStationRangeByLineType(type: String, range: Float, action: String) {
         prefs.edit {
-            putFloat("${type}LineStationRange", range)
+            putFloat("${type}Line${action}StationRange", range)
+        }
+    }
+
+    /**
+     * 从设置中获取是否根据定位自动切换站点状态
+     */
+    fun getAutoSwitchStationState(action: String): Boolean {
+        return prefs.getBoolean("autoSwitchStationStateWhen${action}", true)
+    }
+
+    /**
+     * 设置是否根据定位自动切换站点状态
+     */
+    fun setAutoSwitchStationState(action: String, value: Boolean) {
+        prefs.edit {
+            putBoolean("autoSwitchStationStateWhen${action}", value)
         }
     }
 
@@ -473,7 +506,6 @@ class Utils(private val context: Context) {
         oldStation: Station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0),
         latLng: LatLng = LatLng(0.0, 0.0),
         isOrderLatLng: Boolean = false,
-        stationFragment: StationFragment = StationFragment(),
         onAddDone: () -> Unit = {},
         onDelDone: () -> Unit = {}
     ) {
@@ -519,6 +551,35 @@ class Utils(private val context: Context) {
                     alertDialog.dismiss()
                     onDelDone()
                 }
+        }
+
+        // 获取当前位置
+        binding.getCurrentLocation.setOnClickListener {
+
+            // 获取定位权限
+            val permissionManager = PermissionManager(context, activity)
+            if (!permissionManager.hasLocationPermission()) {
+                showRequestLocationPermissionDialog(permissionManager)
+                return@setOnClickListener
+            }
+
+            // 启动定位
+            showMsg("正在定位……")
+            val locationClient = AMapLocationClient(context)
+            val option = AMapLocationClientOption()
+            option.isOnceLocation = true
+            locationClient.setLocationListener { location ->
+                if (location.errorCode == 0) {
+                    binding.editTextLatitude.setText(location.latitude.toString())
+                    binding.editTextLongitude.setText(location.longitude.toString())
+                    showMsg("获取定位成功", true)
+                } else {
+                    showMsg("获取定位失败，请重试", true)
+                }
+                locationClient.stopLocation()
+                locationClient.onDestroy()
+            }
+            locationClient.startLocation()
         }
 
         alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)

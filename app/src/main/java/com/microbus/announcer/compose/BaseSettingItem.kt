@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.colorResource
@@ -42,9 +43,10 @@ fun BaseSettingItem(
     isShowIcon: Boolean = true,
     isCustomLeft: Boolean = false,
     isIcon: Boolean = true,
+    iconRotate: Float = 0F,
     leftContain: @Composable () -> Unit = {},
     rightContain: @Composable () -> Unit = {},
-) {
+   ) {
 //        Surface(
 //            contentColor = colorResource(R.color.md_theme_onSurface),
 //            color = colorResource(R.color.an_window_bg)
@@ -71,7 +73,9 @@ fun BaseSettingItem(
                             Icon(
                                 painter = painter,
                                 contentDescription = title,
-                                modifier = Modifier.height(24.dp)
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .rotate(iconRotate)
                             )
                         else
                             Image(
@@ -80,6 +84,7 @@ fun BaseSettingItem(
                                 modifier = Modifier
                                     .height(24.dp)
                                     .shadow(elevation = 2.dp, shape = RoundedCornerShape(8.dp))
+                                    .rotate(iconRotate)
                             )
                     } else {
                         Spacer(modifier = Modifier.width(24.dp))

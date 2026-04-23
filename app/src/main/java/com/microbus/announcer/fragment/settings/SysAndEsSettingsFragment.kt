@@ -66,7 +66,7 @@ class SysAndEsSettingsFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
 
-        utils = Utils(requireContext())
+        utils = Utils(requireContext(), requireActivity())
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
         permissionManager = PermissionManager(requireContext(), requireActivity())
 
@@ -251,7 +251,8 @@ class SysAndEsSettingsFragment : Fragment() {
         val currentChooseIndex = valueList.indexOf(prefs.getString("lang", "auto"))
 
         BaseSettingItem(
-            "界面语言", nameList[valueList.indexOf(lang)], painterResource(id = R.drawable.lang), {
+            "界面语言", nameList[valueList.indexOf(lang)], painterResource(id = R.drawable.lang),
+            {
                 MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
@@ -264,9 +265,11 @@ class SysAndEsSettingsFragment : Fragment() {
                     utils.setUILang(valueList[which])
                     dialog.cancel()
                 }.show()
-            }) {
+            },
+            rightContain = {
 
-        }
+            },
+        )
     }
 
 
@@ -275,7 +278,8 @@ class SysAndEsSettingsFragment : Fragment() {
     @Composable
     fun CityNameItem(city: String) {
         BaseSettingItem(
-            "搜索城市", city, painterResource(id = R.drawable.city), {
+            "搜索城市", city, painterResource(id = R.drawable.city),
+            {
                 val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
@@ -315,19 +319,23 @@ class SysAndEsSettingsFragment : Fragment() {
                 binding.textInputLayout.requestFocus()
                 WindowCompat.getInsetsController(requireActivity().window, binding.editText)
                     .show(WindowInsetsCompat.Type.ime())
-            })
+            },
+        )
     }
 
     @Composable
     fun BottomBarItem(value: Boolean, setValue: (Boolean) -> Unit) {
         BaseSettingItem(
-            "导航栏", "底部导航栏", painterResource(id = R.drawable.bottom_nav), {
+            "导航栏", "底部导航栏", painterResource(id = R.drawable.bottom_nav),
+            {
                 toggleBottomBar(value, setValue, !value)
-            }, rightContain = {
+            },
+            rightContain = {
                 SwitchSettingItem(value) {
                     toggleBottomBar(value, setValue, it)
                 }
-            })
+            },
+        )
     }
 
     fun toggleBottomBar(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
@@ -357,7 +365,8 @@ class SysAndEsSettingsFragment : Fragment() {
                 SwitchSettingItem(value) {
                     toggleSaveBackAfterExit(value, setValue, it)
                 }
-            })
+            },
+        )
     }
 
     fun toggleSaveBackAfterExit(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
@@ -380,7 +389,8 @@ class SysAndEsSettingsFragment : Fragment() {
                 SwitchSettingItem(value) {
                     toggleNotice(value, setValue, it)
                 }
-            })
+            },
+        )
     }
 
     fun toggleNotice(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
@@ -406,7 +416,8 @@ class SysAndEsSettingsFragment : Fragment() {
                 SwitchSettingItem(value) {
                     toggleIsNavMode(value, setValue, it)
                 }
-            })
+            },
+        )
     }
 
     fun toggleIsNavMode(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
@@ -423,16 +434,16 @@ class SysAndEsSettingsFragment : Fragment() {
     fun IsOpenLeftEsItem(value: Boolean, setValue: (Boolean) -> Unit) {
         BaseSettingItem(
             "左侧电显",
-            "",
-            painterResource(id = R.drawable.left_align),
-            {
+            painter = painterResource(id = R.drawable.left_align),
+            clickFun = {
                 toggleIsOpenLeftEs(value, setValue, !value)
             },
             rightContain = {
                 SwitchSettingItem(value) {
                     toggleIsOpenLeftEs(value, setValue, it)
                 }
-            })
+            },
+        )
     }
 
     fun toggleIsOpenLeftEs(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
@@ -446,16 +457,16 @@ class SysAndEsSettingsFragment : Fragment() {
     fun IsOpenMidEsItem(value: Boolean, setValue: (Boolean) -> Unit) {
         BaseSettingItem(
             "中部电显",
-            "",
-            painterResource(id = R.drawable.mid_align),
-            {
+            painter = painterResource(id = R.drawable.mid_align),
+            clickFun = {
                 toggleIsOpenMidEs(value, setValue, !value)
             },
             rightContain = {
                 SwitchSettingItem(value) {
                     toggleIsOpenMidEs(value, setValue, it)
                 }
-            })
+            },
+        )
     }
 
     fun toggleIsOpenMidEs(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
@@ -468,7 +479,8 @@ class SysAndEsSettingsFragment : Fragment() {
     @Composable
     fun ESTextItem(eSText: String) {
         BaseSettingItem(
-            "电显内容", eSText, painterResource(id = R.drawable.text), {
+            "电显内容", eSText, painterResource(id = R.drawable.text),
+            {
                 val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
@@ -511,7 +523,8 @@ class SysAndEsSettingsFragment : Fragment() {
                 binding.textInputLayout.requestFocus()
                 WindowCompat.getInsetsController(requireActivity().window, binding.editText)
                     .show(WindowInsetsCompat.Type.ime())
-            })
+            },
+        )
     }
 
     @Composable
@@ -549,7 +562,6 @@ class SysAndEsSettingsFragment : Fragment() {
             title,
             value + "\n${keyName}",
             painterResource(id = R.drawable.city),
-            isShowIcon = false,
             clickFun = {
                 val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
@@ -579,7 +591,9 @@ class SysAndEsSettingsFragment : Fragment() {
                 binding.textInputLayout.requestFocus()
                 WindowCompat.getInsetsController(requireActivity().window, binding.editText)
                     .show(WindowInsetsCompat.Type.ime())
-            })
+            },
+            isShowIcon = false,
+        )
     }
 
     val esDemoText = "请有序排队 文明乘车 桂林公交欢迎您 K99 开往 汽车客运南站"
@@ -587,7 +601,8 @@ class SysAndEsSettingsFragment : Fragment() {
     @Composable
     fun ESSpeedItem(eSSpeed: Int) {
         BaseSettingItem(
-            "电显文字滚动速度", "$eSSpeed 像素/秒", painterResource(id = R.drawable.speed), {
+            "电显文字滚动速度", "$eSSpeed 像素/秒", painterResource(id = R.drawable.speed),
+            {
                 val binding = DialogSliderBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
@@ -631,7 +646,8 @@ class SysAndEsSettingsFragment : Fragment() {
                     binding.es.stopAnimation()
                 }
 
-            })
+            },
+        )
     }
 
     @Composable
@@ -683,7 +699,8 @@ class SysAndEsSettingsFragment : Fragment() {
                     binding.es.stopAnimation()
                 }
 
-            })
+            },
+        )
     }
 
     fun getESFinishPositionOfLastWordItemText(esFinishPositionOfLastWord: Float): String {

@@ -70,6 +70,8 @@
     <string name="station_type">Line Type (Community|Bus|Underground|Train)</string>
     <string name="station_longitude">Longitude</string>
     <string name="station_latitude">Latitude</string>
+    <string name="station_location_tip">* The format used by Announcer for recording locations is the GCJ02 coordinate system (Mars coordinate system). Please note the distinction.</string>
+    <string name="get_current_location">Get current location</string>
     <string name="nav_main">Main</string>
     <string name="nav_line">Lines</string>
     <string name="nav_station">Stations</string>
@@ -90,23 +92,23 @@
 
     <string name="search_station_not_have_voice_finish">The station with missing audio has been copied</string>
     <string name="xPixelPerSecond">%1$d Pixel/S</string>
-    <string name="online_search">在线搜索</string>
-    <string name="setAsLineName">设为名称</string>
+    <string name="online_search">Online Search</string>
+    <string name="setAsLineName">Set as Name</string>
     <string name="stationTypeDefault">B</string>
-    <string name="SysAndEs">系统与电显</string>
-    <string name="Announcement">语音与播报</string>
-    <string name="MapAndLocation">定位与地图</string>
-    <string name="DateAndAbout">数据与关于</string>
+    <string name="SysAndEs">Sys and ES</string>
+    <string name="Announcement">Announcement</string>
+    <string name="MapAndLocation">Location and Map</string>
+    <string name="DateAndAbout">Data and About</string>
     <string name="lineNameDefault">K99</string>
-    <string name="SAndTText">起点站 - 终点站</string>
+    <string name="SAndTText">Starting Station - Terminal</string>
     <string name="lineTypeDefault">B</string>
     <string name="split">|</string>
     <string name="S2T">%1$s - %2$s</string>
-    <string name="currentRange">当前半径 %1$dm</string>
-    <string name="locationPerSecond">每 %1$d 毫秒定位一次</string>
-    <string name="autoAnPerSecond">每次报站间隔  %1$d 秒</string>
+    <string name="currentRange">Current Range</string>
+    <string name="locationPerSecond">Location Interval: %1$d s</string>
+    <string name="autoAnPerSecond">Announcement Interval: %1$d s</string>
     <string name="loading">Loading…</string>
-    <string name="now_search">正在搜索%1$s路线%2$s</string>
+    <string name="now_search">Searching Line %2$s in %1$s</string>
 
 
 </resources>

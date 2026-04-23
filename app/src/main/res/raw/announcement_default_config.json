@@ -2,10 +2,10 @@
   "name": "",
   "announcementFormat": {
     "Next": {
-      "Default": "本号车次|<line>|路，开往|<tscn>|下一站是|<nscn>|The next station is|<nsen>",
-      "Starting": "本号车次|<line>|下一站是|起点站|<nscn>|The next station is|Starting station|<nsen>",
-      "Second": "欢迎乘坐|<line>|路，开往|<tscn>下一站是|<nscn>|This train is bound for|<tsen>|The next station is|<nsen>",
-      "Terminal": "本号车次|<line>|下一站是|终点站|<nscn>|The next station is|Terminal|<nsen>"
+      "Default": "进站提示音|本号车次|<line>|路，开往|<tscn>|下一站是|<nscn>|This train is bound for|<tsen>|The next station is|<nsen>\n进站提示音|欢迎乘坐|<line>|路|车辆运行中，请注意安全|下一站是|<nscn>|The next station is|<nsen>",
+      "Starting": "",
+      "Second": "欢迎乘坐|<line>|路，开往|<tscn>|愿此行，终抵群星|下一站是|<nscn>|This train is bound for|<tsen>|The next station is|<nsen>",
+      "Terminal": "本号车次|<line>|路|下一站是|终点站|<nscn>|The next station is|Terminal|<nsen>"
     },
     "WillArrive": {
       "Default": "前方到站|<nscn>",
@@ -14,10 +14,10 @@
       "Terminal": "前方到站|终点站|<nscn>"
     },
     "Arrive": {
-      "Default": "进站提示音|<time>|当前到站|<nscn>|We are arrive at|<nsen>",
-      "Starting": "进站提示音|<time>|当前到站|起点站|<nscn>|We are arrive at|Starting station|<nsen>",
-      "Second": "",
-      "Terminal": "进站提示音|<time>|当前到站|终点站|<nscn>|We are arrive at|Terminal|<nsen>"
+      "Default": "提示音|当前到站|<nscn>|We are arrive at|<nsen>\n提示音|当前到站|<nscn>|We are arrive at|<nsen>",
+      "Starting": "提示音|当前到站|起点站|<nscn>|We are arrive at|Starting station|<nsen>",
+      "Second": "提示音|当前到站|<nscn>|We are arrive at|<nsen>\n提示音|当前到站|<nscn>|We are arrive at|<nsen>",
+      "Terminal": "提示音|当前到站|终点站|<nscn>|<time>|We are arrive at|Terminal|<nsen>"
     }
   }
 }
