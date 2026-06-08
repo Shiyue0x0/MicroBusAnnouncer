@@ -1,10 +1,14 @@
 package com.microbus.announcer.fragment.settings
 
+import android.annotation.SuppressLint
 import android.app.Activity.RESULT_OK
 import android.content.Intent
+import android.database.sqlite.SQLiteDatabase
+import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -366,6 +370,7 @@ class DataAndAboutSettingsFragment : Fragment() {
     }
 
     //    选取文件回调
+    @SuppressLint("Recycle")
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         @Suppress("DEPRECATION")
@@ -377,18 +382,15 @@ class DataAndAboutSettingsFragment : Fragment() {
             ) && resultCode == RESULT_OK
         ) {
 
-            val outputPath = context?.getExternalFilesDir("")?.path + "/database/" +
-                    when (requestCode) {
-                        requestRestoreStation -> "station.db"
-                        requestRestoreLine -> "line.db"
-                        else -> ""
-                    }
-
-            val outputFileName = when (requestCode) {
-                requestRestoreStation -> "station.db"
-                requestRestoreLine -> "line.db"
+            val tableName = when (requestCode) {
+                requestRestoreStation -> "station"
+                requestRestoreLine -> "line"
                 else -> ""
             }
+
+            val outputFileName = "$tableName.db"
+
+            val outputPath = context?.getExternalFilesDir("")?.path + "/database/" + outputFileName
 
             val outputFileCnName = when (requestCode) {
                 requestRestoreStation -> "站点"
@@ -397,7 +399,7 @@ class DataAndAboutSettingsFragment : Fragment() {
             }
 
             //读入文件
-            val fileInputStream =
+            var fileInputStream =
                 requireContext().contentResolver.openInputStream(data!!.data!!)
             Log.d("file", data.data!!.path.toString())
 
@@ -425,6 +427,46 @@ class DataAndAboutSettingsFragment : Fragment() {
             bufferedReader.close()
 
             //检测表是否存在
+            // todo
+            var tempFile: File?
+            var database: SQLiteDatabase? = null
+            try {
+                // 打开数据库（只读模式）
+                tempFile = File.createTempFile("temp_db_", ".db")
+                tempFile.outputStream().use { output ->
+                    fileInputStream.use { input ->
+                        input?.copyTo(output)
+                    }
+                }
+
+                database = SQLiteDatabase.openDatabase(
+                    tempFile.absolutePath,
+                    null,
+                    SQLiteDatabase.OPEN_READONLY
+                )
+
+                // 查询 sqlite_master 表检查是否存在要还原的表
+                val cursor = database.rawQuery(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    arrayOf(tableName)
+                )
+
+                val tableExists = cursor.moveToFirst()
+                cursor.close()
+
+                if (!tableExists) {
+                    utils.showMsg("数据库中不存在 '${tableName}' 表，请重试")
+                    return
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                utils.showMsg("读取数据库失败: ${e.message}")
+                return
+            } finally {
+                database?.close()
+//                tempFile?.outputStream()?.close()
+            }
 
             //备份当前文件
             val dateFormat = SimpleDateFormat("yyMMdd-HHmmss", Locale.getDefault())
@@ -443,6 +485,8 @@ class DataAndAboutSettingsFragment : Fragment() {
             val fileOutputStream = FileOutputStream(outputPath)
             val buffer = ByteArray(1024)
             var length: Int
+
+            fileInputStream = requireContext().contentResolver.openInputStream(data.data!!)
             while (fileInputStream!!.read(buffer).also { length = it } > 0) {
                 fileOutputStream.write(buffer, 0, length)
             }
@@ -456,6 +500,7 @@ class DataAndAboutSettingsFragment : Fragment() {
             requireActivity().finish()
         }
     }
+
 
     @Composable
     fun AboutItem() {

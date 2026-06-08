@@ -21,6 +21,7 @@ import com.microbus.announcer.Utils
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.databinding.ItemStationOfLineBinding
 import java.util.Locale
+import kotlin.math.pow
 
 
 internal class StationOfLineAdapter(
@@ -106,15 +107,21 @@ internal class StationOfLineAdapter(
         holder.stationNameNestedScrollView.post {
 
             val pixelMovePerSecond = 100
+
+            var lastFrameTimeNanos = 0L
+
             val frameCallback = object : FrameCallback {
 
-                val delayPixel = pixelMovePerSecond * 3.0
-                var frameCount = 0
+                val delayPixel = pixelMovePerSecond * 3.0F
+                var frameCount = 0F
                 var scrollY = -delayPixel
 
                 override fun doFrame(frameTimeNanos: Long) {
 
                     Choreographer.getInstance().postFrameCallback(this)
+
+                    val frameDelayNanos = frameTimeNanos - lastFrameTimeNanos
+                    lastFrameTimeNanos = frameTimeNanos
 
                     if (!isShown)
                         return
@@ -133,7 +140,8 @@ internal class StationOfLineAdapter(
                     }
 
 //                    scrollY += ceil((pixelMovePerSecond.toFloat() / fps).toDouble()).toInt()
-                    scrollY += (pixelMovePerSecond.toDouble() / fps).toDouble()
+                    scrollY += (pixelMovePerSecond.toFloat() / fps)
+//                    scrollY = -delayPixel + (pixelMovePerSecond.toFloat() / fps) * frameCount
 
 //                    Log.d("offset add", "${ceil((pixelMovePerSecond.toFloat() / fps).toDouble()).toInt()}")
 
@@ -143,11 +151,13 @@ internal class StationOfLineAdapter(
                     if (scrollY > maxScrollY + delayPixel) {
 //                        Log.d("Station", "$lineName ${holder.layoutPosition} ${holder.stationName.text}")
                         scrollY = -delayPixel
+                        frameCount = 0F
                     }
 
                     holder.stationNameNestedScrollView.scrollTo(0, scrollY.toInt())
 
-                    frameCount++
+                    val frameDelay = frameDelayNanos.toFloat() / 10F.pow(9F) / (1F / fps)
+                    frameCount = (frameCount + frameDelay) % Float.MAX_VALUE
 
                 }
             }

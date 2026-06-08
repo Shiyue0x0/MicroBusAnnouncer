@@ -56,25 +56,28 @@ class Utils(private val context: Context, private val activity: Activity) {
     private val appRootPath =
         Environment.getExternalStorageDirectory().absolutePath + "/Announcer"
 
-    val tryListeningAnActionName = "com.microbus.announcer.try_listening_an"
-    val switchLineActionName = "com.microbus.announcer.switch_line"
+    val baseActionName = "com.microbus.announcer"
 
-    val editLineOnMapActionName = "com.microbus.announcer.edit_line_on_map"
+    val tryListeningAnActionName = "${baseActionName}.try_listening_an"
+    val switchLineActionName = "${baseActionName}.switch_line"
 
-    val requestCityFromLocationActionName = "com.microbus.announcer.request_city_from_location"
+    val editLineOnMapActionName = "${baseActionName}.edit_line_on_map"
 
-    val sendCityFromLocationActionName = "com.microbus.announcer.send_city_from_location"
+    val requestCityFromLocationActionName = "${baseActionName}.request_city_from_location"
 
-    val openLocationActionName = "com.microbus.announcer.open_location"
+    val sendCityFromLocationActionName = "${baseActionName}.send_city_from_location"
 
-    val lineListScrollToTopActionName = "com.microbus.announcer.line_list_scroll_to_top"
-    val stationListScrollToTopActionName = "com.microbus.announcer.station_list_scroll_to_top"
+    val openLocationActionName = "${baseActionName}.open_location"
+
+    val lineListScrollToTopActionName = "${baseActionName}.line_list_scroll_to_top"
+    val stationListScrollToTopActionName = "${baseActionName}.station_list_scroll_to_top"
 
     lateinit var toast: Toast
 
     /**
      * Toast提示
      * @param msg 提示内容
+     * @param isCannel 是否取消之前的Toast，立即显示当前的Toast
      */
     fun showMsg(msg: String, isCannel: Boolean = false) {
 
@@ -529,11 +532,16 @@ class Utils(private val context: Context, private val activity: Activity) {
 
 
         if (type == "new") {
+
             alertDialog.show()
+
             if (isOrderLatLng) {
                 binding.editTextLongitude.setText(latLng.longitude.toString())
                 binding.editTextLatitude.setText(latLng.latitude.toString())
             }
+
+            alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).text = ""
+
         } else if (type == "update") {
 
             binding.editTextCnName.setText(oldStation.cnName)
@@ -555,7 +563,6 @@ class Utils(private val context: Context, private val activity: Activity) {
 
         // 获取当前位置
         binding.getCurrentLocation.setOnClickListener {
-
             // 获取定位权限
             val permissionManager = PermissionManager(context, activity)
             if (!permissionManager.hasLocationPermission()) {
@@ -568,6 +575,8 @@ class Utils(private val context: Context, private val activity: Activity) {
             val locationClient = AMapLocationClient(context)
             val option = AMapLocationClientOption()
             option.isOnceLocation = true
+            locationClient.setLocationOption(option)
+
             locationClient.setLocationListener { location ->
                 if (location.errorCode == 0) {
                     binding.editTextLatitude.setText(location.latitude.toString())
@@ -946,13 +955,16 @@ class Utils(private val context: Context, private val activity: Activity) {
 
     fun getEsText(): String {
         val default =
-            "<sscn>|<tscn>|5|B\n" +
-                    "<ssen>|<tsen>|5|B\n" +
-                    "<nscn>|到了|5|A\n" +
-                    "<nscn>|就要到了|5|W\n" +
+            "<nscn>|就要到了|5|W\n" +
+                    "Next|<nsen>|3|W\n" +
                     "下一站|<nscn>|5|N\n" +
-                    "全国文明城市 桂林欢迎您|攻坚十四五 奋进新征程 建设壮美广西|5|D\n" +
-                    "速度|<speed>|5|R"
+                    "Next|<nsen>|3|N\n" +
+                    "<nscn>|到了|5|A\n" +
+                    "The Station|<nsen>|3|A\n" +
+                    "<sscn>|<tscn>|5|B\n" +
+                    "<ssen>|<tsen>|3|B\n" +
+                    "全国文明城市 桂林欢迎您|安全驾驶 文明出行|5|D\n" +
+                    "<hour>:<minute>:<second>|<speed>km/h|5|R"
         return prefs.getString("esText", default) ?: default
     }
 

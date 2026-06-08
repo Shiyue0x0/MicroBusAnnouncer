@@ -24,6 +24,7 @@ import android.media.AudioFocusRequest
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
+import android.media.AudioTrack.PLAYSTATE_PLAYING
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
@@ -125,6 +126,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -673,7 +675,11 @@ class MainFragment : Fragment() {
                                 currentLineStationList[i - 1].latitude,
                                 currentLineStationList[i - 1].longitude
                             )
-                            (distance / 1000 / sp * 3600).toInt()
+                            if (i == 1) {
+                                (distance / 1000 / sp * 3600).toInt()
+                            } else {
+                                trajectoryPointList.last().tm + (distance / 1000 / sp * 3600).toInt()
+                            }
                         }
 
                         trajectoryPointList.add(
@@ -692,7 +698,7 @@ class MainFragment : Fragment() {
 
                     val gson = Gson()
                     val json = gson.toJson(trajectoryPointList)
-                    Log.d(tag, "aMapRes: json: $json")
+//                    Log.d(tag, "aMapRes: json: $json")
 
                     val traceRequest = Request.Builder()
                         .url("https://restapi.amap.com/v4/grasproad/driving?key=${getString(R.string.amapKey_web)}")
@@ -1203,6 +1209,10 @@ class MainFragment : Fragment() {
                     currentLineStation = lastLineStation
                     break
                 }
+            }
+
+            if (currentLine.upLineStation == currentLine.downLineStation) {
+                utils.showMsg("注意：该线是单向路线，上下行相同")
             }
 
             refreshUI()
@@ -2430,13 +2440,24 @@ class MainFragment : Fragment() {
 //                utils.showMsg("setOnBusLineSearchListener${res.busLines.size}")
                             if (res.busLines.isNotEmpty()) {
 //                            Log.d(tag, res.query.queryString)
+                                // 上行
                                 if (i == 0) {
-                                    val line = getOnlineLine(res, 0, false)
+                                    val line = getOnlineLine(res, 0, 0)
                                     onlineLine.upLineStation = line.upLineStation
                                     onlineLine.name = line.name
-                                } else {
-                                    onlineLine.downLineStation =
-                                        getOnlineLine(res, 0, false).upLineStation
+                                }
+                                // 下行（如果有）
+                                else {
+                                    // 下行
+                                    if (onlineLineUpId != onlineLineDownId) {
+                                        onlineLine.downLineStation =
+                                            getOnlineLine(res, 0, 0).upLineStation
+                                    }
+                                    // 单向路线
+                                    else {
+                                        onlineLine.downLineStation = onlineLine.upLineStation
+                                    }
+
                                 }
 
                                 requireActivity().runOnUiThread {
@@ -2674,7 +2695,8 @@ class MainFragment : Fragment() {
 //            Log.d(tag, "find station $i")
             //进站条件：现在定位在这个站点内
             if (currentDistanceToStationList[i] <= inStationDistance &&
-                utils.getAutoSwitchStationState("In")) {
+                utils.getAutoSwitchStationState("In")
+            ) {
 
                 //当前站点及状态相同，直接返回
                 if ((lineStationList[i].id == currentLineStation.id && currentLineStationState == onArrive)) {
@@ -3343,11 +3365,13 @@ class MainFragment : Fragment() {
         if (::audioPlayScope.isInitialized)
             audioPlayScope.cancel()
 
-        // 音频读取与解码
+        // 音频读取（TTS合成）与解码
         audioStreamScope = CoroutineScope(Dispatchers.IO).launch {
 
             if (currentLineStationList.isEmpty()) {
-                pauseAnnounce()
+                withContext(Dispatchers.Main) {
+                    pauseAnnounce()
+                }
                 return@launch
             }
 
@@ -3370,7 +3394,9 @@ class MainFragment : Fragment() {
                 else format
 
             if (anExps == "") {
-                pauseAnnounce()
+                withContext(Dispatchers.Main) {
+                    pauseAnnounce()
+                }
                 return@launch
             }
 
@@ -3383,7 +3409,9 @@ class MainFragment : Fragment() {
             for (item in anList) {
                 if (item == "") {
 //                utils.showMsg("请到\"设置\"-\"语音播报库\"设置报站内容")
-                    pauseAnnounce()
+                    withContext(Dispatchers.Main) {
+                        pauseAnnounce()
+                    }
                     return@launch
                 } else if (item[0] == '<') {
                     when (item) {
@@ -3599,7 +3627,9 @@ class MainFragment : Fragment() {
             filePathList.forEachIndexed { i, filePath ->
 
                 if (!isActive) {
-                    pauseAnnounce()
+                    withContext(Dispatchers.Main) {
+                        pauseAnnounce()
+                    }
                     return@launch
                 }
 
@@ -3610,7 +3640,9 @@ class MainFragment : Fragment() {
 
                     while (true) {
                         if (!isActive) {
-                            pauseAnnounce()
+                            withContext(Dispatchers.Main) {
+                                pauseAnnounce()
+                            }
                             return@launch
                         }
 //                        Thread.sleep(50)
@@ -3634,7 +3666,9 @@ class MainFragment : Fragment() {
                     } catch (e: Exception) {
                         Log.d(tag, "setDataSource Error")
                         e.printStackTrace()
-                        pauseAnnounce()
+                        withContext(Dispatchers.Main) {
+                            pauseAnnounce()
+                        }
                         return@launch
                     }
 
@@ -3682,12 +3716,19 @@ class MainFragment : Fragment() {
                 while (!eosReceived) {
 
                     if (!isActive) {
-                        pauseAnnounce()
+                        withContext(Dispatchers.Main) {
+                            pauseAnnounce()
+                        }
                         return@launch
                     }
 
                     // 输入
-                    val inputBufferId = decoder.dequeueInputBuffer(100000)
+//                    val inputBufferId = decoder.dequeueInputBuffer(100000)
+                    var inputBufferId = -1
+                    while (inputBufferId < 0) {
+                        inputBufferId = decoder.dequeueInputBuffer(-1)
+                    }
+
                     if (inputBufferId >= 0) {
                         val buffer = inputBuffers[inputBufferId]
                         val sampleSize = extractor.readSampleData(buffer, 0)
@@ -3715,8 +3756,12 @@ class MainFragment : Fragment() {
                     }
 
                     // 输出
-                    val outIndex = decoder.dequeueOutputBuffer(info, 100000)
+                    var outIndex = -1
+                    while (outIndex < 0) {
+                        outIndex = decoder.dequeueOutputBuffer(info, -1)
+                    }
                     when (outIndex) {
+//                    when (val outIndex = decoder.dequeueOutputBuffer(info, 100000)) {
 
                         // 输出缓冲区已更改
                         @Suppress("DEPRECATION")
@@ -3793,21 +3838,25 @@ class MainFragment : Fragment() {
                             i
                         )
                     )
+                    pcmBytes = null
                 }
 
             }
+
 
         }
 
         if (::audioTrack.isInitialized)
             audioTrack.release()
 
-        // 音频推流
+        // 音频推流播放
         audioPlayScope = CoroutineScope(Dispatchers.IO).launch {
+
 
             var hasInitAudioTrack = false
             var hasPost = false
             val hasShowSubtitleMap = HashMap<Int, Boolean>() // <fileIndex, hasShow>
+            var curAudioTrackPlayDone = false
 
 //            audioManager?.requestAudioFocus(audioFocusRequest!!)
             isAnnouncing = true
@@ -3839,19 +3888,49 @@ class MainFragment : Fragment() {
                         )
 
 
+//                        if (::audioTrack.isInitialized && audioTrack.state == AudioTrack.STATE_INITIALIZED) {
+//                            audioTrack.release()
+//                        }
+
+                        // 等待上个audioTrack播放完毕
                         if (::audioTrack.isInitialized && audioTrack.state == AudioTrack.STATE_INITIALIZED) {
-                            audioTrack.release()
+                            while (!curAudioTrackPlayDone && isActive) {
+                            }
+                            // todo
+//                            audioTrack.release()
+                            curAudioTrackPlayDone = false
                         }
 
-                        audioTrack = AudioTrack(
-                            audioAttributes,
-                            audioFormat,
-                            bufferSizeInBytes,
-                            AudioTrack.MODE_STREAM,
-                            1
-                        )
+//                        audioTrack = AudioTrack(
+//                            audioAttributes,
+//                            audioFormat,
+//                            bufferSizeInBytes,
+//                            AudioTrack.MODE_STREAM,
+//                            1
+//                        )
+
+                        audioTrack = AudioTrack.Builder()
+                            .setAudioAttributes(audioAttributes)
+                            .setAudioFormat(audioFormat)
+                            .setBufferSizeInBytes(bufferSizeInBytes)
+                            .setTransferMode(AudioTrack.MODE_STREAM)
+                            .setSessionId(1)
+                            .build()
+
+                        audioTrack.setPlaybackPositionUpdateListener(object :
+                            AudioTrack.OnPlaybackPositionUpdateListener {
+                            override fun onMarkerReached(track: AudioTrack?) {
+                                curAudioTrackPlayDone = true
+                            }
+
+                            override fun onPeriodicNotification(track: AudioTrack?) {
+                            }
+                        })
+
 
                         audioTrack.play()
+
+                        Log.d(tag, "rebuild audioTrack")
 
                     }
 
@@ -3862,7 +3941,7 @@ class MainFragment : Fragment() {
                                 val fileName = filePathList[pcm.fileIndex].split('/').last()
                                 val lastDotIndex = fileName.lastIndexOf(".")
                                 utils.showMsg(
-                                    fileName.substring(0, lastDotIndex), true
+                                    fileName.take(lastDotIndex), true
                                 )
                             }
                             hasShowSubtitleMap[pcm.fileIndex] = true
@@ -3892,9 +3971,20 @@ class MainFragment : Fragment() {
 
                     synchronized(audioTrack) {
                         if (pcm.data != null && audioTrack.state == AudioTrack.STATE_INITIALIZED
-                            && audioTrack.playState == AudioTrack.PLAYSTATE_PLAYING
+                            && audioTrack.playState == PLAYSTATE_PLAYING
                         ) {
-                            audioTrack.write(pcm.data!!, 0, pcm.data!!.size)
+                            val writeResult = audioTrack.write(pcm.data!!, 0, pcm.data!!.size)
+                            Log.d(tag, "writeResult $writeResult")
+                            Log.d(tag, "audioTrack.state ${audioTrack.playState}")
+
+                            if( audioTrack.state == AudioTrack.STATE_INITIALIZED
+                                && audioTrack.playState == PLAYSTATE_PLAYING){
+                                audioTrack.setNotificationMarkerPosition(
+                                    audioTrack.notificationMarkerPosition +
+                                            calculateTotalFrames(pcm)
+                                )
+                            }
+
 //                        Log.d(tag, "play ${wl}/${pcm.data!!.size}")
                         }
                     }
@@ -3906,6 +3996,34 @@ class MainFragment : Fragment() {
         }
     }
 
+    /**
+     * 计算PCM流总帧数
+     */
+    private fun calculateTotalFrames(pcmInfo: PcmWithInfo): Int {
+        val data = pcmInfo.data ?: return 0
+
+        // 1. 计算每帧的字节数
+        val bytesPerFrame = when (pcmInfo.pcmEncoding) {
+            AudioFormat.ENCODING_PCM_16BIT -> 2  // 16位 = 2字节
+            AudioFormat.ENCODING_PCM_8BIT -> 1   // 8位 = 1字节
+            AudioFormat.ENCODING_PCM_FLOAT -> 4  // 32位浮点 = 4字节
+            else -> 2  // 默认按16位处理
+        }
+
+        // 2. 乘以声道数
+        val channels = when (pcmInfo.channelMask) {
+            AudioFormat.CHANNEL_OUT_MONO -> 1
+            AudioFormat.CHANNEL_OUT_STEREO -> 2
+            else -> 2  // 默认立体声
+        }
+
+        val bytesPerSample = bytesPerFrame * channels
+
+        // 3. 计算总帧数
+        val totalFrames = data.size / bytesPerSample
+
+        return totalFrames
+    }
 
     /**
      * 刷新地图站点标记文本
@@ -4458,23 +4576,35 @@ class MainFragment : Fragment() {
         if (res.busLines.isNotEmpty()) {
 
             // 搜索结果Dialog
-            val lineNameList = Array(
-                size = res.busLines.size / 2,
-                init = { "" }
-            )
-            for (i in res.busLines.indices) {
-                if (i % 2 == 1)
-                    lineNameList[i / 2] = res.busLines[i].busLineName
+//            val lineNameList = Array(
+//                size = res.busLines.size / 2,
+//                init = { "" }
+//            )
+//            for (i in res.busLines.indices) {
+//                val busLine = res.busLines[i]
+//                Log.d(tag, "$busLine ${busLine.busLineName}")
+//                if (i % 2 == 1)
+//                    lineNameList[i / 2] = res.busLines[i].busLineName
+//            }
+
+            // 编号相同的路线合并
+            val lineNameList = ArrayList<String>()
+            for (busLine in res.busLines) {
+                val lineNumberName = busLine.busLineName.substringBefore("(")
+                val sameLineName =
+                    lineNameList.find { it.substringBefore("(") == lineNumberName }
+                if (sameLineName == null) {
+                    lineNameList.add(busLine.busLineName)
+                }
             }
 
-
-            if (res.busLines.size == 2) {
-                setOnlineLine(res, alertDialog, 0)
+            if (lineNameList.size == 1) {
+                setOnlineLine(res, alertDialog, lineNameList.first().substringBefore("("))
             } else {
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                    .setTitle("选择要应用的路线")
-                    .setItems(lineNameList) { _, which ->
-                        setOnlineLine(res, alertDialog, which * 2)
+                    .setTitle("选择要运行的路线")
+                    .setItems(lineNameList.toTypedArray()) { _, which ->
+                        setOnlineLine(res, alertDialog, lineNameList[which].substringBefore("("))
                     }
                     .show()
             }
@@ -4486,18 +4616,22 @@ class MainFragment : Fragment() {
     fun setOnlineLine(
         res: BusLineResult,
         alertDialog: AlertDialog? = null,
-        chosenIndex: Int
+        lineNumberName: String
     ) {
 
         cloudStationList.clear()
-        val line = getOnlineLine(res, chosenIndex)
 
+        val busLines = res.busLines.filter { it.busLineName.substringBefore("(") == lineNumberName }
+        val beginIndex = res.busLines.indexOf(busLines.first())
+        val endIndex = res.busLines.indexOf(busLines.last())
+
+        val line = getOnlineLine(res, beginIndex, endIndex)
         val sharedPreferences: SharedPreferences =
             requireContext().getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
         sharedPreferences.edit(commit = true) {
             putString("lineName", currentLine.name)
-            putString("onlineLineUpId", res.busLines[chosenIndex].busLineId)
-            putString("onlineLineDownId", res.busLines[chosenIndex + 1].busLineId)
+            putString("onlineLineUpId", res.busLines[beginIndex].busLineId)
+            putString("onlineLineDownId", res.busLines[endIndex].busLineId)
         }
 
         CoroutineScope(Dispatchers.Main).launch {
@@ -4511,14 +4645,18 @@ class MainFragment : Fragment() {
         }
     }
 
-    fun getOnlineLine(res: BusLineResult, chosenIndex: Int, isGet2Direction: Boolean = true): Line {
+    fun getOnlineLine(
+        res: BusLineResult, beginIndex: Int, endIndex: Int
+    ): Line {
         var upLineStationStr = ""
         var downLineStationStr = ""
-        val end = if (isGet2Direction)
-            chosenIndex + 1
-        else
-            chosenIndex
-        for (x in chosenIndex..end) {
+
+//        val endIndex = if (isGet2Direction)
+//            beginIndex + 1
+//        else
+//            beginIndex
+
+        for (x in beginIndex..endIndex) {
             Log.d(
                 tag,
                 res.busLines[x].toString()
@@ -4549,22 +4687,31 @@ class MainFragment : Fragment() {
                     )
                 )
                 when (x) {
-                    chosenIndex ->
+                    beginIndex ->
                         upLineStationStr += "$id "
 
-                    chosenIndex + 1 ->
+                    endIndex ->
                         downLineStationStr += "$id "
                 }
             }
         }
 //        utils.showMsg(upLineStationStr)
-        return Line(
+
+        val line = Line(
             -1,
-            res.busLines[chosenIndex].busLineName.split("路").first(),
+            res.busLines[beginIndex].busLineName.substringBefore("(").split("路", "号", "线")
+                .first(),
             upLineStationStr,
             downLineStationStr,
             false
         )
+
+        // 单向路线
+        if (beginIndex == endIndex) {
+            line.downLineStation = line.upLineStation
+        }
+
+        return line
     }
 
     fun reverseLineDirection() {
@@ -4840,15 +4987,14 @@ class MainFragment : Fragment() {
                 var minDistance = Double.MAX_VALUE
                 var matchPointIndex = 0
 
+                // 寻找距离该站点最近的轨迹点
                 points.forEachIndexed { pIndex, point ->
-                    val longitude = point.asJsonObject.get("x").asDouble
-                    val latitude = point.asJsonObject.get("y").asDouble
 
                     val distance = utils.calculateDistance(
                         station.longitude,
                         station.latitude,
-                        longitude,
-                        latitude
+                        point.asJsonObject.get("x").asDouble,
+                        point.asJsonObject.get("y").asDouble
                     )
                     if (distance < minDistance) {
                         minDistance = distance
@@ -4861,9 +5007,13 @@ class MainFragment : Fragment() {
                 for (i in lastPointIndex..matchPointIndex) {
                     pointWithStationIndexMap[i] = sIndex - 1
                 }
-                lastPointIndex = matchPointIndex
+//                lastPointIndex = matchPointIndex
+                lastPointIndex = matchPointIndex + 1
+
+                // todo 补全因站距过大获取不到的轨迹
 
             }
+
 
 //            Log.d("pointWithStationIndexMap", "all ${points.size()}")
 //
@@ -4876,13 +5026,17 @@ class MainFragment : Fragment() {
                 val latitude = element.asJsonObject.get("y").asDouble
                 val latLng = LatLng(latitude, longitude)
                 mPolylineLatLngLists[0].add(latLng)
+//                Log.d(tag, "mPolylineLatLngLists ${mPolylineLatLngLists[0].last().latitude}-${mPolylineLatLngLists[0].last().longitude}")
+
+                //todo test
+
+
             }
 
             addMapLine()
 
-
         } catch (e: Exception) {
-            utils.showMsg("在线轨迹纠偏获取异常")
+            utils.showMsg("在线轨迹纠偏异常")
             e.printStackTrace()
         }
 
@@ -4891,19 +5045,21 @@ class MainFragment : Fragment() {
     val lineWithTypeMap = HashMap<Int, Int>()   //<polyLineIndex, Type(0, 1, 2)>
     fun addMapLine() {
         if (utils.getIsLineTrajectoryCorrection() && currentLine.name != resources.getString(R.string.line_all)) {
-            val pointList = ArrayList<LatLng>()
+            val stationPointList = ArrayList<LatLng>()
             var stationIndex = 0
 
             mPolylineLatLngLists[0].forEachIndexed { pIndex, point ->
 
-                pointList.add(point)
+                stationPointList.add(point)
 
                 // 绘制该站点轨迹
-                if ((pIndex != 0 && pointWithStationIndexMap[pIndex] != pointWithStationIndexMap[pIndex - 1]) ||
-                    pIndex == mPolylineLatLngLists[0].size - 1
+                if ((pIndex != 0 && pointWithStationIndexMap[pIndex] != pointWithStationIndexMap[pIndex - 1])
+                    || pIndex == mPolylineLatLngLists[0].size - 1
                 ) {
 
-                    val lineType = when (pointWithStationIndexMap[pIndex]) {
+                    // 0已经过轨迹，1当前所在轨迹，2前方轨迹
+                    val lineType = when (stationIndex) {
+//                    val lineType = when (pointWithStationIndexMap[pIndex]) {
                         in 0 until currentLineStationCount ->
                             0
 
@@ -4929,12 +5085,13 @@ class MainFragment : Fragment() {
                         val mPolyline = aMap.addPolyline(
                             PolylineOptions().width(16f)
                                 .setCustomTexture((BitmapDescriptorFactory.fromResource(lineColorId)))
-                                .addAll(pointList)
+                                .addAll(stationPointList)
+                                .zIndex(-90F)
                         )
                         polylineList.add(mPolyline)
                         lineWithTypeMap[stationIndex] = lineType
                     }
-                    // 本站轨迹绘制过，但颜色不对应
+                    // 本站轨迹绘制过，但颜色不对应，需要用正确颜色重新绘制
                     else if (lineWithTypeMap[stationIndex] != lineType) {
 
 //                        Log.d(tag, "station $stationIndex redraw $lineType")
@@ -4943,14 +5100,14 @@ class MainFragment : Fragment() {
                         val mPolyline = aMap.addPolyline(
                             PolylineOptions().width(16f)
                                 .setCustomTexture((BitmapDescriptorFactory.fromResource(lineColorId)))
-                                .addAll(pointList)
+                                .addAll(stationPointList)
                                 .zIndex(-90F)
                         )
                         polylineList[stationIndex] = mPolyline
                         lineWithTypeMap[stationIndex] = lineType
                     }
 
-                    pointList.clear()
+                    stationPointList.clear()
                     stationIndex++
 
 //                    Log.d(tag, "polylineList ${polylineList.size}")

@@ -98,7 +98,7 @@ class StationFragment : Fragment() {
                     }
 
                     override fun onQueryTextChange(newText: String?): Boolean {
-                        refreshStationList(newText!!)
+//                        refreshStationList(newText!!)
                         return true
                     }
 

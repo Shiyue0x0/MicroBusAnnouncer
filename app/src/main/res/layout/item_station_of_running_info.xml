@@ -43,7 +43,7 @@
                 android:id="@+id/stationNext"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="12:00:00 下一站"
+                android:text="12:00:00 正在前往"
                 android:textColor="@color/an_text_0" />
 
             <TextView
@@ -57,7 +57,7 @@
                 android:id="@+id/stationIn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="12:00:30 到达" />
+                android:text="12:00:30 已经到达" />
 
 
         </LinearLayout>

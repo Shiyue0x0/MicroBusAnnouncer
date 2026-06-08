@@ -50,7 +50,7 @@ class StationDatabaseHelper(
     }
 
     fun queryById(id: Int): List<Station> {
-        val list: MutableList<Station> = ArrayList()
+//        var list: MutableList<Station> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
             readableDatabase.query(
@@ -63,23 +63,23 @@ class StationDatabaseHelper(
                 null
             )
         // 循环取出游标指向的每条记录
-        while (cursor.moveToNext()) {
-            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
-            station.id = cursor.getInt(0)
-            station.cnName = cursor.getString(1)
-            station.enName = cursor.getString(2)
-            station.longitude = cursor.getDouble(3)
-            station.latitude = cursor.getDouble(4)
-            if (!cursor.isNull(5))
-                station.type = cursor.getString(5)
-            list.add(station)
-        }
+//        while (cursor.moveToNext()) {
+//            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
+//            station.id = cursor.getInt(0)
+//            station.cnName = cursor.getString(1)
+//            station.enName = cursor.getString(2)
+//            station.longitude = cursor.getDouble(3)
+//            station.latitude = cursor.getDouble(4)
+//            if (!cursor.isNull(5))
+//                station.type = cursor.getString(5)
+//            list.add(station)
+//        }
+        val list = getStationsFromCursor(cursor)
         cursor.close()
         return list
     }
 
     fun queryByCnName(name: String): List<Station> {
-        val list: MutableList<Station> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
             readableDatabase.query(
@@ -92,23 +92,12 @@ class StationDatabaseHelper(
                 null
             )
         // 循环取出游标指向的每条记录
-        while (cursor.moveToNext()) {
-            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
-            station.id = cursor.getInt(0)
-            station.cnName = cursor.getString(1)
-            station.enName = cursor.getString(2)
-            station.longitude = cursor.getDouble(3)
-            station.latitude = cursor.getDouble(4)
-            if (!cursor.isNull(5))
-                station.type = cursor.getString(5)
-            list.add(station)
-        }
+        val list = getStationsFromCursor(cursor)
         cursor.close()
         return list
     }
 
     fun queryByKey(key: String): List<Station> {
-        val list: MutableList<Station> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
             readableDatabase.query(
@@ -122,17 +111,7 @@ class StationDatabaseHelper(
                 null
             )
         // 循环取出游标指向的每条记录
-        while (cursor.moveToNext()) {
-            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
-            station.id = cursor.getInt(0)
-            station.cnName = cursor.getString(1)
-            station.enName = cursor.getString(2)
-            station.longitude = cursor.getDouble(3)
-            station.latitude = cursor.getDouble(4)
-            if (!cursor.isNull(5))
-                station.type = cursor.getString(5)
-            list.add(station)
-        }
+        val list = getStationsFromCursor(cursor)
         cursor.close()
         return list
     }
@@ -177,19 +156,8 @@ class StationDatabaseHelper(
     }
 
     fun queryAll(): MutableList<Station> {
-        val list: MutableList<Station> = ArrayList()
         val cursor: Cursor = readableDatabase.query(tableName, null, null, null, null, null, null)
-        while (cursor.moveToNext()) {
-            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
-            station.id = cursor.getInt(0)
-            station.cnName = cursor.getString(1)
-            station.enName = cursor.getString(2)
-            station.longitude = cursor.getDouble(3)
-            station.latitude = cursor.getDouble(4)
-            if (!cursor.isNull(5))
-                station.type = cursor.getString(5)
-            list.add(station)
-        }
+        val list = getStationsFromCursor(cursor)
         cursor.close()
         return list
     }
@@ -246,5 +214,21 @@ class StationDatabaseHelper(
         }
 
         return count
+    }
+
+    fun getStationsFromCursor(cursor: Cursor): MutableList<Station> {
+        val list: MutableList<Station> = ArrayList()
+        while (cursor.moveToNext()) {
+            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
+            station.id = cursor.getInt(0)
+            station.cnName = cursor.getString(1)
+            station.enName = cursor.getString(2)
+            station.longitude = cursor.getDouble(3)
+            station.latitude = cursor.getDouble(4)
+            if (!cursor.isNull(5))
+                station.type = cursor.getString(5)
+            list.add(station)
+        }
+        return list
     }
 }

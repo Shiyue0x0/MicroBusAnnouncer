@@ -47,9 +47,9 @@ class StationOfRunningInfoAdapter(
 
             val timeStr = info.time.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
             when (info.stationState) {
-                0 -> stationInfoList.last().stationNext = "$timeStr 从上一站出站"
-                1 -> stationInfoList.last().stationWillIn = "$timeStr 即将到达"
-                2 -> stationInfoList.last().stationIn = "$timeStr 到达本站"
+                0 -> stationInfoList.last().stationNext = "$timeStr 正在前往 ${info.stationName}"
+                1 -> stationInfoList.last().stationWillIn = "$timeStr 即将到达 ${info.stationName}"
+                2 -> stationInfoList.last().stationIn = "$timeStr 已经到达 ${info.stationName}"
             }
 
         }

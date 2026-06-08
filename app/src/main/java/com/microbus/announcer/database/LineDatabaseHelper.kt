@@ -52,7 +52,7 @@ class LineDatabaseHelper(
     }
 
     fun queryByName(name: String): List<Line> {
-        val list: MutableList<Line> = ArrayList()
+//        var list: MutableList<Line> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
             readableDatabase.query(
@@ -65,25 +65,25 @@ class LineDatabaseHelper(
                 null
             )
         // 循环取出游标指向的每条记录
-        while (cursor.moveToNext()) {
-            val line = Line()
-            line.id = cursor.getInt(0)
-            line.name = cursor.getString(1)
-            line.upLineStation = cursor.getString(2)
-            line.downLineStation = cursor.getString(3)
-            line.isUpAndDownInvert = cursor.getString(4) == "true"
-            if (!cursor.isNull(5))
-                line.type = cursor.getString(5)
-            else
-                line.type = "B"
-            list.add(line)
-        }
+//        while (cursor.moveToNext()) {
+//            val line = Line()
+//            line.id = cursor.getInt(0)
+//            line.name = cursor.getString(1)
+//            line.upLineStation = cursor.getString(2)
+//            line.downLineStation = cursor.getString(3)
+//            line.isUpAndDownInvert = cursor.getString(4) == "true"
+//            if (!cursor.isNull(5))
+//                line.type = cursor.getString(5)
+//            else
+//                line.type = "B"
+//            list.add(line)
+//        }
+        val list = getLinesFromCursor(cursor)
         cursor.close()
         return list
     }
 
     fun queryById(id: Int): List<Line> {
-        val list: MutableList<Line> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
             readableDatabase.query(
@@ -96,25 +96,12 @@ class LineDatabaseHelper(
                 null
             )
         // 循环取出游标指向的每条记录
-        while (cursor.moveToNext()) {
-            val line = Line()
-            line.id = cursor.getInt(0)
-            line.name = cursor.getString(1)
-            line.upLineStation = cursor.getString(2)
-            line.downLineStation = cursor.getString(3)
-            line.isUpAndDownInvert = cursor.getString(4) == "true"
-            if (!cursor.isNull(5))
-                line.type = cursor.getString(5)
-            else
-                line.type = "B"
-            list.add(line)
-        }
+        val list = getLinesFromCursor(cursor)
         cursor.close()
         return list
     }
 
     fun queryByCount(count: Int): List<Line> {
-        val list: MutableList<Line> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
             readableDatabase.query(
@@ -128,19 +115,7 @@ class LineDatabaseHelper(
                 "1"
             )
         // 循环取出游标指向的每条记录
-        while (cursor.moveToNext()) {
-            val line = Line()
-            line.id = cursor.getInt(0)
-            line.name = cursor.getString(1)
-            line.upLineStation = cursor.getString(2)
-            line.downLineStation = cursor.getString(3)
-            line.isUpAndDownInvert = cursor.getString(4) == "true"
-            if (!cursor.isNull(5))
-                line.type = cursor.getString(5)
-            else
-                line.type = "B"
-            list.add(line)
-        }
+        val list = getLinesFromCursor(cursor)
         cursor.close()
         return list
     }
@@ -149,21 +124,8 @@ class LineDatabaseHelper(
      * 返回所有路线(按路线名排序)
      */
     fun queryAll(): MutableList<Line> {
-        val list: MutableList<Line> = ArrayList()
         val cursor: Cursor = readableDatabase.query(tableName, null, null, null, null, null, "name")
-        while (cursor.moveToNext()) {
-            val line = Line()
-            line.id = cursor.getInt(0)
-            line.name = cursor.getString(1)
-            line.upLineStation = cursor.getString(2)
-            line.downLineStation = cursor.getString(3)
-            line.isUpAndDownInvert = cursor.getString(4) == "true"
-            if (!cursor.isNull(5))
-                line.type = cursor.getString(5)
-            else
-                line.type = "B"
-            list.add(line)
-        }
+        val list = getLinesFromCursor(cursor)
         cursor.close()
         return list
     }
@@ -187,7 +149,6 @@ class LineDatabaseHelper(
     }
 
     fun queryByKey(key: String): List<Line> {
-        val list: MutableList<Line> = ArrayList()
         // 执行记录查询动作，该语句返回结果集的游标
         val cursor: Cursor =
             readableDatabase.query(
@@ -201,6 +162,13 @@ class LineDatabaseHelper(
                 null
             )
         // 循环取出游标指向的每条记录
+        val list = getLinesFromCursor(cursor)
+        cursor.close()
+        return list
+    }
+
+    fun getLinesFromCursor(cursor: Cursor): MutableList<Line> {
+        val list: MutableList<Line> = ArrayList()
         while (cursor.moveToNext()) {
             val line = Line()
             line.id = cursor.getInt(0)
@@ -214,7 +182,6 @@ class LineDatabaseHelper(
                 line.type = "B"
             list.add(line)
         }
-        cursor.close()
         return list
     }
 }

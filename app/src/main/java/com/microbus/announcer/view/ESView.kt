@@ -21,6 +21,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.core.content.withStyledAttributes
 import com.microbus.announcer.R
+import kotlin.math.pow
 import kotlin.properties.Delegates
 
 
@@ -178,8 +179,8 @@ class ESView : View {
 
     }
 
-    var frameCount = 0
-    var allFrameCount = 0
+    var frameCount = 0F
+    var allFrameCount = 0F
     var minShowTimeMs = Int.MAX_VALUE
     var fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         context.display.refreshRate
@@ -206,7 +207,7 @@ class ESView : View {
         canvas.clipRect(fillRect)
 
         // View宽度足够容纳文本，居中显示
-        if (paint.measureText(text) <= width) {
+        if (paint.measureText(text) <= width - paddingStart - paddingEnd) {
             canvas.drawText(
                 text,
                 (width - paint.measureText(text)) / 2,
@@ -216,7 +217,9 @@ class ESView : View {
         }
         // View宽度不足够容纳文本，轮播显示，羽化水平边缘
         else {
-            scrollX -= pixelMovePerSecond.toFloat() / fps
+//            scrollX -= pixelMovePerSecond.toFloat() / fps
+            scrollX =
+                width.toFloat() - paddingEnd - (pixelMovePerSecond.toFloat() / fps) * frameCount
             canvas.drawText(
                 text,
                 scrollX,
@@ -269,8 +272,8 @@ class ESView : View {
 
         isShowFinish = false
 
-        frameCount = 0
-        allFrameCount = 0
+        frameCount = 0F
+        allFrameCount = 0F
         loopCount = 0
 
         setText(textNew)
@@ -303,7 +306,7 @@ class ESView : View {
 //                    Log.d("ES", "$text frameTimeNanos: $frameDelayNanos")
                     lastFrameTimeNanos = frameTimeNanos
 
-                    // 动态刷新率
+                    // 动态获取刷新率
                     fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         context.display.refreshRate
                     } else {
@@ -315,7 +318,7 @@ class ESView : View {
 //                    Log.d("ES", "$text $isShowFinish")
 
                     //  文字宽度超出屏幕时（滚动）
-                    if (paint.measureText(text) > width) {
+                    if (paint.measureText(text) > width - paddingStart - paddingEnd) {
                         postInvalidate()
 
                         // 文字滚动完毕时
@@ -328,7 +331,7 @@ class ESView : View {
                         }
 
                         if (scrollX < -paint.measureText(text) + width * finishPositionOfLastWord * 0.95) {
-                            frameCount = 0
+                            frameCount = 0F
                             scrollX = width.toFloat() - paddingEnd
                             loopCount++
                         }
@@ -344,8 +347,11 @@ class ESView : View {
                         }
                     }
 
-                    frameCount = (frameCount + 1) % Int.MAX_VALUE
-                    allFrameCount = (allFrameCount + 1) % Int.MAX_VALUE
+//                    frameCount = (frameCount + 1) % Float.MAX_VALUE
+//                    allFrameCount = (allFrameCount + 1) % Float.MAX_VALUE
+                    val frameDelay = frameDelayNanos.toFloat() / 10F.pow(9F) / (1F / fps)
+                    frameCount = (frameCount + frameDelay) % Float.MAX_VALUE
+                    allFrameCount = (allFrameCount + frameDelay) % Float.MAX_VALUE
 
                 }
             }
