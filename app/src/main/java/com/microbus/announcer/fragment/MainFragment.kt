@@ -976,7 +976,7 @@ class MainFragment : Fragment() {
 
                                     // 全站点路线
                                     5 -> {
-                                        loadLineAll()
+                                        loadLineAll(true)
                                     }
                                 }
                             }
@@ -1046,7 +1046,7 @@ class MainFragment : Fragment() {
             }
 
             dialogBinding.switchToLineAll.setOnClickListener {
-                loadLineAll()
+                loadLineAll(true)
                 alertDialog.cancel()
             }
 
@@ -3977,8 +3977,9 @@ class MainFragment : Fragment() {
                             Log.d(tag, "writeResult $writeResult")
                             Log.d(tag, "audioTrack.state ${audioTrack.playState}")
 
-                            if( audioTrack.state == AudioTrack.STATE_INITIALIZED
-                                && audioTrack.playState == PLAYSTATE_PLAYING){
+                            if (audioTrack.state == AudioTrack.STATE_INITIALIZED
+                                && audioTrack.playState == PLAYSTATE_PLAYING
+                            ) {
                                 audioTrack.setNotificationMarkerPosition(
                                     audioTrack.notificationMarkerPosition +
                                             calculateTotalFrames(pcm)
@@ -4500,9 +4501,23 @@ class MainFragment : Fragment() {
 
     }
 
-    fun loadLineAll() {
+    fun loadLineAll(acceptStationTypeEnableSetting: Boolean = false) {
         utils.showMsg("站点数量较多时，加载较慢，请耐心等待")
-        val stationList = stationDatabaseHelper.queryAll()
+
+        val stationList = if (acceptStationTypeEnableSetting)
+            stationDatabaseHelper.queryByTypes(
+                booleanArrayOf(
+                    utils.getLineAllStationTypeEnable("C"),
+                    utils.getLineAllStationTypeEnable("B"),
+                    utils.getLineAllStationTypeEnable("U"),
+                    utils.getLineAllStationTypeEnable("T")
+                )
+            )
+        else
+            stationDatabaseHelper.queryAll()
+
+
+
         if (stationList.size >= 2) {
 
             val allStationLine =

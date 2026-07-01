@@ -162,6 +162,28 @@ class StationDatabaseHelper(
         return list
     }
 
+    fun queryByTypes(types: BooleanArray): MutableList<Station> {
+
+        val typeNameListTotal = arrayOf("C", "B", "U", "T")
+        val typeNameList = typeNameListTotal
+            .filterIndexed { index, _ -> types[index] }
+        val typeNameSelection = typeNameList
+            .joinToString(separator = " or ") { "(type='$it')" }
+
+        val cursor: Cursor = readableDatabase.query(
+            tableName,
+            null,
+            typeNameSelection,
+            null,
+            null,
+            null,
+            null
+        )
+        val list = getStationsFromCursor(cursor)
+        cursor.close()
+        return list
+    }
+
     fun updateById(id: Int, station: Station) {
         val sql =
             "update $tableName set cnName = '${station.cnName}', enName = '${station.enName}', " +

@@ -225,6 +225,7 @@ class SysAndEsSettingsFragment : Fragment() {
                         SaveBackAfterExitItem(saveBackAfterExit, setSaveBackAfterExit)
                         NoticeItem(notice, setNotice)
                         IsNavModeItem(isNavMode, setIsNavMode)
+                        LineAllStationTypeItem()
                         Text(
                             "电显基础",
                             fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
@@ -548,6 +549,41 @@ class SysAndEsSettingsFragment : Fragment() {
             }
         }
 
+    }
+
+    @Composable
+    fun LineAllStationTypeItem() {
+
+        val stationTypeList = listOf("社区站点", "公交站点", "地铁站点", "火车站点")
+        val valueList = listOf("C", "B", "U", "T")
+
+        BaseSettingItem(
+            "全站路线显示的站点类型", painter = painterResource(id = R.drawable.station),
+
+            clickFun = {
+                val checkedItems = valueList
+                    .map { utils.getLineAllStationTypeEnable(it) }
+                    .toBooleanArray()
+
+                MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                )
+                    .setMultiChoiceItems(
+                        stationTypeList.toTypedArray(),
+                        checkedItems
+                    ) { _, which, isChecked ->
+                        prefs.edit {
+                            putBoolean("LineAllStationType${valueList[which]}Enable", isChecked)
+                        }
+                    }
+                    .setTitle("全站路线显示的站点类型")
+                    .show()
+            },
+            rightContain = {
+
+            },
+        )
     }
 
     @Composable

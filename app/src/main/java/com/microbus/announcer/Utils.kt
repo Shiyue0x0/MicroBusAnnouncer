@@ -166,6 +166,14 @@ class Utils(private val context: Context, private val activity: Activity) {
     }
 
     /**
+     * 从设置中获取全站路线是否显示该类型站点
+     * @param type 路线类型：C社区|B公交|U地铁|T火车
+     */
+    fun getLineAllStationTypeEnable(type: String): Boolean {
+        return prefs.getBoolean("LineAllStationType${type}Enable", true)
+    }
+
+    /**
      * 从设置中获取界面语言
      * @return zh中文，en英文
      */
