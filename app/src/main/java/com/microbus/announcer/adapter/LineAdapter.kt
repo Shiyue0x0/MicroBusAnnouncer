@@ -192,7 +192,7 @@ class LineAdapter(
             holder.lineStationList.setHasFixedSize(true)
             holder.lineStationList.layoutManager = linearLayoutManager
             val stationOfLineAdapter =
-                StationOfLineAdapter(context, activity,stationList, -1)
+                StationOfLineAdapter(context, activity,stationList, stationList.size)
 
             holder.lineStationList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {

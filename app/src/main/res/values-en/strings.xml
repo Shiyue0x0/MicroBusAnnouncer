@@ -84,7 +84,7 @@
     <string name="station_en_name_value">Station</string>
     <string name="station_longitude_value">0.0</string>
     <string name="station_latitude_value">0.0</string>
-    <string name="station_index_value">0</string>
+    <string name="station_index_value">00</string>
     <string name="station_name">Station</string>
     <string name="search">Search</string>
 

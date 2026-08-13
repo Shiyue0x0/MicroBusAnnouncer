@@ -30,6 +30,7 @@ import com.amap.api.maps.model.LatLng
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
+import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import com.microbus.announcer.bean.EsItem
 import com.microbus.announcer.bean.Line
@@ -1304,6 +1305,19 @@ class Utils(private val context: Context, private val activity: Activity) {
         }
 
 
+    }
+
+    fun insertJsonElement(index: Int, `val`: JsonElement?, currentArray: JsonArray): JsonArray {
+        val newArray = JsonArray()
+        for (i in 0..<index) {
+            newArray.add(currentArray.get(i))
+        }
+        newArray.add(`val`)
+
+        for (i in index..<currentArray.size()) {
+            newArray.add(currentArray.get(i))
+        }
+        return newArray
     }
 }
 

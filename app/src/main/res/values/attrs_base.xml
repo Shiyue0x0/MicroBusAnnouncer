@@ -17,6 +17,11 @@
     </declare-styleable>
     <declare-styleable name="NestedScrollableHost">
         <attr name="sameDirectionWithParent" format="boolean" />
+        <attr name="parentViewType" format="enum">
+            <enum name="auto" value="0" />
+            <enum name="viewpager2" value="1" />
+            <enum name="recyclerview" value="2" />
+        </attr>
     </declare-styleable>
 </resources>
 

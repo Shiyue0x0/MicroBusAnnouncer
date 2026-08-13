@@ -100,6 +100,7 @@ import com.amap.api.services.route.RouteSearch
 import com.amap.api.services.route.WalkRouteResult
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.microbus.announcer.MainActivity
 import com.microbus.announcer.PermissionManager
@@ -124,6 +125,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -528,6 +530,10 @@ class MainFragment : Fragment() {
 //                    "strIndex: ${strIndex.toInt()} ${cloudStationList.find { it.id == strIndex.toInt() }!!.cnName}"
 //                )
                 currentLineStationList.add(cloudStationList.find { it.id == strIndex.toInt() }!!)
+                Log.d(
+                    tag,
+                    "${currentLineStationList.last().cnName}\t${currentLineStationList.last().enName}"
+                )
             }
         }
 
@@ -1186,7 +1192,9 @@ class MainFragment : Fragment() {
 
             if (isOperationLock) {
                 utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                group.uncheck(checkedId)
+                group.post {
+                    group.uncheck(checkedId)
+                }
                 return@addOnButtonCheckedListener
             }
 
@@ -1350,6 +1358,13 @@ class MainFragment : Fragment() {
 
             //语音播报当前站点
             announce()
+
+            // todo debug
+//            Handler(Looper.getMainLooper()).postDelayed({
+//                nextStation()
+//                announce()
+//            }, 7500 + 100 * 1)
+
 
             utils.haptic(requireView())
         }
@@ -2413,9 +2428,16 @@ class MainFragment : Fragment() {
         val onlineLineUpId = sharedPreferences.getString("onlineLineUpId", "") ?: ""
         val onlineLineDownId = sharedPreferences.getString("onlineLineDownId", "") ?: ""
 
+        // 全站路线
+        if (lastRunningLineName == resources.getString(R.string.line_all)) {
+            loadLineAll(true)
+            return
+        }
+
         val localLineList = lineDatabaseHelper.queryByName(lastRunningLineName).toMutableList()
 //        Log.d(tag, onlineLineUpId)
 //        Log.d(tag, onlineLineDownId)
+
 
         // 获取云端路线
         if (localLineList.isEmpty()) {
@@ -2509,10 +2531,11 @@ class MainFragment : Fragment() {
 
         binding.locationBtnGroup.check(binding.locationBtn.id)
 
-        //更新位置与时间
+        //更新时间
         lastTimeMillis = currentTimeMillis
         currentTimeMillis = System.currentTimeMillis()
 
+        //更新位置
         lastLngLat = currentLngLat
         currentLngLat = LatLng(location.latitude, location.longitude)
 
@@ -2598,7 +2621,6 @@ class MainFragment : Fragment() {
             binding.navStationDistanceValue.text =
                 String.format(Locale.CHINA, "%.0f", currentDistanceToCurrentStation)
         }
-
 
 
         binding.navStationDistanceUnit.text =
@@ -3068,19 +3090,35 @@ class MainFragment : Fragment() {
     /**
      * 上一站
      */
-    private fun lastStation() {
-        if (currentLineStation.id == null) return
+    private fun lastStation(): Boolean {
+        if (currentLineStation.id == null) return false
 
-        if (currentLineStationState == onNext || currentLineStationState == onWillArrive) {
-            if (currentLineStationCount <= 0) return
-            currentLineStationCount--
-            currentLineStation = currentLineStationList[currentLineStationCount]
-            currentLineStationState = onArrive
-        } else if (currentLineStationState == onArrive) {
-            currentLineStationState = onNext
+        when (currentLineStationState) {
+            onWillArrive -> {
+                currentLineStationState = onArrive
+                refreshUI()
+                return true
+            }
+
+            onArrive -> {
+                if (currentLineStationCount <= 0) return false
+                currentLineStationCount--
+                currentLineStation = currentLineStationList[currentLineStationCount]
+                currentLineStationState = onWillArrive
+                refreshUI()
+                return true
+            }
+
+            onNext -> {
+                currentLineStationState = onWillArrive
+                refreshUI()
+                return true
+            }
+
+            else -> {
+                return false
+            }
         }
-
-        refreshUI()
     }
 
     /**
@@ -3088,19 +3126,32 @@ class MainFragment : Fragment() {
      */
     private fun nextStation(): Boolean {
         if (currentLineStation.id == null) return false
-        if (currentLineStationState == onNext || currentLineStationState == onWillArrive) {
-            currentLineStationState = onArrive
-            refreshUI()
-            return true
-        } else if (currentLineStationState == onArrive) {
-            if (currentLineStationCount >= currentLineStationList.size - 1) return false
-            currentLineStationCount++
-            currentLineStation = currentLineStationList[currentLineStationCount]
-            currentLineStationState = onNext
-            refreshUI()
-            return true
-        } else {
-            return false
+
+        when (currentLineStationState) {
+            onWillArrive -> {
+                currentLineStationState = onArrive
+                refreshUI()
+                return true
+            }
+
+            onNext -> {
+                currentLineStationState = onWillArrive
+                refreshUI()
+                return true
+            }
+
+            onArrive -> {
+                if (currentLineStationCount >= currentLineStationList.size - 1) return false
+                currentLineStationCount++
+                currentLineStation = currentLineStationList[currentLineStationCount]
+                currentLineStationState = onNext
+                refreshUI()
+                return true
+            }
+
+            else -> {
+                return false
+            }
         }
 
     }
@@ -3954,9 +4005,12 @@ class MainFragment : Fragment() {
                         audioReleaseHandler.removeCallbacksAndMessages(null)
                         audioReleaseHandler.postDelayed({
                             requireActivity().runOnUiThread {
-                                audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-                                binding.stopAnnouncement.visibility = GONE
-                                audioPlayScope.cancel()
+                                if (isActive) {
+                                    audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+                                    binding.stopAnnouncement.visibility = GONE
+//                                audioPlayScope.cancel()
+                                    this@launch.cancel()
+                                }
                             }
                             isAnnouncing = false
                         }, pcm.durationUs / 1000 + 500) //附加500ms延迟
@@ -4990,7 +5044,7 @@ class MainFragment : Fragment() {
             Log.d(tag, jsonStr)
 
             val rootElement = JsonParser.parseString(jsonStr).asJsonObject
-            val points =
+            var points =
                 rootElement.get("data").asJsonObject.get("points").asJsonArray
 
             pointWithStationIndexMap = HashMap()
@@ -5016,6 +5070,24 @@ class MainFragment : Fragment() {
                         matchPointIndex = pIndex
                     }
                 }
+
+                // 添加本站启示坐标点
+                if (sIndex > 0) {
+                    val localStationPoint = JsonObject().apply {
+                        addProperty("x", currentLineStationList[sIndex - 1].longitude)
+                        addProperty("y", currentLineStationList[sIndex - 1].latitude)
+                    }
+                    points = utils.insertJsonElement(lastPointIndex, localStationPoint, points)
+                    lastPointIndex--
+                }
+
+                // 添加本站末尾坐标点
+                val localStationPoint = JsonObject().apply {
+                    addProperty("x", station.longitude)
+                    addProperty("y", station.latitude)
+                }
+                points = utils.insertJsonElement(matchPointIndex, localStationPoint, points)
+                matchPointIndex++
 
 //                pointWithStationIndexMap[matchPointIndex] = sIndex
 
@@ -5044,8 +5116,6 @@ class MainFragment : Fragment() {
 //                Log.d(tag, "mPolylineLatLngLists ${mPolylineLatLngLists[0].last().latitude}-${mPolylineLatLngLists[0].last().longitude}")
 
                 //todo test
-
-
             }
 
             addMapLine()

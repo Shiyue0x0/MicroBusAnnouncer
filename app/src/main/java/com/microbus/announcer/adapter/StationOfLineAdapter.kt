@@ -1,6 +1,5 @@
 package com.microbus.announcer.adapter
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.graphics.Typeface
@@ -22,11 +21,11 @@ import com.microbus.announcer.bean.Station
 import com.microbus.announcer.databinding.ItemStationOfLineBinding
 import java.util.Locale
 import kotlin.math.pow
+import androidx.core.graphics.toColorInt
 
 
 internal class StationOfLineAdapter(
     private val context: Context,
-
     private val activity: Activity,
     mStationList: ArrayList<Station>,
     mStationCount: Int,
@@ -61,6 +60,7 @@ internal class StationOfLineAdapter(
         var stationIndex = binding.stationIndex
         var stationNameNestedScrollView = binding.stationNameNestedScrollView
         var stationName = binding.stationName
+        var stationPoint = binding.stationPoint
         var main = binding.itemStationOfLineMain
         var constraintLayout = binding.constraintLayout
 
@@ -164,11 +164,12 @@ internal class StationOfLineAdapter(
             Choreographer.getInstance().postFrameCallback(frameCallback)
         }
 
-//        holder.stationNameNestedScrollView.isNestedScrollingEnabled = false
-        holder.stationNameNestedScrollView.setOnTouchListener { v, event ->
-            return@setOnTouchListener true
+        holder.stationNameNestedScrollView.setOnTouchListener { _, _ ->
+            return@setOnTouchListener false
         }
 
+        holder.stationNameNestedScrollView.isNestedScrollingEnabled = false
+        holder.stationNameNestedScrollView.isScrollContainer = false
 
         return holder
     }
@@ -181,8 +182,11 @@ internal class StationOfLineAdapter(
             stationList.size - 1 -> holder.stationIndex.text = "终到"
             stationCount -> {
                 when (stationState) {
+                    // 正在前往
                     0 -> holder.stationIndex.text = "→"
+                    // 即将到达
                     1 -> holder.stationIndex.text = "↘"
+                    // 到站
                     2 -> holder.stationIndex.text = "↓"
                 }
             }
@@ -192,6 +196,31 @@ internal class StationOfLineAdapter(
                     String.format(Locale.CHINA, "%02d", position + 1)
             }
         }
+
+        val stationPointResId = when {
+            position < stationCount -> R.mipmap.line_gray           // 已过站（灰色）
+            position == stationCount -> R.mipmap.line_blue          // 当前站（蓝色）
+            position > stationCount -> R.mipmap.line_green           // 未到站（绿色）
+            else -> R.mipmap.line_gray                              // 默认（灰色）
+        }
+        holder.stationPoint.setImageResource(stationPointResId)
+
+
+        when (position) {
+            0 -> {
+                holder.stationPoint.setLeftRounded(true)
+            }
+
+            stationList.size - 1 -> {
+                holder.stationPoint.setRightRounded(true)
+            }
+
+            else -> {
+                holder.stationPoint.setLeftRounded(false)
+                holder.stationPoint.setRightRounded(false)
+            }
+        }
+
 
         // 站点名称
 
@@ -206,12 +235,12 @@ internal class StationOfLineAdapter(
         val color: Int
         val style: Int
         val bg: Int
-        val padding: Int
+        var padding: Int
         if (position < stationCount) {
             color = context.getColor(R.color.an_text_1)
             style = Typeface.NORMAL
             bg = context.getColor(android.R.color.transparent)
-            padding = 0
+            padding = utils.dp2px(2F)
         } else if (position == stationCount) {
             color = context.getColor(R.color.md_theme_onSurface)
             style = Typeface.BOLD
@@ -221,8 +250,9 @@ internal class StationOfLineAdapter(
             color = context.getColor(R.color.md_theme_onSurface)
             style = Typeface.NORMAL
             bg = context.getColor(android.R.color.transparent)
-            padding = 0
+            padding = utils.dp2px(2F)
         }
+        padding = 0
         holder.stationIndex.setTextColor(color)
         holder.stationName.setTextColor(color)
         holder.stationIndex.setTypeface(

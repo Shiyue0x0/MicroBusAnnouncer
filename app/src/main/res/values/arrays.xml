@@ -50,4 +50,9 @@
         <item>zh</item>
         <item>en</item>
     </string-array>
+    <declare-styleable name="StationPoint">
+        <attr name="leftRounded" format="boolean" />
+        <attr name="rightRounded" format="boolean" />
+        <attr name="cornerRadius" format="dimension" />
+    </declare-styleable>
 </resources>
