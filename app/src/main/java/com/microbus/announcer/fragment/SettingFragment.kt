@@ -71,9 +71,12 @@ class SettingFragment : Fragment() {
             }
         })
 
+        // TODO 左右切换冲突
+
         return binding.root
 
     }
+
 
 
 }

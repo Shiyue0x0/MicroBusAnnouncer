@@ -1,6 +1,6 @@
 package com.microbus.announcer.view
 
-
+import java.util.concurrent.atomic.AtomicBoolean
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
@@ -93,13 +93,13 @@ class ESView : View {
                 Typeface.DEFAULT
             else
                 context.resources.getFont(R.font.galano_grotesque_bold)
-        paint.setTypeface(Typeface.create(typeface, textStyle))
+        paint.typeface = Typeface.create(typeface, textStyle)
 
         shaderPaint = Paint()
 
         backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         backgroundPaint.style = Paint.Style.FILL
-        backgroundPaint.setColor(background)
+        backgroundPaint.color = background
 
     }
 
@@ -135,7 +135,7 @@ class ESView : View {
             )
 
 
-        val fm = paint.getFontMetrics()
+        val fm = paint.fontMetrics
 
         val myMeasuredHeight =
             MeasureSpec.makeMeasureSpec(
@@ -196,12 +196,12 @@ class ESView : View {
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val fm = paint.getFontMetrics()
+        val fm = paint.fontMetrics
         val y = height / 2 + (fm.bottom - fm.top) / 2 - fm.bottom
 
         // 绘制背景色
         canvas.clipPath(path)
-        canvas.drawColor(backgroundPaint.color)
+//        canvas.drawColor(backgroundPaint.color)
 
         // 绘制文字和渐隐层
         canvas.clipRect(fillRect)
@@ -228,7 +228,7 @@ class ESView : View {
             )
 
             // 左渐隐层
-            shaderPaint.setShader(leftLinearGradient)
+            shaderPaint.shader = leftLinearGradient
             canvas.drawRect(
                 paddingStart,
                 0F,
@@ -238,7 +238,7 @@ class ESView : View {
             )
 
             // 右渐隐层
-            shaderPaint.setShader(rightLinearGradient)
+            shaderPaint.shader = rightLinearGradient
             canvas.drawRect(
                 width - shaderWidth - paddingEnd,
                 0F,
@@ -252,11 +252,11 @@ class ESView : View {
 
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
-        if (visibility == VISIBLE) {
-            startAnimation()
-        } else {
-            stopAnimation()
-        }
+//        if (visibility == VISIBLE) {
+//            startAnimation()
+//        } else {
+//            stopAnimation()
+//        }
     }
 
     // 文字滚动完毕的时机（通过最后一个字的位置来判定）。0：最后一个字进入屏幕时；0.5：最后一个字到达屏幕中央时；1：最后一个字离开屏幕时。
@@ -293,17 +293,27 @@ class ESView : View {
     }
 
     private lateinit var frameCallback: FrameCallback
+    private var isAnimationRunning = AtomicBoolean(false)
 
     var lastFrameTimeNanos = 0L
     fun startAnimation() {
+
+        Log.d(id.toString(), "$text startAnimation")
+        isAnimationRunning.set(true)
+
         if (!this::frameCallback.isInitialized) {
             frameCallback = object : FrameCallback {
                 override fun doFrame(frameTimeNanos: Long) {
 
+                    if (!isAnimationRunning.get()) {
+                        Choreographer.getInstance().removeFrameCallback(frameCallback)
+                        return
+                    }
+
                     Choreographer.getInstance().postFrameCallback(this)
 
                     val frameDelayNanos = frameTimeNanos - lastFrameTimeNanos
-//                    Log.d("ES", "$text frameTimeNanos: $frameDelayNanos")
+                    Log.d("ES", "frameTimeNanos2: $frameDelayNanos $text")
                     lastFrameTimeNanos = frameTimeNanos
 
                     // 动态获取刷新率
@@ -355,13 +365,16 @@ class ESView : View {
 
                 }
             }
-
         }
+
+        lastFrameTimeNanos = System.nanoTime()
         Choreographer.getInstance().postFrameCallback(frameCallback)
 
     }
 
     fun stopAnimation() {
+        Log.d(id.toString(), "$text stopAnimation")
+        isAnimationRunning.set(false)
         if (this::frameCallback.isInitialized) {
             Choreographer.getInstance().removeFrameCallback(frameCallback)
         }

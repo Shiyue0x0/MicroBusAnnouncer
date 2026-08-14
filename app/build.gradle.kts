@@ -86,7 +86,6 @@ dependencies {
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
@@ -99,15 +98,13 @@ dependencies {
     implementation(libs.androidx.fragment.compose)
 
     implementation(libs.androidx.navigation.compose)
-    // 如果你也需要在 Compose 中使用 Activity KTX
-    implementation(libs.androidx.activity.compose.v182)
-    // 如果你也需要在 Compose 中使用 Lifecycle KTX
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
 
     implementation(platform(libs.androidx.compose.bom))
 
-    implementation(files("libs/AMap3DMap_10.1.500_AMapSearch_9.7.4_AMapLocation_6.5.0_20250814.jar"))
+    implementation(files("libs/AMap3DMap_11.2.100_AMapSearch_9.8.1_AMapLocation_11.2.100_20260805.jar"))
     implementation(libs.easypermissions)
     implementation(libs.okhttp)
     implementation(libs.recyclerview.fastscroll)

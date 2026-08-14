@@ -54,7 +54,7 @@
         android:layout_marginEnd="16dp"
         android:clickable="true"
         android:focusable="true"
-        app:cardBackgroundColor="@color/an_contain_bg"
+        app:cardBackgroundColor="@color/an_contain_bg_tran"
         app:cardCornerRadius="24dp"
         app:layout_constraintTop_toBottomOf="@+id/topFill"
         app:strokeWidth="0dp">
@@ -80,7 +80,7 @@
                 android:textColor="@color/md_theme_onSurface"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                app:background="@color/an_contain_bg" />
+                app:background="@color/an_contain_bg_tran" />
 
 
             <com.microbus.announcer.view.ESView
@@ -96,7 +96,7 @@
                 android:textColor="@color/md_theme_onSurface"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                app:background="@color/md_theme_surface"
+                app:background="@color/md_theme_surface_tran"
                 app:cornerRadius="16dp" />
 
             <com.microbus.announcer.view.ESView
@@ -112,7 +112,7 @@
                 android:textColor="@color/md_theme_onSurface"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                app:background="@color/an_contain_bg" />
+                app:background="@color/an_contain_bg_tran" />
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
@@ -136,7 +136,7 @@
         android:clickable="true"
         android:focusable="true"
         android:visibility="visible"
-        app:cardBackgroundColor="@color/an_contain_bg"
+        app:cardBackgroundColor="@color/an_contain_bg_tran"
         app:cardCornerRadius="24dp"
         app:layout_constraintTop_toBottomOf="@+id/fill2"
         app:strokeWidth="0dp">
@@ -195,7 +195,7 @@
                     android:layout_height="wrap_content"
                     android:clickable="true"
                     android:focusable="true"
-                    app:cardBackgroundColor="@color/md_theme_surface"
+                    app:cardBackgroundColor="@color/md_theme_surface_tran"
                     app:cardCornerRadius="16dp"
                     app:layout_constraintTop_toBottomOf="@+id/topFill"
                     app:strokeWidth="0dp">
@@ -258,7 +258,7 @@
                 android:layout_height="wrap_content"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="@color/md_theme_surface"
+                app:cardBackgroundColor="@color/md_theme_surface_tran"
                 app:cardCornerRadius="16dp"
                 app:layout_constraintTop_toBottomOf="@+id/topFill"
                 app:strokeWidth="0dp">
@@ -328,7 +328,7 @@
         android:clickable="true"
         android:focusable="true"
         android:visibility="invisible"
-        app:cardBackgroundColor="@color/an_contain_bg"
+        app:cardBackgroundColor="@color/an_contain_bg_tran"
         app:cardCornerRadius="24dp"
         app:layout_constraintTop_toBottomOf="@+id/fill3"
         app:strokeWidth="0dp">
@@ -382,7 +382,7 @@
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    app:cardBackgroundColor="@color/an_contain_bg"
+                    app:cardBackgroundColor="@color/an_contain_bg_tran"
                     app:cardCornerRadius="24dp"
                     app:strokeWidth="0dp">
 
@@ -428,7 +428,7 @@
                     android:clickable="true"
                     android:focusable="true"
 
-                    app:cardBackgroundColor="@color/an_contain_bg"
+                    app:cardBackgroundColor="@color/an_contain_bg_tran"
                     app:cardCornerRadius="24dp"
                     app:strokeWidth="0dp">
 
@@ -598,7 +598,7 @@
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    app:cardBackgroundColor="@color/an_contain_bg"
+                    app:cardBackgroundColor="@color/an_contain_bg_tran"
                     app:cardCornerRadius="24dp"
 
                     app:strokeWidth="0dp">
@@ -659,7 +659,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
                 android:layout_marginBottom="4dp"
-                app:cardBackgroundColor="@color/an_contain_bg"
+                app:cardBackgroundColor="@color/an_contain_bg_tran"
                 app:cardCornerRadius="24dp"
                 app:strokeWidth="0dp">
 
@@ -754,7 +754,7 @@
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
                     android:contentDescription="@string/starting_station"
-                    app:backgroundTint="@color/md_theme_surface"
+                    app:backgroundTint="@color/an_contain_bg_tran"
                     app:icon="@drawable/start"
                     app:iconGravity="textTop"
                     app:iconTint="@color/md_theme_primary"
@@ -768,7 +768,7 @@
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
                     android:contentDescription="@string/last_station"
-                    app:backgroundTint="@color/md_theme_surface"
+                    app:backgroundTint="@color/an_contain_bg_tran"
                     app:icon="@drawable/arrow_left"
                     app:iconGravity="textTop"
                     app:iconTint="@color/md_theme_primary"
@@ -782,7 +782,7 @@
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
                     android:contentDescription="@string/announce_current_station"
-                    app:backgroundTint="@color/md_theme_surface"
+                    app:backgroundTint="@color/an_contain_bg_tran"
                     app:icon="@drawable/notifications"
                     app:iconGravity="textTop"
                     app:iconTint="@color/md_theme_primary"
@@ -796,7 +796,7 @@
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
                     android:contentDescription="@string/next_station"
-                    app:backgroundTint="@color/md_theme_surface"
+                    app:backgroundTint="@color/an_contain_bg_tran"
                     app:icon="@drawable/arrow_right"
                     app:iconGravity="textTop"
                     app:iconTint="@color/md_theme_primary"
@@ -809,7 +809,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:contentDescription="@string/terminal"
-                    app:backgroundTint="@color/md_theme_surface"
+                    app:backgroundTint="@color/an_contain_bg_tran"
                     app:icon="@drawable/start"
                     app:iconGravity="textTop"
                     app:iconTint="@color/md_theme_primary"
@@ -881,7 +881,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginBottom="4dp"
         android:contentDescription="@string/starting_station"
-        app:backgroundTint="@color/md_theme_surface"
+        app:backgroundTint="@color/an_contain_bg_tran"
         app:icon="@drawable/location"
         app:iconGravity="textTop"
         app:iconTint="@color/md_theme_primary"
@@ -898,7 +898,7 @@
         android:layout_marginBottom="4dp"
         android:contentDescription="@string/starting_station"
         android:visibility="gone"
-        app:backgroundTint="@color/md_theme_surface"
+        app:backgroundTint="@color/an_contain_bg_tran"
         app:icon="@drawable/finish"
         app:iconGravity="textTop"
         app:iconTint="@color/md_theme_primary"
@@ -915,7 +915,7 @@
         android:layout_marginBottom="4dp"
         android:contentDescription="@string/starting_station"
         android:visibility="gone"
-        app:backgroundTint="@color/md_theme_surface"
+        app:backgroundTint="@color/an_contain_bg_tran"
         app:icon="@drawable/stop"
         app:iconGravity="textTop"
         app:iconTint="@color/md_theme_primary"
@@ -931,8 +931,8 @@
         android:layout_height="60dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="4dp"
-        android:contentDescription="@string/starting_station"
-        app:backgroundTint="@color/md_theme_surface"
+        android:contentDescription=""
+        app:backgroundTint="@color/an_contain_bg_tran"
         app:icon="@drawable/list"
         app:iconGravity="textTop"
         app:iconTint="@color/md_theme_primary"
@@ -946,8 +946,8 @@
         android:layout_height="60dp"
         android:layout_marginEnd="4dp"
         android:layout_marginBottom="4dp"
-        android:contentDescription="@string/starting_station"
-        app:backgroundTint="@color/md_theme_surface"
+        android:contentDescription=""
+        app:backgroundTint="@color/an_contain_bg_tran"
         app:icon="@drawable/service"
         app:iconGravity="textTop"
         app:iconTint="@color/md_theme_primary"

@@ -163,7 +163,7 @@ class MainActivity : AppCompatActivity(), TabSwitchListener {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             bottomBar = {
-                if (isShowBottomBar) {
+                if (isShowBottomBar && utils.getIsShowBottomBar()) {
                     // 使用Compose的NavigationBar作为底部导航
                     NavigationBar(
                         containerColor = colorResource(id = R.color.an_contain_bg)

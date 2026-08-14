@@ -19,6 +19,8 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.res.Resources
 import android.graphics.Color
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioFormat
@@ -54,6 +56,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -438,14 +441,19 @@ class MainFragment : Fragment() {
         announcementLangList = utils.getLangList()
 
 
+
         return binding.root
     }
+
+    private var isVisible = false
 
     /* 与用户交互时 */
     override fun onResume() {
         super.onResume()
 
-//        Log.d(tag, "onResume")
+        isVisible = true
+
+        Log.d(tag, "onResume")
 
         if (userMapOpen)
             binding.mapBtnGroup.check(binding.mapBtnGroup.id)
@@ -455,12 +463,16 @@ class MainFragment : Fragment() {
 
         (binding.lineStationList.adapter as StationOfLineAdapter).isShown = true
 
+        binding.headerLeftNew.startAnimation()
+        binding.headerMiddleNew.startAnimation()
+        binding.headerRightNew.startAnimation()
+        binding.navStationName.startAnimation()
 
     }
 
     /* 不再与用户交互时 */
     override fun onPause() {
-//        Log.d(tag, "onPause")
+        Log.d(tag, "onPause")
 
         binding.mapBtnGroup.uncheck(binding.mapBtnGroup.id)
 
@@ -478,6 +490,13 @@ class MainFragment : Fragment() {
             putFloat("latitude", currentLngLat.latitude.toFloat())
             putFloat("longitude", currentLngLat.longitude.toFloat())
         }
+
+        isVisible = false
+
+        binding.headerLeftNew.stopAnimation()
+        binding.headerMiddleNew.stopAnimation()
+        binding.headerRightNew.stopAnimation()
+        binding.navStationName.stopAnimation()
 
         super.onPause()
 
@@ -1737,18 +1756,20 @@ class MainFragment : Fragment() {
 
                 esRefreshHandler.postDelayed(this, 100L)
 
-                if (!isAdded)
+                if (!isAdded || !isVisible)
                     return
 
                 val esSpeed = utils.getEsSpeed()
                 binding.headerLeftNew.pixelMovePerSecond = esSpeed
                 binding.headerRightNew.pixelMovePerSecond = esSpeed
                 binding.headerMiddleNew.pixelMovePerSecond = esSpeed
+                binding.navStationName.pixelMovePerSecond = esSpeed
 
                 val pos = utils.getEsFinishPositionOfLastWord()
                 binding.headerLeftNew.finishPositionOfLastWord = pos
                 binding.headerRightNew.finishPositionOfLastWord = pos
                 binding.headerMiddleNew.finishPositionOfLastWord = pos
+                binding.navStationName.finishPositionOfLastWord = pos
 
                 binding.headerLeftNew.visibility = if (utils.getIsOpenLeftEs())
                     VISIBLE

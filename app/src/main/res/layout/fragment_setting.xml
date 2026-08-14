@@ -62,20 +62,20 @@
 
     </com.google.android.material.tabs.TabLayout>
 
-    <com.microbus.announcer.view.NestedScrollableHost
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tabLayout"
-        app:sameDirectionWithParent="true">
+<!--    <com.microbus.announcer.view.NestedScrollableHost-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="0dp"-->
+<!--        app:layout_constraintBottom_toBottomOf="parent"-->
+<!--        app:layout_constraintTop_toBottomOf="@+id/tabLayout"-->
+<!--        app:sameDirectionWithParent="true">-->
 
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/viewPager"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/tabLayout" />
 
-    </com.microbus.announcer.view.NestedScrollableHost>
+<!--    </com.microbus.announcer.view.NestedScrollableHost>-->
 
 </androidx.constraintlayout.widget.ConstraintLayout>
