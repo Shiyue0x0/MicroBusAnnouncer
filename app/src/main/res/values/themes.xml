@@ -12,8 +12,11 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowTranslucentStatus">true</item>
 
-        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/an_window_bg</item>
-        <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">@color/an_window_bg</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/an_window_bg
+        </item>
+        <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">
+            @color/an_window_bg
+        </item>
         <item name="android:windowSplashScreenAnimationDuration" tools:targetApi="31">99999</item>
         <item name="android:windowSplashScreenBehavior" tools:targetApi="33">icon_preferred</item>
 

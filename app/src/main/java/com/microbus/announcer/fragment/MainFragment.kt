@@ -1146,6 +1146,12 @@ class MainFragment : Fragment() {
             }
         }
 
+        // 进入省电模式
+        binding.openPowerSavingMode.setOnClickListener{
+            val intent = Intent(requireContext(), LowPowerMainFragment::class.java)
+            startActivity(intent)
+        }
+
         //单击运行信息
         binding.runningInfo.setOnClickListener {
             if (isOperationLock) {
@@ -2406,7 +2412,9 @@ class MainFragment : Fragment() {
 
                             val newLine = Line()
                             newLine.id = originLine.id
-                            newLine.name = originLine.name + " 区间"
+                            if (false) {
+                                newLine.name = originLine.name + " 区间"
+                            }
                             newLine.isUpAndDownInvert = originLine.isUpAndDownInvert
                             when (currentLineDirection) {
                                 onUp -> {
@@ -2451,7 +2459,9 @@ class MainFragment : Fragment() {
 
                             val newLine = Line()
                             newLine.id = originLine.id
-                            newLine.name = originLine.name + " 区间"
+                            if (false) {
+                                newLine.name = originLine.name + " 区间"
+                            }
                             newLine.isUpAndDownInvert = originLine.isUpAndDownInvert
                             when (currentLineDirection) {
                                 onUp -> {

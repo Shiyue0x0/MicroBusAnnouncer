@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <!-- 允许访问网络，必选权限 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- 允许获取精确位置，精准定位必选 -->
@@ -96,6 +97,13 @@
         <meta-data
             android:name="com.amap.api.v2.apikey"
             android:value="@string/amapKey_android" />
+
+        <activity
+            android:name=".fragment.LowPowerMainFragment"
+            android:exported="false"
+            android:label="@string/title_activity_low_power_main_fragment"
+            android:theme="@style/Theme.MicroBusAnnouncer"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

@@ -329,7 +329,7 @@ class ESView : View {
 
     var lastFrameTimeNanos = 0L
     fun startAnimation() {
-        Log.d(id.toString(), "$text startAnimation")
+//        Log.d(id.toString(), "$text startAnimation")
         isAnimationRunning.set(true)
 
         if (!this::frameCallback.isInitialized) {
@@ -397,7 +397,7 @@ class ESView : View {
     }
 
     fun stopAnimation() {
-        Log.d(id.toString(), "$text stopAnimation")
+//        Log.d(id.toString(), "$text stopAnimation")
         isAnimationRunning.set(false)
         if (this::frameCallback.isInitialized) {
             Choreographer.getInstance().removeFrameCallback(frameCallback)

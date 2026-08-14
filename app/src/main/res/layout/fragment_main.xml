@@ -184,8 +184,7 @@
                     android:text="Station"
                     android:textColor="@color/md_theme_onSurface"
                     android:textSize="20sp"
-                    android:textStyle="bold"
-                    app:background="@color/an_contain_bg" />
+                    android:textStyle="bold" />
 
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/navStationCard"
@@ -871,85 +870,120 @@
 
     </LinearLayout>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/mapLocation"
-        style="?attr/materialIconButtonFilledStyle"
+    <LinearLayout
+        android:id="@+id/leftButtonGroup"
         android:layout_width="wrap_content"
-        android:layout_height="60dp"
+        android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginBottom="4dp"
-        android:contentDescription="@string/starting_station"
-        app:backgroundTint="@color/an_contain_bg_tran"
-        app:icon="@drawable/location"
-        app:iconGravity="textTop"
-        app:iconTint="@color/md_theme_primary"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
-        app:layout_constraintStart_toStartOf="@id/mapContainer"
-        app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+        app:layout_constraintStart_toStartOf="@id/mapContainer">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/finishEditLine"
-        style="?attr/materialIconButtonFilledStyle"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mapLocation"
+            style="?attr/materialIconButtonFilledStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="60dp"
+            android:layout_marginEnd="16dp"
+            android:contentDescription=""
+            app:backgroundTint="@color/an_contain_bg_tran"
+            app:icon="@drawable/location"
+            app:iconGravity="textTop"
+            app:iconTint="@color/md_theme_primary"
+            app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
+            app:layout_constraintStart_toStartOf="@id/mapContainer"
+            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/openPowerSavingMode"
+            style="?attr/materialIconButtonFilledStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="60dp"
+            android:layout_marginEnd="16dp"
+            android:contentDescription=""
+            app:backgroundTint="@color/an_contain_bg_tran"
+            app:icon="@drawable/power_saving"
+            app:iconGravity="textTop"
+            app:iconTint="@color/md_theme_primary"
+            app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
+            app:layout_constraintStart_toStartOf="@id/mapContainer"
+            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/finishEditLine"
+            style="?attr/materialIconButtonFilledStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="60dp"
+            android:layout_marginEnd="16dp"
+            android:contentDescription="@string/starting_station"
+            android:visibility="gone"
+            app:backgroundTint="@color/an_contain_bg_tran"
+            app:icon="@drawable/finish"
+            app:iconGravity="textTop"
+            app:iconTint="@color/md_theme_primary"
+            app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
+            app:layout_constraintStart_toEndOf="@+id/mapLocation"
+            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/stopAnnouncement"
+            style="?attr/materialIconButtonFilledStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="60dp"
+            android:layout_marginEnd="16dp"
+            android:contentDescription="@string/starting_station"
+            android:visibility="gone"
+            app:backgroundTint="@color/an_contain_bg_tran"
+            app:icon="@drawable/stop"
+            app:iconGravity="textTop"
+            app:iconTint="@color/md_theme_primary"
+            app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
+            app:layout_constraintStart_toEndOf="@+id/finishEditLine"
+            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/rightButtonGroup"
         android:layout_width="wrap_content"
-        android:layout_height="60dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginBottom="4dp"
-        android:contentDescription="@string/starting_station"
-        android:visibility="gone"
-        app:backgroundTint="@color/an_contain_bg_tran"
-        app:icon="@drawable/finish"
-        app:iconGravity="textTop"
-        app:iconTint="@color/md_theme_primary"
-        app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
-        app:layout_constraintStart_toEndOf="@+id/mapLocation"
-        app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/stopAnnouncement"
-        style="?attr/materialIconButtonFilledStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="60dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginBottom="4dp"
-        android:contentDescription="@string/starting_station"
-        android:visibility="gone"
-        app:backgroundTint="@color/an_contain_bg_tran"
-        app:icon="@drawable/stop"
-        app:iconGravity="textTop"
-        app:iconTint="@color/md_theme_primary"
-        app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
-        app:layout_constraintStart_toEndOf="@+id/finishEditLine"
-        app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
-
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/runningInfo"
-        style="?attr/materialIconButtonFilledStyle"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
+        android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="4dp"
-        android:contentDescription=""
-        app:backgroundTint="@color/an_contain_bg_tran"
-        app:icon="@drawable/list"
-        app:iconGravity="textTop"
-        app:iconTint="@color/md_theme_primary"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/serviceBtn"
-        style="?attr/materialIconButtonFilledStyle"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_marginEnd="4dp"
-        android:layout_marginBottom="4dp"
-        android:contentDescription=""
-        app:backgroundTint="@color/an_contain_bg_tran"
-        app:icon="@drawable/service"
-        app:iconGravity="textTop"
-        app:iconTint="@color/md_theme_primary"
-        app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
-        app:layout_constraintEnd_toStartOf="@+id/runningInfo" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/runningInfo"
+            style="?attr/materialIconButtonFilledStyle"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginEnd="16dp"
+            android:contentDescription=""
+            app:backgroundTint="@color/an_contain_bg_tran"
+            app:icon="@drawable/list"
+            app:iconGravity="textTop"
+            app:iconTint="@color/md_theme_primary"
+            app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/serviceBtn"
+            style="?attr/materialIconButtonFilledStyle"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginEnd="4dp"
+            android:contentDescription=""
+            app:backgroundTint="@color/an_contain_bg_tran"
+            app:icon="@drawable/service"
+            app:iconGravity="textTop"
+            app:iconTint="@color/md_theme_primary"
+            app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
+            app:layout_constraintEnd_toStartOf="@+id/runningInfo" />
+
+    </LinearLayout>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
