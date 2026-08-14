@@ -406,8 +406,8 @@ class Utils(private val context: Context, private val activity: Activity) {
     /**
      * 振动
      */
-    fun haptic(view: View) {
-        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+    fun haptic(view: View?) {
+        view?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
     }
 
     /**
@@ -1318,6 +1318,10 @@ class Utils(private val context: Context, private val activity: Activity) {
             newArray.add(currentArray.get(i))
         }
         return newArray
+    }
+
+    fun isOperationLock(): Boolean {
+        return false;
     }
 }
 

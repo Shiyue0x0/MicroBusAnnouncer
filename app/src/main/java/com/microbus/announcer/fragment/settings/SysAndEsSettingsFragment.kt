@@ -344,11 +344,13 @@ class SysAndEsSettingsFragment : Fragment() {
         prefs.edit {
             putBoolean("showBottomBar", it)
         }
-        val activity = requireActivity() as MainActivity
+        // TODO
+
+//        val activity = requireActivity() as MainActivity
         if (it) {
-            activity.binding.bottomNavigationView.visibility = View.VISIBLE
+//            activity.binding.bottomNavigationView.visibility = View.VISIBLE
         } else {
-            activity.binding.bottomNavigationView.visibility = View.GONE
+//            activity.binding.bottomNavigationView.visibility = View.GONE
             utils.showMsg("现在请尝试左右滑动来切换界面")
         }
     }

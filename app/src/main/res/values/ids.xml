@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 定义一个静态 ID 用于承载 Fragment 的容器 -->
+    <item type="id" name="compose_fragment_container_view_id" />
+</resources>

@@ -8,9 +8,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
@@ -18,11 +21,6 @@ import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogLineInfoBinding
 import com.microbus.announcer.databinding.ItemLineBinding
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.microbus.announcer.MainActivity
-import com.microbus.announcer.R
-import com.microbus.announcer.databinding.ActivityMainBinding
 import com.microbus.announcer.databinding.ItemLineHeaderBinding
 
 class LineAdapter(

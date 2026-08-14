@@ -1,21 +1,22 @@
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import com.android.build.api.variant.AndroidComponentsExtension
+import com.android.build.api.variant.VariantOutputConfiguration
 
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.kotlinCompose)
 }
 
 android {
     namespace = "com.microbus.announcer"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.microbus.announcer"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 309
         versionName =
             "3.0.9-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
@@ -34,9 +35,9 @@ android {
         }
     }
 
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+//    kotlin {
+//        jvmToolchain(11)
+//    }
 
     buildFeatures {
         viewBinding = true
@@ -56,22 +57,24 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    android.applicationVariants.all {
-        val buildType = this.buildType.name
-        val variant = this
-        outputs.all {
-            val abiName =
-                this.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI.name }?.identifier
-            val outputImpl = this as com.android.build.gradle.internal.api.ApkVariantOutputImpl
-            outputImpl.outputFileName = "An-${variant.versionName}-${buildType}-${abiName}.apk"
-        }
-    }
+//    android.applicationVariants.all {
+//        val buildType = this.buildType.name
+//        val variant = this
+//        outputs.all {
+//            val abiName =
+//                this.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI.name }?.identifier
+//            val outputImpl = this as com.android.build.gradle.internal.api.ApkVariantOutputImpl
+//            outputImpl.outputFileName = "An-${variant.versionName}-${buildType}-${abiName}.apk"
+//        }
+//    }
+
 
 }
 
 
 dependencies {
 
+    implementation(libs.androidx.compose.ui.viewbinding)
     implementation(libs.androidx.core)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -92,6 +95,15 @@ dependencies {
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.viewpager2)
+    implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.fragment.compose)
+
+    implementation(libs.androidx.navigation.compose)
+    // 如果你也需要在 Compose 中使用 Activity KTX
+    implementation(libs.androidx.activity.compose.v182)
+    // 如果你也需要在 Compose 中使用 Lifecycle KTX
+    implementation(libs.androidx.lifecycle.runtime.compose)
+
 
     implementation(platform(libs.androidx.compose.bom))
 

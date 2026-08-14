@@ -28,6 +28,7 @@ import android.media.AudioTrack.PLAYSTATE_PLAYING
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
@@ -106,6 +107,8 @@ import com.microbus.announcer.MainActivity
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
+import com.microbus.announcer.TabPage
+import com.microbus.announcer.TabSwitchListener
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.LineOfSearchAdapter
 import com.microbus.announcer.adapter.StationOfLineAdapter
@@ -333,6 +336,9 @@ class MainFragment : Fragment() {
 
     var lastTouchMapTime = 0L
 
+    private var tabSwitchListener: TabSwitchListener? = null
+
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -368,6 +374,31 @@ class MainFragment : Fragment() {
         binding.bar.layoutParams.height = resources.getDimensionPixelSize(resourceId)
 
         permissionManager = PermissionManager(requireContext(), requireActivity())
+
+        // 让内容延伸到状态栏
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+ 使用新的API
+            binding.root.setOnApplyWindowInsetsListener { view, insets ->
+                // 保留系统手势区域的内边距，但忽略状态栏
+                val systemGestureInsets = insets.getInsets(
+                    android.view.WindowInsets.Type.systemGestures()
+                )
+                // 设置内边距，只保留系统手势区域，让内容延伸到状态栏后面
+                view.setPadding(
+                    systemGestureInsets.left,
+                    0, // 顶部不保留内边距，让内容延伸到状态栏
+                    systemGestureInsets.right,
+                    systemGestureInsets.bottom
+                )
+                insets
+            }
+        } else {
+            // Android 11以下使用旧方式
+            binding.root.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            // 需要设置fitsSystemWindows为false
+            binding.root.fitsSystemWindows = false
+        }
 
         //初始化定位
         initLocation()
@@ -405,6 +436,7 @@ class MainFragment : Fragment() {
 
 
         announcementLangList = utils.getLangList()
+
 
         return binding.root
     }
@@ -460,6 +492,13 @@ class MainFragment : Fragment() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         aMapView.onSaveInstanceState(outState)
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is TabSwitchListener) {
+            tabSwitchListener = context
+        }
     }
 
     val client = OkHttpClient()
@@ -4896,8 +4935,7 @@ class MainFragment : Fragment() {
         if (!isAdded)
             return
 
-        val activity = requireActivity() as MainActivity
-        activity.binding.viewPager.currentItem = 0
+        tabSwitchListener?.switchToTab(TabPage.MAIN)
 
         val line = lineDatabaseHelper.queryById(id).first()
         originLine = line
@@ -4915,8 +4953,7 @@ class MainFragment : Fragment() {
         if (!isAdded)
             return
 
-        val activity = requireActivity() as MainActivity
-        activity.binding.viewPager.currentItem = 0
+        tabSwitchListener?.switchToTab(TabPage.MAIN)
 
         prefs.edit {
             putBoolean("mapEditLineMode", true)

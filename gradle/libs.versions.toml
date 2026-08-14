@@ -1,6 +1,8 @@
 [versions]
-agp = "8.13.0"
+activityComposeVersion = "1.8.2"
+agp = "9.2.1"
 easypermissions = "3.0.0"
+fragmentKtx = "1.9.0"
 gson = "2.13.2"
 kotlin = "2.2.20"
 coreKtx = "1.17.0"
@@ -8,7 +10,9 @@ appcompat = "1.7.1"
 kotlinxSerializationJson = "1.9.0"
 activity = "1.11.0"
 constraintlayout = "2.2.1"
+lifecycleRuntimeCompose = "2.11.0"
 materialVersion = "1.14.0-alpha05"
+navigationCompose = "2.9.8"
 okhttp = "5.2.1"
 recyclerviewFastscroll = "2.0.1"
 recyclerviewVersion = "1.4.0"
@@ -24,9 +28,15 @@ activityCompose = "1.11.0"
 composeBom = "2025.09.00"
 roomKtx = "2.8.0"
 uiText = "1.9.1"
+uiViewbinding = "1.11.4"
 
 [libraries]
+androidx-activity-compose-v182 = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-fragment-compose = { module = "androidx.fragment:fragment-compose", version.ref = "fragmentKtx" }
+androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefreshlayout", version.ref = "swiperefreshlayout" }
 easypermissions = { module = "pub.devrel:easypermissions", version.ref = "easypermissions" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
@@ -56,9 +66,9 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
 androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
+androidx-compose-ui-viewbinding = { group = "androidx.compose.ui", name = "ui-viewbinding", version.ref = "uiViewbinding" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
-jetbrainsKotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlinCompose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
