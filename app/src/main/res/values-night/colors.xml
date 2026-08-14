@@ -4,4 +4,7 @@
     <color name="an_contain_bg_tran">#B3242424</color>
     <color name="an_text_0">#9B9B9B</color>
     <color name="an_text_1">#CCCCCC</color>
+
+    <color name="md_theme_surface_tran">#B311131A</color>
+
 </resources>
