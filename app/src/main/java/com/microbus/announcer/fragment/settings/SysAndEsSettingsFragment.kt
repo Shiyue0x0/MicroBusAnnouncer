@@ -203,6 +203,8 @@ class SysAndEsSettingsFragment : Fragment() {
             contentColor = colorResource(R.color.md_theme_onSurface),
             color = colorResource(R.color.an_window_bg)
         ) {
+
+
             MaterialTheme {
                 val scrollState = rememberScrollState()
                 Column(

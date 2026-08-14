@@ -93,26 +93,28 @@ dependencies {
     implementation(libs.androidx.viewpager2)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.fragment.compose)
-
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
-
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.litert.api)
-
-    implementation(files("libs/AMap3DMap_11.2.100_AMapSearch_9.8.1_AMapLocation_11.2.100_20260805.jar"))
     implementation(libs.easypermissions)
     implementation(libs.okhttp)
     implementation(libs.recyclerview.fastscroll)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.gson)
     implementation(libs.material)
+    implementation(files("libs/AMap3DMap_11.2.100_AMapSearch_9.8.1_AMapLocation_11.2.100_20260805.jar"))
 
+    // miuix
+    implementation(libs.miuix.ui.android)
+
+    // Test
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 
+    // debug
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 

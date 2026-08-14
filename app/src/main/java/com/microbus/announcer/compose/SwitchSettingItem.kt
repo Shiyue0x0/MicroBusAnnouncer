@@ -1,19 +1,21 @@
 package com.microbus.announcer.compose
 
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.colorResource
-import com.microbus.announcer.R
+import androidx.compose.runtime.remember
+import top.yukonga.miuix.kmp.basic.Switch
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
 
 @Composable
 fun SwitchSettingItem(checked: Boolean, onCheckedChange: ((Boolean) -> Unit) = {}) {
-    Switch(
-        checked, onCheckedChange, colors = SwitchDefaults.colors(
-            checkedThumbColor = colorResource(R.color.md_theme_primary),
-            checkedTrackColor = colorResource(R.color.md_theme_primaryContainer),
-            uncheckedThumbColor = colorResource(R.color.md_theme_secondary),
-            uncheckedTrackColor = colorResource(R.color.md_theme_secondaryContainer),
+    val controller = remember { ThemeController(ColorSchemeMode.System) }
+    MiuixTheme(
+        controller = controller
+    ) {
+        Switch(
+            checked, onCheckedChange
         )
-    )
+    }
 }

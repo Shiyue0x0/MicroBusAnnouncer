@@ -1,6 +1,5 @@
 package com.microbus.announcer.view
 
-import java.util.concurrent.atomic.AtomicBoolean
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
@@ -8,29 +7,33 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
-import android.os.Build
 import android.util.AttributeSet
 import android.util.Log
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
 import androidx.core.content.withStyledAttributes
 import com.microbus.announcer.R
-import kotlin.math.pow
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.properties.Delegates
 
 
 @Suppress("DEPRECATION")
 class ESView : View {
 
-    private lateinit var paint: Paint
-    private lateinit var shaderPaint: Paint
+    private lateinit var textPaint: Paint
     private lateinit var backgroundPaint: Paint
+
+    private lateinit var maskPaint: Paint
+    private var leftMaskShader: LinearGradient? = null
+    private var rightMaskShader: LinearGradient? = null
+
     private lateinit var text: String
     private var textSize by Delegates.notNull<Float>()
     private var maxWidth by Delegates.notNull<Float>()
@@ -84,27 +87,31 @@ class ESView : View {
 
 
     private fun initPaint() {
-        paint = Paint()
-        paint.textSize = textSize
-        paint.color = textColor
 
         val typeface =
             if (fontFamily == "")
                 Typeface.DEFAULT
             else
                 context.resources.getFont(R.font.galano_grotesque_bold)
-        paint.typeface = Typeface.create(typeface, textStyle)
 
-        shaderPaint = Paint()
+        // 文字画笔
+        textPaint = Paint()
+        textPaint.textSize = textSize
+        textPaint.color = textColor
+        textPaint.typeface = Typeface.create(typeface, textStyle)
 
+        // 背景色画笔
         backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         backgroundPaint.style = Paint.Style.FILL
         backgroundPaint.color = background
 
+        // 新增：遮罩画笔
+        maskPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        maskPaint.style = Paint.Style.FILL
+        maskPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+
     }
 
-    lateinit var leftLinearGradient: LinearGradient
-    lateinit var rightLinearGradient: LinearGradient
     val fillRect = RectF(0F, 0F, 0F, 0F)
     val path = Path()
 
@@ -123,19 +130,19 @@ class ESView : View {
         if (layoutParams.width == ViewGroup.LayoutParams.WRAP_CONTENT)
             myMeasuredWidth =
                 MeasureSpec.makeMeasureSpec(
-                    (paint.measureText(text) + paddingStart + paddingEnd).toInt(),
+                    (textPaint.measureText(text) + paddingStart + paddingEnd).toInt(),
                     MeasureSpec.EXACTLY
                 )
 
 
-        if (paint.measureText(text).toInt() > maxWidth.toInt())
+        if (textPaint.measureText(text).toInt() > maxWidth.toInt())
             myMeasuredWidth = MeasureSpec.makeMeasureSpec(
                 (maxWidth + paddingStart + paddingEnd).toInt(),
                 MeasureSpec.EXACTLY
             )
 
 
-        val fm = paint.fontMetrics
+        val fm = textPaint.fontMetrics
 
         val myMeasuredHeight =
             MeasureSpec.makeMeasureSpec(
@@ -144,26 +151,6 @@ class ESView : View {
             )
 
         setMeasuredDimension(myMeasuredWidth, myMeasuredHeight)
-
-        leftLinearGradient = LinearGradient(
-            paddingLeft.toFloat(),
-            0f,
-            shaderWidth + paddingLeft.toFloat(),
-            0f,
-            background,
-            Color.TRANSPARENT,
-            Shader.TileMode.CLAMP
-        )
-
-        rightLinearGradient = LinearGradient(
-            measuredWidth - shaderWidth - paddingEnd,
-            0f,
-            measuredWidth.toFloat() - paddingEnd,
-            0f,
-            Color.TRANSPARENT,
-            background,
-            Shader.TileMode.CLAMP
-        )
 
         fillRect.top = 0F
         fillRect.bottom = measuredHeight.toFloat() - paddingBottom
@@ -177,12 +164,33 @@ class ESView : View {
             Path.Direction.CW
         )
 
+        leftMaskShader = LinearGradient(
+            paddingLeft.toFloat(),
+            0f,
+            shaderWidth + paddingLeft.toFloat(),
+            0f,
+            intArrayOf(Color.TRANSPARENT, Color.WHITE),
+            floatArrayOf(0f, 1f),
+            Shader.TileMode.CLAMP
+        )
+
+        rightMaskShader = LinearGradient(
+            measuredWidth - shaderWidth - paddingEnd,
+            0f,
+            measuredWidth.toFloat() - paddingEnd,
+            0f,
+            intArrayOf(Color.WHITE, Color.TRANSPARENT),
+            floatArrayOf(0f, 1f),
+            Shader.TileMode.CLAMP
+        )
+
     }
 
     var frameCount = 0F
     var allFrameCount = 0F
     var minShowTimeMs = Int.MAX_VALUE
-//    var fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+
+    //    var fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
 //        context.display.refreshRate
 //    } else {
 //        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -191,58 +199,91 @@ class ESView : View {
     var pixelMovePerSecond = 150F
     var isShowFinish = false
     var scrollX = Float.MAX_VALUE
-    val shaderWidth = 20f
+    val shaderWidth = 40f
 
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val fm = paint.fontMetrics
+        val fm = textPaint.fontMetrics
         val y = height / 2 + (fm.bottom - fm.top) / 2 - fm.bottom
 
-        // 绘制背景色
         canvas.clipPath(path)
+
+        // 绘制背景色
+        if (background != Color.TRANSPARENT) {
+            canvas.drawColor(backgroundPaint.color)
+        }
 
         // 绘制文字和渐隐层
         canvas.clipRect(fillRect)
 
         // View宽度足够容纳文本，居中显示
-        if (paint.measureText(text) <= width - paddingStart - paddingEnd) {
+        if (textPaint.measureText(text) <= width - paddingStart - paddingEnd) {
             canvas.drawText(
                 text,
-                (width - paint.measureText(text)) / 2,
+                (width - textPaint.measureText(text)) / 2,
                 y,
-                paint
+                textPaint
             )
         }
         // View宽度不足够容纳文本，轮播显示，羽化水平边缘
         else {
+
+            val saveCount = canvas.saveLayer(
+                0f, 0f, width.toFloat(), height.toFloat(),
+                null,
+                Canvas.ALL_SAVE_FLAG
+            )
+
             // 注意：scrollX 的更新现在在 FrameCallback 中基于实际时间增量进行
             canvas.drawText(
                 text,
                 scrollX,
                 y,
-                paint
+                textPaint
             )
 
-            // 左渐隐层
-            shaderPaint.shader = leftLinearGradient
+//            // 左渐隐层
+//            shaderPaint.shader = leftLinearGradient
+//            canvas.drawRect(
+//                paddingStart,
+//                0F,
+//                shaderWidth + paddingStart,
+//                height.toFloat(),
+//                shaderPaint
+//            )
+//
+//            // 右渐隐层
+//            shaderPaint.shader = rightLinearGradient
+//            canvas.drawRect(
+//                width - shaderWidth - paddingEnd,
+//                0F,
+//                width.toFloat() - paddingEnd,
+//                height.toFloat(),
+//                shaderPaint
+//            )
+            // 应用左遮罩：使用 DST_IN 模式裁剪文字边缘
+            maskPaint.shader = leftMaskShader
             canvas.drawRect(
                 paddingStart,
                 0F,
                 shaderWidth + paddingStart,
                 height.toFloat(),
-                shaderPaint
+                maskPaint
             )
 
-            // 右渐隐层
-            shaderPaint.shader = rightLinearGradient
+            // 应用右遮罩
+            maskPaint.shader = rightMaskShader
             canvas.drawRect(
                 width - shaderWidth - paddingEnd,
                 0F,
                 width.toFloat() - paddingEnd,
                 height.toFloat(),
-                shaderPaint
+                maskPaint
             )
+
+            canvas.restoreToCount(saveCount)
+
         }
     }
 
@@ -314,14 +355,14 @@ class ESView : View {
                     lastFrameTimeNanos = frameTimeNanos
 
                     // 文字宽度超出屏幕时（滚动）
-                    if (paint.measureText(text) > width - paddingStart - paddingEnd) {
+                    if (textPaint.measureText(text) > width - paddingStart - paddingEnd) {
                         // 使用实际时间增量更新滚动位置（单位：像素/秒）
                         scrollX -= (pixelMovePerSecond * clampedDeltaSeconds).toFloat()
 
                         postInvalidate()
 
                         // 文字滚动完毕时
-                        if (scrollX < -paint.measureText(text) + width * finishPositionOfLastWord &&
+                        if (scrollX < -textPaint.measureText(text) + width * finishPositionOfLastWord &&
                             allFrameCount / 1.0 * 1000 > minShowTimeMs  // 此处改用实际经过时间
                         ) {
                             isShowFinish = true
@@ -329,14 +370,14 @@ class ESView : View {
                             isShowFinish = false
                         }
 
-                        if (scrollX < -paint.measureText(text) + width * finishPositionOfLastWord * 0.95) {
+                        if (scrollX < -textPaint.measureText(text) + width * finishPositionOfLastWord * 0.95) {
                             frameCount = 0F
                             scrollX = width.toFloat() - paddingEnd
                             loopCount++
                         }
                     }
                     // 文字宽度不足以超出屏幕时（静止）
-                    else if (paint.measureText(text) <= width) {
+                    else if (textPaint.measureText(text) <= width) {
                         isShowFinish = if (allFrameCount / 1.0 * 1000 > minShowTimeMs) {
                             true
                         } else {
@@ -361,11 +402,6 @@ class ESView : View {
         if (this::frameCallback.isInitialized) {
             Choreographer.getInstance().removeFrameCallback(frameCallback)
         }
-    }
-
-    // 如果需要精确控制显示时长，可以添加这个方法
-    fun setScrollSpeed(pixelsPerSecond: Float) {
-        pixelMovePerSecond = pixelsPerSecond
     }
 
 }

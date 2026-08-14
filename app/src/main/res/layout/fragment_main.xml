@@ -79,8 +79,7 @@
                 android:text="@string/main_staring_station_name"
                 android:textColor="@color/md_theme_onSurface"
                 android:textSize="20sp"
-                android:textStyle="bold"
-                app:background="@color/an_contain_bg_tran" />
+                android:textStyle="bold" />
 
 
             <com.microbus.announcer.view.ESView
@@ -111,8 +110,7 @@
                 android:text="@string/main_terminal_name"
                 android:textColor="@color/md_theme_onSurface"
                 android:textSize="20sp"
-                android:textStyle="bold"
-                app:background="@color/an_contain_bg_tran" />
+                android:textStyle="bold" />
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
