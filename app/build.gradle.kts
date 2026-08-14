@@ -1,7 +1,6 @@
+import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import com.android.build.api.variant.AndroidComponentsExtension
-import com.android.build.api.variant.VariantOutputConfiguration
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -68,9 +67,7 @@ android {
 //        }
 //    }
 
-
 }
-
 
 dependencies {
 
@@ -103,6 +100,7 @@ dependencies {
 
 
     implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.litert.api)
 
     implementation(files("libs/AMap3DMap_11.2.100_AMapSearch_9.8.1_AMapLocation_11.2.100_20260805.jar"))
     implementation(libs.easypermissions)

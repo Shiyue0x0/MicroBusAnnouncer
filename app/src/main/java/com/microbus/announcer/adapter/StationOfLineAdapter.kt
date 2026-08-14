@@ -1,5 +1,6 @@
 package com.microbus.announcer.adapter
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.graphics.Typeface
@@ -68,7 +69,7 @@ internal class StationOfLineAdapter(
         init {
             mClickListener = clickListener
             main.setOnClickListener(this)
-            stationName.setOnClickListener(this)
+//            stationName.setOnClickListener(this)
         }
 
         override fun onClick(v: View?) {
@@ -164,12 +165,16 @@ internal class StationOfLineAdapter(
             Choreographer.getInstance().postFrameCallback(frameCallback)
         }
 
-        holder.stationNameNestedScrollView.setOnTouchListener { _, _ ->
-            return@setOnTouchListener false
-        }
+//        holder.stationNameNestedScrollView.setOnTouchListener { _, _ ->
+//            return@setOnTouchListener false
+//        }
 
         holder.stationNameNestedScrollView.isNestedScrollingEnabled = false
         holder.stationNameNestedScrollView.isScrollContainer = false
+
+//        holder.stationName.setOnClickListener {
+//            mClickListener.onItemClick(it, holder.layoutPosition)
+//        }
 
         return holder
     }
@@ -292,6 +297,14 @@ internal class StationOfLineAdapter(
 //    else {
 //            holder.stationName.setLineSpacing(0f, 1f)
 //        }
+
+        @SuppressLint("ClickableViewAccessibility")
+        holder.stationNameNestedScrollView.setOnTouchListener { _, event ->
+            // 将触摸事件传递给父级 CardView
+            holder.main.onTouchEvent(event)
+            // 返回 false 让事件继续传递，但已经被父级处理了
+            false
+        }
 
     }
 

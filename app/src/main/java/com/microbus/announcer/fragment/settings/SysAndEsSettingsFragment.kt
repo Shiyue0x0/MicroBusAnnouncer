@@ -655,7 +655,7 @@ class SysAndEsSettingsFragment : Fragment() {
                 binding.slider.valueTo = 500F
                 binding.slider.value = eSSpeed.toFloat()
 
-                binding.es.pixelMovePerSecond = eSSpeed
+                binding.es.pixelMovePerSecond = eSSpeed.toFloat()
                 binding.es.finishPositionOfLastWord = utils.getEsFinishPositionOfLastWord()
                 binding.es.showText(esDemoText)
 
@@ -666,7 +666,7 @@ class SysAndEsSettingsFragment : Fragment() {
 //                utils.showMsg(eSSpeed.toString())
                 binding.slider.addOnChangeListener { slider, value, fromUser ->
 //                    Log.d(tag, "slider: $value")
-                    binding.es.pixelMovePerSecond = value.toInt()
+                    binding.es.pixelMovePerSecond = value
                     binding.text.text = getString(R.string.xPixelPerSecond, value.toInt())
 
                 }
@@ -711,7 +711,7 @@ class SysAndEsSettingsFragment : Fragment() {
                 binding.slider.value = esFinishPositionOfLastWord
 
                 binding.es.finishPositionOfLastWord = esFinishPositionOfLastWord
-                binding.es.pixelMovePerSecond = utils.getEsSpeed()
+                binding.es.pixelMovePerSecond = utils.getEsSpeed().toFloat()
                 binding.es.showText(esDemoText)
 
                 binding.text.visibility = ViewGroup.VISIBLE

@@ -150,7 +150,7 @@ class DataAndAboutSettingsFragment : Fragment() {
     fun BackupItem() {
         BaseSettingItem(
             "备份站点与路线",
-            "将数据备份到Announcer/Backups",
+            "将数据备份到 Announcer/Backups",
             painterResource(id = R.drawable.backup),
             {
 

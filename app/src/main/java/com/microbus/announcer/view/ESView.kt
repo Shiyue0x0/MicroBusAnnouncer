@@ -182,13 +182,13 @@ class ESView : View {
     var frameCount = 0F
     var allFrameCount = 0F
     var minShowTimeMs = Int.MAX_VALUE
-    var fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        context.display.refreshRate
-    } else {
-        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        windowManager.defaultDisplay.refreshRate
-    }
-    var pixelMovePerSecond = 150
+//    var fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//        context.display.refreshRate
+//    } else {
+//        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+//        windowManager.defaultDisplay.refreshRate
+//    }
+    var pixelMovePerSecond = 150F
     var isShowFinish = false
     var scrollX = Float.MAX_VALUE
     val shaderWidth = 20f
@@ -201,7 +201,6 @@ class ESView : View {
 
         // 绘制背景色
         canvas.clipPath(path)
-//        canvas.drawColor(backgroundPaint.color)
 
         // 绘制文字和渐隐层
         canvas.clipRect(fillRect)
@@ -217,9 +216,7 @@ class ESView : View {
         }
         // View宽度不足够容纳文本，轮播显示，羽化水平边缘
         else {
-//            scrollX -= pixelMovePerSecond.toFloat() / fps
-            scrollX =
-                width.toFloat() - paddingEnd - (pixelMovePerSecond.toFloat() / fps) * frameCount
+            // 注意：scrollX 的更新现在在 FrameCallback 中基于实际时间增量进行
             canvas.drawText(
                 text,
                 scrollX,
@@ -246,7 +243,6 @@ class ESView : View {
                 height.toFloat(),
                 shaderPaint
             )
-
         }
     }
 
@@ -263,19 +259,14 @@ class ESView : View {
     var finishPositionOfLastWord = 0.5F
 
     fun showText(textNew: String) {
-
         stopAnimation()
-
         post {
             scrollX = width - paddingEnd
         }
-
         isShowFinish = false
-
         frameCount = 0F
         allFrameCount = 0F
         loopCount = 0
-
         setText(textNew)
         startAnimation()
     }
@@ -297,14 +288,12 @@ class ESView : View {
 
     var lastFrameTimeNanos = 0L
     fun startAnimation() {
-
         Log.d(id.toString(), "$text startAnimation")
         isAnimationRunning.set(true)
 
         if (!this::frameCallback.isInitialized) {
             frameCallback = object : FrameCallback {
                 override fun doFrame(frameTimeNanos: Long) {
-
                     if (!isAnimationRunning.get()) {
                         Choreographer.getInstance().removeFrameCallback(frameCallback)
                         return
@@ -312,28 +301,28 @@ class ESView : View {
 
                     Choreographer.getInstance().postFrameCallback(this)
 
-                    val frameDelayNanos = frameTimeNanos - lastFrameTimeNanos
-                    Log.d("ES", "frameTimeNanos2: $frameDelayNanos $text")
-                    lastFrameTimeNanos = frameTimeNanos
-
-                    // 动态获取刷新率
-                    fps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        context.display.refreshRate
+                    // 计算实际时间增量（秒）
+                    val deltaSeconds = if (lastFrameTimeNanos == 0L) {
+                        0.0
                     } else {
-                        val windowManager =
-                            context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                        windowManager.defaultDisplay.refreshRate
+                        (frameTimeNanos - lastFrameTimeNanos) / 1_000_000_000.0
                     }
 
-//                    Log.d("ES", "$text $isShowFinish")
+                    // 限制最大时间增量，防止应用切到后台再返回时出现大幅跳跃
+                    val clampedDeltaSeconds = deltaSeconds.coerceAtMost(0.05) // 最大50ms
 
-                    //  文字宽度超出屏幕时（滚动）
+                    lastFrameTimeNanos = frameTimeNanos
+
+                    // 文字宽度超出屏幕时（滚动）
                     if (paint.measureText(text) > width - paddingStart - paddingEnd) {
+                        // 使用实际时间增量更新滚动位置（单位：像素/秒）
+                        scrollX -= (pixelMovePerSecond * clampedDeltaSeconds).toFloat()
+
                         postInvalidate()
 
                         // 文字滚动完毕时
                         if (scrollX < -paint.measureText(text) + width * finishPositionOfLastWord &&
-                            allFrameCount / fps * 1000 > minShowTimeMs
+                            allFrameCount / 1.0 * 1000 > minShowTimeMs  // 此处改用实际经过时间
                         ) {
                             isShowFinish = true
                         } else if (loopCount == 0) {
@@ -345,31 +334,25 @@ class ESView : View {
                             scrollX = width.toFloat() - paddingEnd
                             loopCount++
                         }
-
                     }
                     // 文字宽度不足以超出屏幕时（静止）
                     else if (paint.measureText(text) <= width) {
-//                        Log.d("ES", "$text ${allFrameCount / fps * 1000}/${minShowTimeMs}")
-                        isShowFinish = if (allFrameCount / fps * 1000 > minShowTimeMs) {
+                        isShowFinish = if (allFrameCount / 1.0 * 1000 > minShowTimeMs) {
                             true
                         } else {
                             false
                         }
                     }
 
-//                    frameCount = (frameCount + 1) % Float.MAX_VALUE
-//                    allFrameCount = (allFrameCount + 1) % Float.MAX_VALUE
-                    val frameDelay = frameDelayNanos.toFloat() / 10F.pow(9F) / (1F / fps)
-                    frameCount = (frameCount + frameDelay) % Float.MAX_VALUE
-                    allFrameCount = (allFrameCount + frameDelay) % Float.MAX_VALUE
-
+                    // 使用实际时间增量累计
+                    frameCount += clampedDeltaSeconds.toFloat()
+                    allFrameCount += clampedDeltaSeconds.toFloat()
                 }
             }
         }
 
-        lastFrameTimeNanos = System.nanoTime()
+        lastFrameTimeNanos = 0L  // 重置，让第一帧计算delta为0
         Choreographer.getInstance().postFrameCallback(frameCallback)
-
     }
 
     fun stopAnimation() {
@@ -378,6 +361,11 @@ class ESView : View {
         if (this::frameCallback.isInitialized) {
             Choreographer.getInstance().removeFrameCallback(frameCallback)
         }
+    }
+
+    // 如果需要精确控制显示时长，可以添加这个方法
+    fun setScrollSpeed(pixelsPerSecond: Float) {
+        pixelMovePerSecond = pixelsPerSecond
     }
 
 }

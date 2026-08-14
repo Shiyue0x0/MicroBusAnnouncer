@@ -12,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,6 +47,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
+import com.google.ai.edge.litert.Environment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
@@ -62,7 +64,7 @@ class AnSettingsFragment : Fragment() {
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View? {
+    ): View {
 
         utils = Utils(requireContext(), requireActivity())
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
@@ -77,7 +79,7 @@ class AnSettingsFragment : Fragment() {
             val layoutParams = composeView.layoutParams
             layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
             layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
-            composeView.setLayoutParams(layoutParams)
+            composeView.layoutParams = layoutParams
         }
 
         initLocalBroadcast()
@@ -284,7 +286,7 @@ class AnSettingsFragment : Fragment() {
         val title = if (!utils.isGrantManageFilesAccessPermission()) {
             "暂无语音库读取权限，轻触以授予"
         } else {
-            "${announcementLibrary}（当前语音库）"
+            "当前语音库：${announcementLibrary}"
         }
 
         BaseSettingItem(
@@ -384,6 +386,11 @@ class AnSettingsFragment : Fragment() {
                             color = colorResource(R.color.an_text_1)
                         )
                     }
+                    Text(
+                        "*语音库文件夹：根目录/Announcer/Media",
+                        fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
+                        fontSize = 12.sp
+                    )
                 }
             },
         )
@@ -743,7 +750,6 @@ class AnSettingsFragment : Fragment() {
             }
         }
     }
-
 
 }
 

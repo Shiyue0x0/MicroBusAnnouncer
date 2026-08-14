@@ -1760,10 +1760,10 @@ class MainFragment : Fragment() {
                     return
 
                 val esSpeed = utils.getEsSpeed()
-                binding.headerLeftNew.pixelMovePerSecond = esSpeed
-                binding.headerRightNew.pixelMovePerSecond = esSpeed
-                binding.headerMiddleNew.pixelMovePerSecond = esSpeed
-                binding.navStationName.pixelMovePerSecond = esSpeed
+                binding.headerLeftNew.pixelMovePerSecond = esSpeed.toFloat()
+                binding.headerRightNew.pixelMovePerSecond = esSpeed.toFloat()
+                binding.headerMiddleNew.pixelMovePerSecond = esSpeed.toFloat()
+                binding.navStationName.pixelMovePerSecond = esSpeed.toFloat()
 
                 val pos = utils.getEsFinishPositionOfLastWord()
                 binding.headerLeftNew.finishPositionOfLastWord = pos
