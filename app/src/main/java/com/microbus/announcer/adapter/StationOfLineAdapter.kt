@@ -22,7 +22,6 @@ import com.microbus.announcer.bean.Station
 import com.microbus.announcer.databinding.ItemStationOfLineBinding
 import java.util.Locale
 import kotlin.math.pow
-import androidx.core.graphics.toColorInt
 
 
 internal class StationOfLineAdapter(
@@ -47,7 +46,7 @@ internal class StationOfLineAdapter(
     var stationCount = mStationCount
     var stationState = mStationState
 
-    val utils = Utils(context, activity)
+    val utils = Utils(context)
 
     var firstVisibleItem = -1
     var lastVisibleItem = -1

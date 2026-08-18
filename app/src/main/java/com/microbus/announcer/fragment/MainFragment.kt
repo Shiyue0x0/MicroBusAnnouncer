@@ -19,8 +19,6 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.res.Resources
 import android.graphics.Color
-import android.graphics.RenderEffect
-import android.graphics.Shader
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioFormat
@@ -56,7 +54,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -106,7 +103,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import com.microbus.announcer.MainActivity
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
@@ -341,6 +337,7 @@ class MainFragment : Fragment() {
 
     private var tabSwitchListener: TabSwitchListener? = null
 
+    private var enableLowPowerMode = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -351,7 +348,7 @@ class MainFragment : Fragment() {
 
         _binding = FragmentMainBinding.inflate(inflater, container, false)
 
-        utils = Utils(requireContext(), requireActivity())
+        utils = Utils(requireContext())
 
         sensorHelper = SensorHelper(requireContext())
 
@@ -447,6 +444,9 @@ class MainFragment : Fragment() {
 
     private var isVisible = false
 
+    private var enableEs = true
+
+
     /* 与用户交互时 */
     override fun onResume() {
         super.onResume()
@@ -456,7 +456,7 @@ class MainFragment : Fragment() {
         Log.d(tag, "onResume")
 
         if (userMapOpen)
-            binding.mapBtnGroup.check(binding.mapBtnGroup.id)
+            binding.mapBtnGroup.check(binding.mapBtn.id)
 
         if (userLocationOpen)
             binding.locationBtnGroup.check(binding.locationBtn.id)
@@ -474,11 +474,10 @@ class MainFragment : Fragment() {
     override fun onPause() {
         Log.d(tag, "onPause")
 
-        binding.mapBtnGroup.uncheck(binding.mapBtnGroup.id)
-
         userMapOpen = binding.mapBtn.isChecked
         userLocationOpen = binding.locationBtn.isChecked
 
+        binding.mapBtnGroup.uncheck(binding.mapBtn.id)
         binding.locationBtnGroup.uncheck(binding.locationBtn.id)
 
         (binding.lineStationList.adapter as StationOfLineAdapter).isShown = false
@@ -652,29 +651,35 @@ class MainFragment : Fragment() {
         viewList.add(binding.nextStation)
         viewList.add(binding.terminal)
         viewList.add(binding.terminalCard)
-        viewList.add(binding.navCard)
+        if (!enableLowPowerMode) {
+            viewList.add(binding.navCard)
+        }
         //显示|隐藏路线站点框和全站点路线按钮（渐出动画）
         if (currentLine.name != resources.getString(R.string.line_all) && currentLine.name != resources.getString(
                 R.string.main_line_0
             )
         ) {
+            if (!enableLowPowerMode) {
+
 //            Log.d(tag, "出现")
-            val fadeIn = AnimationUtils.loadAnimation(requireContext(), R.anim.fade_in)
-            fadeIn.setAnimationListener(object : Animation.AnimationListener {
-                override fun onAnimationStart(animation: Animation?) {
-                    binding.lineStationCard.visibility = INVISIBLE
+                val fadeIn = AnimationUtils.loadAnimation(requireContext(), R.anim.fade_in)
+                fadeIn.setAnimationListener(object : Animation.AnimationListener {
+                    override fun onAnimationStart(animation: Animation?) {
+                        binding.lineStationCard.visibility = INVISIBLE
+                    }
+
+                    override fun onAnimationEnd(animation: Animation?) {
+                        binding.lineStationCard.visibility = VISIBLE
+                    }
+
+                    override fun onAnimationRepeat(animation: Animation?) {
+                    }
+                })
+                binding.lineStationCard.startAnimation(fadeIn)
+                viewList.forEach { view ->
+                    view.visibility = VISIBLE
                 }
 
-                override fun onAnimationEnd(animation: Animation?) {
-                    binding.lineStationCard.visibility = VISIBLE
-                }
-
-                override fun onAnimationRepeat(animation: Animation?) {
-                }
-            })
-            binding.lineStationCard.startAnimation(fadeIn)
-            viewList.forEach { view ->
-                view.visibility = VISIBLE
             }
         } else {
 //            Log.d(tag, "隐藏")
@@ -1147,9 +1152,41 @@ class MainFragment : Fragment() {
         }
 
         // 进入省电模式
-        binding.openPowerSavingMode.setOnClickListener{
-            val intent = Intent(requireContext(), LowPowerMainFragment::class.java)
-            startActivity(intent)
+        binding.switchPowerSavingMode.setOnClickListener {
+            enableLowPowerMode = !enableLowPowerMode
+
+            if (enableLowPowerMode) {
+                binding.mapBtnGroup.uncheck(binding.mapBtn.id)
+                binding.lineStationCard.visibility = GONE
+                (binding.lineStationList.adapter as StationOfLineAdapter).isShown = false
+                enableEs = false
+
+                binding.headerLeftNew.stopAnimation()
+                binding.headerRightNew.stopAnimation()
+                binding.navStationName.stopAnimation()
+
+                binding.headerLeftNew.visibility = GONE
+                binding.headerRightNew.visibility = GONE
+                binding.navCard.visibility = GONE
+            }
+
+            if (!enableLowPowerMode) {
+                binding.mapBtnGroup.check(binding.mapBtn.id)
+                binding.lineStationCard.visibility = VISIBLE
+                (binding.lineStationList.adapter as StationOfLineAdapter).isShown = true
+                enableEs = true
+
+                binding.headerLeftNew.startAnimation()
+                binding.headerRightNew.startAnimation()
+                binding.navStationName.startAnimation()
+
+                if (utils.getIsOpenLeftEs()) {
+                    binding.headerLeftNew.visibility = VISIBLE
+                }
+                binding.headerRightNew.visibility = VISIBLE
+                binding.navCard.visibility = VISIBLE
+            }
+
         }
 
         //单击运行信息
@@ -1230,6 +1267,7 @@ class MainFragment : Fragment() {
             }
         }
 
+        // 启用地图按钮
         binding.mapBtn.addOnCheckedChangeListener { button, isChecked ->
             if (isOperationLock) {
                 utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
@@ -1237,6 +1275,7 @@ class MainFragment : Fragment() {
                 return@addOnCheckedChangeListener
             }
             if (isChecked) {
+                aMapView.visibility = VISIBLE
                 aMapView.onResume()
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 1f
@@ -1244,7 +1283,7 @@ class MainFragment : Fragment() {
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 0f
                 aMapView.onPause()
-
+                aMapView.visibility = INVISIBLE
             }
         }
 
@@ -1762,7 +1801,7 @@ class MainFragment : Fragment() {
 
                 esRefreshHandler.postDelayed(this, 100L)
 
-                if (!isAdded || !isVisible)
+                if (!isAdded || !isVisible || !enableEs)
                     return
 
                 val esSpeed = utils.getEsSpeed()
@@ -2218,7 +2257,7 @@ class MainFragment : Fragment() {
 
             //单击地图，添加站点
             if (utils.getIsClickMapToAddStation()) {
-                utils.showStationDialog("new", latLng = it, isOrderLatLng = true)
+                utils.showStationDialog(requireActivity(), "new", latLng = it, isOrderLatLng = true)
             }
 
             // 单击地图，设置路线规划起点/终点

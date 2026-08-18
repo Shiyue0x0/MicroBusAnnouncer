@@ -32,7 +32,7 @@ internal class StationAdapter(
 
     val stationDatabaseHelper = StationDatabaseHelper(context)
 
-    val utils = Utils(context, activity)
+    val utils = Utils(context)
     val comparator = utils.getDefaultLineComparator()
 
     internal class StationViewHolder(
@@ -146,6 +146,7 @@ internal class StationAdapter(
 
             holder.stationCard.setOnLongClickListener {
                 utils.showStationDialog(
+                    activity,
                     "update",
                     stationDatabaseHelper.queryById(station.id ?: -1).first(),
                     onAddDone = {

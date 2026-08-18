@@ -50,7 +50,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 
-class Utils(private val context: Context, private val activity: Activity) {
+class Utils(private val context: Context) {
 
     var tag: String = javaClass.simpleName
     private var prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -514,6 +514,7 @@ class Utils(private val context: Context, private val activity: Activity) {
     }
 
     fun showStationDialog(
+        activity: Activity,
         type: String,
         oldStation: Station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0),
         latLng: LatLng = LatLng(0.0, 0.0),

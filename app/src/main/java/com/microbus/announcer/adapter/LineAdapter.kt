@@ -42,7 +42,7 @@ class LineAdapter(
 
     var allLineList: MutableList<Line>
 
-    val utils = Utils(context, activity)
+    val utils = Utils(context)
 
 
 //    var firstVisibleItem = -1

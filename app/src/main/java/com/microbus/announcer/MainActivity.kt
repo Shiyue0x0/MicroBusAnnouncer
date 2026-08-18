@@ -80,7 +80,7 @@ class MainActivity : AppCompatActivity(), TabSwitchListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        utils = Utils(this, this)
+        utils = Utils(this)
         utils.loadAnnouncementFormatFromConfig()
 
         // 使用更现代的窗口设置

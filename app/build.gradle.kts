@@ -16,9 +16,9 @@ android {
         applicationId = "com.microbus.announcer"
         minSdk = 26
         targetSdk = 37
-        versionCode = 309
+        versionCode = 311
         versionName =
-            "3.0.9-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
+            "3.1.1-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
     }
 
     buildTypes {
@@ -106,6 +106,8 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.material)
     implementation(files("libs/AMap3DMap_11.2.100_AMapSearch_9.8.1_AMapLocation_11.2.100_20260805.jar"))
+    implementation(libs.appleliquidglassforandroid)
+
 
     // miuix
     implementation(libs.miuix.ui.android)

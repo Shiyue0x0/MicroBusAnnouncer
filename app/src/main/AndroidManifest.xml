@@ -104,6 +104,11 @@
             android:label="@string/title_activity_low_power_main_fragment"
             android:theme="@style/Theme.MicroBusAnnouncer"
             android:windowSoftInputMode="adjustResize" />
+
+        <service
+            android:name=".service.AnnounceService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>

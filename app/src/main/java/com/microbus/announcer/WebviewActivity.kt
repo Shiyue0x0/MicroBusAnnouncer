@@ -1,9 +1,7 @@
 package com.microbus.announcer
 
 import android.os.Bundle
-import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -21,7 +19,7 @@ class WebviewActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
 
-        utils = Utils(this, this)
+        utils = Utils(this)
 
         binding = ActivityWebviewBinding.inflate(layoutInflater)
 

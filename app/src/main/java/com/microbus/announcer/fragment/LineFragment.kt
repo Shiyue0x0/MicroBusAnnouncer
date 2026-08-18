@@ -20,7 +20,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
-import com.microbus.announcer.TabSwitchListener
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.LineAdapter
 import com.microbus.announcer.bean.Line
@@ -61,7 +60,7 @@ class LineFragment : Fragment() {
         lineDatabaseHelper = LineDatabaseHelper(context)
 
         //获取Utils
-        utils = Utils(requireContext(), requireActivity())
+        utils = Utils(requireContext())
 
         //设置Toolbar
         (requireActivity() as AppCompatActivity).setSupportActionBar(binding!!.toolbar)

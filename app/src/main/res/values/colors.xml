@@ -6,5 +6,6 @@
     <color name="an_text_1">#646464</color>
 
     <color name="md_theme_surface_tran">#B3FAF8FF</color>
+    <color name="md_theme_surface_tran2">#DCFAF8FF</color>
 
 </resources>

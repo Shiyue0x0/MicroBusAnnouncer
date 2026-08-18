@@ -45,7 +45,6 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
-import com.microbus.announcer.MainActivity
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
@@ -66,7 +65,7 @@ class SysAndEsSettingsFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
 
-        utils = Utils(requireContext(), requireActivity())
+        utils = Utils(requireContext())
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
         permissionManager = PermissionManager(requireContext(), requireActivity())
 

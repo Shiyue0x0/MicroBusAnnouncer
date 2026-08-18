@@ -51,7 +51,7 @@ class StationFragment : Fragment() {
         lineDatabaseHelper = LineDatabaseHelper(requireContext())
 
         //获取Utils
-        utils = Utils(requireContext(), requireActivity())
+        utils = Utils(requireContext())
 
         //设置Toolbar
         (requireActivity() as AppCompatActivity).setSupportActionBar(binding!!.toolbar)
@@ -196,7 +196,7 @@ class StationFragment : Fragment() {
     }
 
     private fun addStation() {
-        utils.showStationDialog("new", onAddDone = {
+        utils.showStationDialog(requireActivity(), "new", onAddDone = {
             val adapter = binding!!.stationRecyclerView.adapter!!
             adapter.notifyItemInserted(adapter.itemCount)
         })

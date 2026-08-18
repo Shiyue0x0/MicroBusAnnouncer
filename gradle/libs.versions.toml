@@ -1,6 +1,7 @@
 [versions]
 activityComposeVersion = "1.13.0"
 agp = "9.2.1"
+appleliquidglassforandroid = "1.0.0"
 easypermissions = "3.0.0"
 fragmentKtx = "1.9.0"
 gson = "2.14.0"
@@ -39,6 +40,7 @@ androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefreshlayout", version.ref = "swiperefreshlayout" }
+appleliquidglassforandroid = { module = "com.github.SidZadaun02:AppleLiquidGlassForAndroid", version.ref = "appleliquidglassforandroid" }
 easypermissions = { module = "pub.devrel:easypermissions", version.ref = "easypermissions" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
