@@ -23,6 +23,7 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioFormat
 import android.media.AudioManager
+import android.media.audiofx.LoudnessEnhancer
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -343,6 +344,9 @@ class MainFragment : Fragment() {
 
     private var runningSimRunning = false
 
+    private var loudnessEnhancer: LoudnessEnhancer? = null
+
+    private var audioSessionId: Int? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -1986,16 +1990,21 @@ class MainFragment : Fragment() {
                 pauseAnnounce()
             }
 
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                // 当音频会话ID发生变化或可用时调用
+//                if (audioSessionId != AudioManager.AUDIO_SESSION_ID_GENERATE) {
+                    Log.d("L1991", "${audioSessionId}")
+
+                    this@MainFragment.audioSessionId = audioSessionId
+                    setTargetGain()
+//                }
+            }
+
         })
 
-        // 开启预加载，目标时长为 30 秒 (10,000,000 微秒)
+        // 开启预加载，目标时长为 30 秒 (30,000,000 微秒)
         player.preloadConfiguration = ExoPlayer.PreloadConfiguration(30_000_000L)
 
-        Log.d(
-            tag, "${
-                player.volume
-            }"
-        )
     }
 
     /**
@@ -4731,6 +4740,11 @@ class MainFragment : Fragment() {
                         utils.openLocationActionName -> {
                             binding.locationBtnGroup.check(binding.locationBtn.id)
                         }
+
+                        utils.setLoudnessBoostAmountName -> {
+                            setTargetGain()
+                        }
+
                     }
                 }
             }
@@ -4742,6 +4756,7 @@ class MainFragment : Fragment() {
         intentFilter.addAction(utils.editLineOnMapActionName)
         intentFilter.addAction(utils.requestCityFromLocationActionName)
         intentFilter.addAction(utils.openLocationActionName)
+        intentFilter.addAction(utils.setLoudnessBoostAmountName)
 
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(mBroadcastReceiver, intentFilter)
@@ -5121,6 +5136,24 @@ class MainFragment : Fragment() {
         utils.showMsg(
             fileName.take(lastDotIndex), true
         )
+    }
+
+    fun setTargetGain(){
+
+        if(audioSessionId == null){
+            return
+        }
+
+        Log.d("L5146", "${audioSessionId}")
+        val loudnessEnhancer = LoudnessEnhancer(audioSessionId!!)
+
+        // 使用audioSessionId创建音量增强器
+        loudnessEnhancer.setTargetGain(utils.getLoudnessBoostAmount()) // 毫分贝
+        loudnessEnhancer.enabled = true
+
+        // 注意：需要将loudnessEnhancer保存在成员变量中防止被GC回收
+        this@MainFragment.loudnessEnhancer = loudnessEnhancer
+
     }
 
 }

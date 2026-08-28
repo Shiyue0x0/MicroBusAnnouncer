@@ -106,6 +106,7 @@
     <string name="S2T">%1$s - %2$s</string>
     <string name="currentRange">Current Range</string>
     <string name="locationPerSecond">Location Interval: %1$d s</string>
+    <string name="volumeBoostAmountMdB">Volume boost: %1$d mdB</string>
     <string name="autoAnPerSecond">Announcement Interval: %1$d s</string>
     <string name="loading">Loading…</string>
     <string name="now_search">Searching Line %2$s in %1$s</string>

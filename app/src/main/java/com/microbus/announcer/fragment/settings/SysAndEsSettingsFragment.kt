@@ -200,7 +200,7 @@ class SysAndEsSettingsFragment : Fragment() {
         }
         Surface(
             contentColor = colorResource(R.color.md_theme_onSurface),
-            color = colorResource(R.color.an_window_bg)
+            color = colorResource(R.color.md_theme_surface)
         ) {
 
 

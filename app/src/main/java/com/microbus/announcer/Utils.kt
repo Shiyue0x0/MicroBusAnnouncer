@@ -73,6 +73,8 @@ class Utils(private val context: Context) {
     val lineListScrollToTopActionName = "${baseActionName}.line_list_scroll_to_top"
     val stationListScrollToTopActionName = "${baseActionName}.station_list_scroll_to_top"
 
+    val setLoudnessBoostAmountName = "${baseActionName}.set_loudness_boost_amount"
+
     lateinit var toast: Toast
 
     /**
@@ -388,6 +390,10 @@ class Utils(private val context: Context) {
 
     fun getAutoAnInterval(): Int {
         return prefs.getInt("autoAnInterval", 0)
+    }
+
+    fun getLoudnessBoostAmount(): Int {
+        return prefs.getInt("loudnessBoostAmount", 0)
     }
 
     /**

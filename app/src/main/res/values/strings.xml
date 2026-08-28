@@ -106,6 +106,7 @@
     <string name="currentRange">当前半径</string>
     <string name="locationPerSecond">每 %1$d 毫秒定位一次</string>
     <string name="autoAnPerSecond">每次报站间隔 %1$d 秒</string>
+    <string name="volumeBoostAmountMdB">音量增强: %1$d mdB</string>
     <string name="loading">正在加载</string>
     <string name="now_search">正在搜索 %1$s 路线%2$s</string>
     <string name="title_activity_low_power_main_fragment">LowPowerMainFragment</string>

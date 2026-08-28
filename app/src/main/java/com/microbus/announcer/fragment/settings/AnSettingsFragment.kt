@@ -160,6 +160,10 @@ class AnSettingsFragment : Fragment() {
             mutableStateOf(utils.getAutoAnInterval())
         }
 
+        val (loudnessBoostAmount, setLoudnessBoostAmount) = remember {
+            mutableStateOf(utils.getLoudnessBoostAmount())
+        }
+
         val anFormatArrayOri = Array(3) { Array(4) { "" } }
 
         val stationStateList = utils.getStationStateList()
@@ -218,6 +222,10 @@ class AnSettingsFragment : Fragment() {
                         setAutoAnInterval(utils.getAutoAnInterval())
                     }
 
+                    "loudnessBoostAmount" -> {
+                        setLoudnessBoostAmount(utils.getLoudnessBoostAmount())
+                    }
+
                     else -> {
                         val anFormatArrayOri = Array(3) { Array(4) { "" } }
                         anFormatArrayOri.forEachIndexed { rowIndex, row ->
@@ -239,7 +247,7 @@ class AnSettingsFragment : Fragment() {
         }
         Surface(
             contentColor = colorResource(R.color.md_theme_onSurface),
-            color = colorResource(R.color.an_window_bg)
+            color = colorResource(R.color.md_theme_surface)
         ) {
             MaterialTheme {
                 val scrollState = rememberScrollState()
@@ -265,6 +273,7 @@ class AnSettingsFragment : Fragment() {
                         ClickMapPauseAnItem(clickMapPauseAn, setClickMapPauseAn)
                         ServiceLanguageItem(serviceLanguageStr)
                         AutoAnIntervalItem(autoAnInterval)
+                        LoudnessBoostAmountItem(loudnessBoostAmount)
                         AnFormatGroup(anFormatArray)
                         Spacer(modifier = Modifier.height(1.dp))
                     }
@@ -603,7 +612,53 @@ class AnSettingsFragment : Fragment() {
         )
     }
 
+    @Composable
+    fun LoudnessBoostAmountItem(amount: Int) {
+        val itemText = "音量增强幅度"
+        BaseSettingItem(
+            itemText, getString(R.string.volumeBoostAmountMdB, amount), painterResource(id = R.drawable.sound),
+            {
+                val binding = DialogSliderBinding.inflate(LayoutInflater.from(context))
+                val dialog = MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                ).setTitle("设置${itemText}").setView(binding.root)
+                    .setPositiveButton("保存", null)
+                    .setNegativeButton(getString(android.R.string.cancel), null).show()
 
+                binding.slider.contentDescription = "拖动以调整${itemText}"
+                binding.slider.stepSize = 1F
+                binding.slider.valueFrom = 0F
+                binding.slider.valueTo = 6000F
+                binding.slider.value = amount.toFloat()
+
+                binding.es.visibility = ViewGroup.GONE
+
+                binding.text.visibility = ViewGroup.VISIBLE
+                binding.text.text = getString(R.string.volumeBoostAmountMdB, amount)
+
+                binding.slider.addOnChangeListener { slider, value, fromUser ->
+                    binding.text.text = getString(R.string.volumeBoostAmountMdB, value.toInt())
+                }
+
+                dialog.setCanceledOnTouchOutside(false)
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    prefs.edit {
+                        putInt("loudnessBoostAmount", binding.slider.value.toInt())
+                    }
+
+                    val intent = Intent()
+                        .setAction(utils.setLoudnessBoostAmountName)
+                    LocalBroadcastManager.getInstance(requireContext())
+                        .sendBroadcast(intent)
+
+                    utils.showMsg("${itemText}设置成功")
+                    dialog.dismiss()
+                }
+
+            },
+        )
+    }
     @Composable
     fun AnFormatGroup(anFormatArray: Array<Array<String>>) {
         val stationStateList = utils.getStationStateList()

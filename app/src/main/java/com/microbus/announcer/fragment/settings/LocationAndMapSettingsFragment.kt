@@ -53,7 +53,8 @@ import com.microbus.announcer.compose.SwitchSettingItem
 import com.microbus.announcer.databinding.DialogSliderBinding
 
 
-class LocationAndMapSettingsFragment : Fragment() {
+class
+LocationAndMapSettingsFragment : Fragment() {
 
     lateinit var utils: Utils
     private lateinit var prefs: SharedPreferences
@@ -243,7 +244,7 @@ class LocationAndMapSettingsFragment : Fragment() {
         }
         Surface(
             contentColor = colorResource(R.color.md_theme_onSurface),
-            color = colorResource(R.color.an_window_bg)
+            color = colorResource(R.color.md_theme_surface)
         ) {
             MaterialTheme {
                 val scrollState = rememberScrollState()
