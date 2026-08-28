@@ -7,4 +7,5 @@ class Line(
     var downLineStation: String = "",
     var isUpAndDownInvert: Boolean = true,
     var type: String = "B",
+    var isRingRoute: Boolean = false,
 )

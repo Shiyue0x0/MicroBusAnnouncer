@@ -12,7 +12,7 @@ class LineDatabaseHelper(
     context: Context?,
     dbName: String = context?.getExternalFilesDir("")?.path + "/database/line.db"
 ) :
-    DatabaseHelper(context, dbName) {
+    DatabaseHelper(context, dbName, 2) {
 
     private val tableName = "line"
 
@@ -23,13 +23,26 @@ class LineDatabaseHelper(
                 "name VARCHAR NOT NULL," +
                 "upLineStation VARCHAR NOT NULL," +
                 "downLineStation VARCHAR NOT NULL," +
-                "isUpAndDownInvert BOOLEAN NOT NULL," +
-                "type VARCHAR DEFAULT 'B');"
+                "type VARCHAR DEFAULT 'B'," +
+                "isRingRoute BOOLEAN DEFAULT 0);"
         db!!.execSQL(sql)
 
 
 
         Log.d(tag, "已创建表 $tableName")
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+        try {
+            val alterSql = "ALTER TABLE $tableName ADD COLUMN isRingRoute BOOLEAN DEFAULT 0;"
+            db?.execSQL(alterSql)
+            Log.d(tag, "数据库升级：已添加列 isRingRoute")
+        } catch (e: SQLException) {
+            // 列已存在时忽略异常（保证向下兼容）
+            Log.d(tag, "列 isRingRoute 已存在，跳过添加")
+        }
+
+        // 如果有其他升级逻辑，继续添加...
     }
 
     fun insert(line: Line): Long {
@@ -39,6 +52,7 @@ class LineDatabaseHelper(
         values.put("downLineStation", line.downLineStation)
         values.put("isUpAndDownInvert", line.isUpAndDownInvert)
         values.put("type", line.type)
+        values.put("isRingRoute", line.isRingRoute)
 
         val result = readableDatabase.insert(tableName, null, values)
         if (result > 0)
@@ -65,19 +79,6 @@ class LineDatabaseHelper(
                 null
             )
         // 循环取出游标指向的每条记录
-//        while (cursor.moveToNext()) {
-//            val line = Line()
-//            line.id = cursor.getInt(0)
-//            line.name = cursor.getString(1)
-//            line.upLineStation = cursor.getString(2)
-//            line.downLineStation = cursor.getString(3)
-//            line.isUpAndDownInvert = cursor.getString(4) == "true"
-//            if (!cursor.isNull(5))
-//                line.type = cursor.getString(5)
-//            else
-//                line.type = "B"
-//            list.add(line)
-//        }
         val list = getLinesFromCursor(cursor)
         cursor.close()
         return list
@@ -143,7 +144,7 @@ class LineDatabaseHelper(
 
         sql =
             "update $tableName set name = '${line.name}', upLineStation = '${line.upLineStation}', " +
-                    "downLineStation = '${line.downLineStation}', isUpAndDownInvert = '${line.isUpAndDownInvert}', type = '${line.type}' " +
+                    "downLineStation = '${line.downLineStation}', isUpAndDownInvert = '${line.isUpAndDownInvert}', type = '${line.type}', isRingRoute  = '${if (line.isRingRoute) 1 else 0}' " +
                     "where id = $id;"
         writableDatabase.execSQL(sql)
     }
@@ -180,6 +181,16 @@ class LineDatabaseHelper(
                 line.type = cursor.getString(5)
             else
                 line.type = "B"
+            try {
+                val columnIndex = cursor.getColumnIndex("isRingRoute")
+                line.isRingRoute = if (columnIndex >= 0) {
+                    cursor.getInt(columnIndex) == 1
+                } else {
+                    false
+                }
+            } catch (e: Exception) {
+                line.isRingRoute = false
+            }
             list.add(line)
         }
         return list

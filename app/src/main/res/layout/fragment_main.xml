@@ -911,7 +911,7 @@
             app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/finishEditLine"
+            android:id="@+id/editLine"
             style="?attr/materialIconButtonFilledStyle"
             android:layout_width="60dp"
             android:layout_height="60dp"
@@ -919,7 +919,7 @@
             android:contentDescription="@string/starting_station"
             android:visibility="gone"
             app:backgroundTint="@color/an_contain_bg_tran"
-            app:icon="@drawable/finish"
+            app:icon="@drawable/edit"
             app:iconGravity="textTop"
             app:iconTint="@color/md_theme_primary"
             app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />

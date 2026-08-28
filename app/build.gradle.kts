@@ -15,9 +15,9 @@ android {
         applicationId = "com.microbus.announcer"
         minSdk = 26
         targetSdk = 37
-        versionCode = 312
+        versionCode = 313
         versionName =
-            "3.1.2-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
+            "3.1.3-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
     }
 
     buildTypes {

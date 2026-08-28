@@ -304,7 +304,7 @@ LocationAndMapSettingsFragment : Fragment() {
                             switchDirectionWhenOutFromTerminalWithOnUp,
                             setSwitchDirectionWhenOutFromTerminalWithOnUp,
                             title = "从上行终点站出站时切换下行",
-                            text = "检测到您从上行终点站出站时，\n自动切换到下行",
+                            text = "上行终点站出站时，\n自动切换到下行，环线回起点站",
                             icon = painterResource(id = R.drawable.switch2),
                             key = "switchDirectionWhenOutFromTerminalWithOnUp",
                         )

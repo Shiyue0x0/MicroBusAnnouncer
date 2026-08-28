@@ -190,7 +190,7 @@ class LineAdapter(
             holder.lineStationList.setHasFixedSize(true)
             holder.lineStationList.layoutManager = linearLayoutManager
             val stationOfLineAdapter =
-                StationOfLineAdapter(context, activity,stationList, stationList.size)
+                StationOfLineAdapter(context, activity, stationList, stationList.size)
 
             holder.lineStationList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -265,6 +265,12 @@ class LineAdapter(
     * 切换上下行
     * */
     fun switchDirection(holder: LineViewHolder) {
+
+        if (holder.line.isRingRoute) {
+            utils.showMsg("该路线为环线", true)
+            return
+        }
+
         val stationList = ArrayList<Station>()
         val stationStr = when (lineWithDirectionMap[holder.line.id!!]) {
             0 -> holder.line.downLineStation
@@ -308,6 +314,15 @@ class LineAdapter(
             1 -> 0
             else -> 1
         }
+
+        utils.showMsg(
+            when (lineWithDirectionMap[holder.line.id!!]) {
+                0 -> "已切换到上行"
+                1 -> "已切换到下行"
+                else -> "切换错误"
+            },true
+        )
+
     }
 
     override fun getItemCount(): Int {
@@ -355,6 +370,7 @@ class LineAdapter(
         binding.editTextUpLineStation.setText(holder.line.upLineStation)
         binding.editTextDownLineStation.setText(holder.line.downLineStation)
         binding.editTextType.setText(holder.line.type)
+        binding.editIsRingRoute.isChecked = holder.line.isRingRoute
 //            binding.editTextIsUpAndDownInvert.isChecked = line.isUpAndDownInvert
 
         val alertDialog =
@@ -409,71 +425,12 @@ class LineAdapter(
 
 
         alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
-            val name = binding.editTextName.text.toString()
-            var upLineStation = binding.editTextUpLineStation.text.toString()
-            var downLineStation = binding.editTextDownLineStation.text.toString()
-            val lineType = binding.editTextType.text.toString()
-//                val isUpAndDownInvert = binding.editTextIsUpAndDownInvert.isChecked
 
-            if (name == "") {
-                utils.showMsg("请填写路线名称")
-                return@setOnClickListener
+            utils.onSubmitLineDialog(binding, "update", holder.line.id) {
+                notifyItemChanged(position + 1)
+                alertDialog.cancel()
             }
 
-            val lineStationRegex = Regex("\\d+ \\d+( \\d+)*")
-
-            if (!upLineStation.matches(lineStationRegex) && !downLineStation.matches(
-                    lineStationRegex
-                )
-            ) {
-                utils.showMsg("路线站点未填写或格式错误")
-                return@setOnClickListener
-            }
-
-            if (lineType == "") {
-                utils.showMsg("请填写路线类型")
-                return@setOnClickListener
-            }
-
-            if (!listOf("C", "B", "U", "T").contains(lineType)) {
-                utils.showMsg("路线类型应为CBUT之一")
-                return@setOnClickListener
-            }
-
-            if (upLineStation == "") {
-                val downLineStationList = downLineStation.split(' ')
-                upLineStation = downLineStationList.reversed().joinToString(" ")
-            }
-
-            if (downLineStation == "") {
-                val upLineStationList = upLineStation.split(' ')
-                downLineStation = upLineStationList.reversed().joinToString(" ")
-            }
-
-            //查找是否输入了不存在的站点
-            val upLineStationList = upLineStation.split(' ')
-            val downLineStationList = downLineStation.split(' ')
-            var stationList: List<Station>
-            for (stationIdStr in upLineStationList) {
-                stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
-                if (stationList.isEmpty()) {
-                    utils.showMsg("上行站点 $stationIdStr 不存在")
-                    return@setOnClickListener
-                }
-            }
-            for (stationIdStr in downLineStationList) {
-                stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
-                if (stationList.isEmpty()) {
-                    utils.showMsg("下行站点 $stationIdStr 不存在")
-                    return@setOnClickListener
-                }
-            }
-
-            val lineUpdated =
-                Line(holder.line.id, name, upLineStation, downLineStation, false, lineType)
-            lineDatabaseHelper.updateById(holder.line.id!!, lineUpdated)
-            notifyItemChanged(position + 1)
-            alertDialog.cancel()
         }
 
         utils.haptic(holder.lineCard)

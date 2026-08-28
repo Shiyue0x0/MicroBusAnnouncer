@@ -209,23 +209,24 @@ class LineFragment : Fragment() {
                                     .setPositiveButton("确定", null)
                                     .show()
 
-                                lineNameDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                                    val lineName = binding.editText.text.toString()
-                                    if (lineName == "") {
-                                        utils.showMsg("请输入路线名称")
-                                        return@setOnClickListener
-                                    }
-                                    lineNameDialog.dismiss()
+                                lineNameDialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                                    .setOnClickListener {
+                                        val lineName = binding.editText.text.toString()
+                                        if (lineName == "") {
+                                            utils.showMsg("请输入路线名称")
+                                            return@setOnClickListener
+                                        }
+                                        lineNameDialog.dismiss()
 
-                                    val intent = Intent()
-                                        .setAction(utils.editLineOnMapActionName)
-                                        .putExtra("id", -1)
-                                        .putExtra("name", lineName)   //名称
-                                        .putExtra("direction", 0)   //上行
-                                        .putExtra("type", "new")   //新增
-                                    LocalBroadcastManager.getInstance(requireContext())
-                                        .sendBroadcast(intent)
-                                }
+                                        val intent = Intent()
+                                            .setAction(utils.editLineOnMapActionName)
+                                            .putExtra("id", -1)
+                                            .putExtra("name", lineName)   //名称
+                                            .putExtra("direction", 0)   //上行
+                                            .putExtra("type", "new")   //新增
+                                        LocalBroadcastManager.getInstance(requireContext())
+                                            .sendBroadcast(intent)
+                                    }
                             }
 
                             1 -> {
@@ -246,67 +247,10 @@ class LineFragment : Fragment() {
                                 alertDialog?.getButton(AlertDialog.BUTTON_POSITIVE)
                                     ?.setOnClickListener {
 
-
-                                        val name = alertBinding.editTextName.text.toString()
-                                        var upLineStation =
-                                            alertBinding.editTextUpLineStation.text.toString()
-                                        var downLineStation =
-                                            alertBinding.editTextDownLineStation.text.toString()
-//            val isUpAndDownInvert = alertBinding.editTextIsUpAndDownInvert.isChecked
-
-                                        if (name == "") {
-                                            utils.showMsg("请填写路线名称")
-                                            return@setOnClickListener
+                                        utils.onSubmitLineDialog(alertBinding, "new", null) {
+                                            refreshLineList()
+                                            alertDialog.cancel()
                                         }
-
-                                        val lineStationRegex = Regex("\\d+ \\d+( \\d+)*")
-
-                                        if (!upLineStation.matches(lineStationRegex) && !downLineStation.matches(
-                                                lineStationRegex
-                                            )
-                                        ) {
-                                            utils.showMsg("路线站点未填写或格式错误")
-                                            return@setOnClickListener
-                                        }
-
-                                        if (upLineStation == "") {
-                                            val downLineStationList = downLineStation.split(' ')
-                                            upLineStation =
-                                                downLineStationList.reversed().joinToString(" ")
-                                        }
-
-                                        if (downLineStation == "") {
-                                            val upLineStationList = upLineStation.split(' ')
-                                            downLineStation =
-                                                upLineStationList.reversed().joinToString(" ")
-                                        }
-
-                                        //查找是否输入了不存在的站点
-                                        val upLineStationList = upLineStation.split(' ')
-                                        val downLineStationList = downLineStation.split(' ')
-                                        var stationList: List<Station>
-                                        for (stationIdStr in upLineStationList) {
-                                            stationList =
-                                                stationDatabaseHelper.queryById(stationIdStr.toInt())
-                                            if (stationList.isEmpty()) {
-                                                utils.showMsg("上行站点 $stationIdStr 不存在")
-                                                return@setOnClickListener
-                                            }
-                                        }
-                                        for (stationIdStr in downLineStationList) {
-                                            stationList =
-                                                stationDatabaseHelper.queryById(stationIdStr.toInt())
-                                            if (stationList.isEmpty()) {
-                                                utils.showMsg("下行站点 $stationIdStr 不存在")
-                                                return@setOnClickListener
-                                            }
-                                        }
-
-                                        val line =
-                                            Line(null, name, upLineStation, downLineStation, true)
-                                        lineDatabaseHelper.insert(line)
-                                        refreshLineList()
-                                        alertDialog.cancel()
                                     }
                             }
                         }

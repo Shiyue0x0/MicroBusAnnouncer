@@ -35,7 +35,9 @@ import com.google.gson.JsonParser
 import com.microbus.announcer.bean.EsItem
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
+import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
+import com.microbus.announcer.databinding.DialogLineInfoBinding
 import com.microbus.announcer.databinding.DialogStationInfoBinding
 import java.io.BufferedReader
 import java.io.File
@@ -688,6 +690,114 @@ class Utils(private val context: Context) {
 
             }
 
+
+    }
+
+    fun onSubmitLineDialog(
+        alertBinding: DialogLineInfoBinding,
+        type: String,
+        lineId: Int?,
+        onDone: () -> Unit = {}
+    ): Boolean {
+
+        val name = alertBinding.editTextName.text.toString()
+        var upLineStation = alertBinding.editTextUpLineStation.text.toString()
+        var downLineStation = alertBinding.editTextDownLineStation.text.toString()
+        val lineType = alertBinding.editTextType.text.toString()
+        val isRingRoute = alertBinding.editIsRingRoute.isChecked
+
+//            val isUpAndDownInvert = alertBinding.editTextIsUpAndDownInvert.isChecked
+
+        if (name == "") {
+            showMsg("请填写路线名称")
+            return false
+        }
+
+        val lineStationRegex = Regex("\\d+ \\d+( \\d+)*")
+
+        if (!upLineStation.matches(lineStationRegex) && !downLineStation.matches(
+                lineStationRegex
+            )
+        ) {
+            showMsg("路线站点未填写或格式错误")
+            return false
+        }
+
+        if (lineType == "") {
+            showMsg("请填写路线类型")
+            return false
+        }
+
+        if (!listOf("C", "B", "U", "T").contains(lineType)) {
+            showMsg("路线类型应为CBUT之一")
+            return false
+        }
+
+        // 非环线
+        if (!isRingRoute) {
+            if (upLineStation == "") {
+                val downLineStationList = downLineStation.split(' ')
+                upLineStation = downLineStationList.reversed().joinToString(" ")
+                showMsg("已自动反转下行作为上行")
+            }
+
+            if (downLineStation == "") {
+                val upLineStationList = upLineStation.split(' ')
+                downLineStation = upLineStationList.reversed().joinToString(" ")
+                showMsg("已自动反转上行作为下行")
+            }
+        }
+
+        // 环线
+        if (isRingRoute) {
+            if (upLineStation == "") {
+                showMsg("请输入该环线的上行作为唯一方向")
+                return false
+            }
+        }
+
+        val stationDatabaseHelper = StationDatabaseHelper(context)
+        val lineDatabaseHelper = LineDatabaseHelper(context)
+
+
+        //查找是否输入了不存在的站点
+        val upLineStationList = upLineStation.split(' ')
+        val downLineStationList = downLineStation.split(' ')
+        var stationList: List<Station>
+        for (stationIdStr in upLineStationList) {
+            stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
+            if (stationList.isEmpty()) {
+                showMsg("上行站点 $stationIdStr 不存在")
+                return false
+            }
+        }
+        if (!isRingRoute) {
+            for (stationIdStr in downLineStationList) {
+                stationList = stationDatabaseHelper.queryById(stationIdStr.toInt())
+                if (stationList.isEmpty()) {
+                    showMsg("下行站点 $stationIdStr 不存在")
+                    return false
+                }
+            }
+        }
+
+        val line =
+            Line(lineId, name, upLineStation, downLineStation, true, lineType, isRingRoute)
+
+        if (type == "new") {
+            lineDatabaseHelper.insert(line)
+        }
+
+        if (type == "update") {
+            if (lineId == null) {
+                showMsg("路线ID未知")
+                return false
+            }
+            lineDatabaseHelper.updateById(lineId, line)
+        }
+
+        onDone()
+        return true
 
     }
 

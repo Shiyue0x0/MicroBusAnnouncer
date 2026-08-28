@@ -21,7 +21,6 @@ import android.content.res.Resources
 import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
-import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.audiofx.LoudnessEnhancer
 import android.os.Build
@@ -885,7 +884,7 @@ class MainFragment : Fragment() {
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
                     .setView(dialogBinding.root)
 //                    .setTitle(resources.getString(R.string.switch_line))
-                    .setNeutralButton(resources.getString(R.string.setAsLineName)) { dialog, which ->
+                    .setNeutralButton(resources.getString(R.string.setAsLineName)) { _, _ ->
 
                         //                    Log.d(tag, "设为临时路线")
                         currentLine = Line(name = dialogBinding.lineNameInput.text.toString())
@@ -897,7 +896,7 @@ class MainFragment : Fragment() {
                     }
                     .setPositiveButton(
                         resources.getString(R.string.out_line_running)
-                    ) { dialog, which ->
+                    ) { _, _ ->
                         val line = Line(name = getString(R.string.main_line_0))
                         originLine = line
                         initLineInterval()
@@ -909,7 +908,7 @@ class MainFragment : Fragment() {
                     }
                     .setNegativeButton(
                         getString(R.string.search_by_category)
-                    ) { dialog, which ->
+                    ) { _, _ ->
                         var lineTypeList: Array<String?>
                         val stationList = stationDatabaseHelper.queryAll()
                         val lineList = lineDatabaseHelper.queryAll()
@@ -1310,6 +1309,14 @@ class MainFragment : Fragment() {
                 return@addOnButtonCheckedListener
             }
 
+            if(currentLine.isRingRoute){
+                utils.showMsg("该路线为环线")
+                group.post {
+                    group.uncheck(checkedId)
+                }
+                return@addOnButtonCheckedListener
+            }
+
             currentLineDirection = if (checkedId == binding.lineDirectionBtnUp.id) {
                 onUp
             } else {
@@ -1379,7 +1386,7 @@ class MainFragment : Fragment() {
         binding.lastStation.setOnLongClickListener {
             return@setOnLongClickListener true
         }
-        binding.lastStation.setOnTouchListener { v, event ->
+        binding.lastStation.setOnTouchListener { _, event ->
             val lastStationRunnable = object : Runnable {
                 override fun run() {
                     binding.lastStation.performClick()
@@ -1428,7 +1435,7 @@ class MainFragment : Fragment() {
         binding.nextStation.setOnLongClickListener {
             return@setOnLongClickListener true
         }
-        binding.nextStation.setOnTouchListener { v, event ->
+        binding.nextStation.setOnTouchListener { _, event ->
             val nextStationRunnable = object : Runnable {
                 override fun run() {
                     binding.nextStation.performClick()
@@ -1564,7 +1571,7 @@ class MainFragment : Fragment() {
         }
 
         // 完成编辑
-        binding.finishEditLine.setOnClickListener {
+        binding.editLine.setOnClickListener {
 
             val stationNameList = java.util.ArrayList<String>()
             lineEditorStationList.forEachIndexed { i, station ->
@@ -1586,7 +1593,9 @@ class MainFragment : Fragment() {
             val dialog =
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
                     .setTitle("正在${editorModeStr}路线 $lineEditorLineName $directionStr")
-                    .setItems(stationNameList.toTypedArray(), null)
+                    .setItems(stationNameList.toTypedArray(), { _, which ->
+
+                    })
                     .setNegativeButton("继续编辑", null)
                     .setPositiveButton("提交", null)
                     .show()
@@ -1619,6 +1628,7 @@ class MainFragment : Fragment() {
                             .setMessage("如果上下行走向差不多，且对向站点距离都较近，可直接反转上行站点作为下行站点")
                             .setNegativeButton("继续录入下行", null)
                             .setPositiveButton("反转上行作为下行", null)
+                            .setNeutralButton("添加为环线，不需要下行", null)
                             .show()
 
                         // 继续录入下行
@@ -1632,7 +1642,6 @@ class MainFragment : Fragment() {
                         continueEditDownDialog.getButton(AlertDialog.BUTTON_POSITIVE)
                             .setOnClickListener {
 
-                                continueEditDownDialog.dismiss()
 
                                 // 上行
                                 lineEditorUpLineStationListStr = stationIdListStr
@@ -1647,27 +1656,28 @@ class MainFragment : Fragment() {
                                 }
                                 lineEditorDownLineStationListStr = stationIdDownListStr
 
-                                val newLine = Line(
-                                    name = lineEditorLineName,
-                                    upLineStation = lineEditorUpLineStationListStr,
-                                    downLineStation = lineEditorDownLineStationListStr
-                                )
+                                addLine()
 
-                                lineDatabaseHelper.insert(newLine)
-
-                                utils.showMsg("路线 $lineEditorLineName 添加成功")
-
-                                // todo 通知LineFrag 刷新
-
-                                binding.finishEditLine.visibility = GONE
-                                lineEditorLineId = -1
-                                lineEditorStationList.clear()
-                                lineEditorLineDirection = onUp
-
+                                continueEditDownDialog.dismiss()
                                 dialog.dismiss()
                             }
 
+                        // 添加为环线，不需要下行
+                        continueEditDownDialog.getButton(AlertDialog.BUTTON_NEUTRAL)
+                            .setOnClickListener {
+                                // 上行
+                                lineEditorUpLineStationListStr = stationIdListStr
+
+                                // 下行（空）
+                                lineEditorDownLineStationListStr = ""
+
+                                addLine(true)
+
+                                continueEditDownDialog.dismiss()
+                                dialog.dismiss()
+                            }
                     }
+
                     // 下行
                     else if (lineEditorLineDirection == onDown) {
                         // todo
@@ -1704,7 +1714,7 @@ class MainFragment : Fragment() {
 
                     // todo 通知LineFrag 刷新
 
-                    binding.finishEditLine.visibility = GONE
+                    binding.editLine.visibility = GONE
                     lineEditorLineId = -1
                     lineEditorStationList.clear()
                     lineEditorLineDirection = onUp
@@ -1719,6 +1729,7 @@ class MainFragment : Fragment() {
 
         // 停止播报
         binding.stopAnnouncement.setOnClickListener {
+            runningSimRunning = false
             pauseAnnounce()
         }
 
@@ -1868,13 +1879,6 @@ class MainFragment : Fragment() {
 
     }
 
-    /**
-     * 初始化报站
-     */
-    lateinit var audioAttributes: AudioAttributes
-    lateinit var audioFormat: AudioFormat
-    var bufferSizeInBytes = 0
-
     @OptIn(UnstableApi::class)
     private fun initAnnouncement() {
         tts = TextToSpeech(context) { status ->
@@ -1943,11 +1947,8 @@ class MainFragment : Fragment() {
                     }
 
                     Player.STATE_ENDED -> {
+                        Log.d("L1946", "STATE_ENDED")
                         // 播放完成
-                        player.clearMediaItems()
-                        audioReleaseHandler.removeCallbacksAndMessages(null)
-                        pauseAnnounce()
-
                         if (runningSimRunning) {
                             if (hasNextStation()) {
                                 CoroutineScope(Dispatchers.Main).launch {
@@ -1993,10 +1994,10 @@ class MainFragment : Fragment() {
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
                 // 当音频会话ID发生变化或可用时调用
 //                if (audioSessionId != AudioManager.AUDIO_SESSION_ID_GENERATE) {
-                    Log.d("L1991", "${audioSessionId}")
+                Log.d("L1991", "${audioSessionId}")
 
-                    this@MainFragment.audioSessionId = audioSessionId
-                    setTargetGain()
+                this@MainFragment.audioSessionId = audioSessionId
+                setTargetGain()
 //                }
             }
 
@@ -2045,7 +2046,7 @@ class MainFragment : Fragment() {
 //                Log.d(tag, "size${path.polyline.size}")
 
 
-                for (i in 0 until path.polyline.size) {
+                for (i in path.polyline.indices) {
 
 
                     for (station in stationFullList) {
@@ -2166,7 +2167,7 @@ class MainFragment : Fragment() {
                 if (currentLine.name == resources.getString(R.string.line_all)) {
 
                     if (lineEditorStationList.size >= 2)
-                        binding.finishEditLine.visibility = VISIBLE
+                        binding.editLine.visibility = VISIBLE
 
                     var findStationIndex = -1
                     lineEditorStationList.forEachIndexed { i, station ->
@@ -2180,15 +2181,12 @@ class MainFragment : Fragment() {
                         MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
                             .setTitle(it.title)
 
+                    dialogBuilder.setNegativeButton("插入", null)
+                    dialogBuilder.setPositiveButton("添加到末尾", null)
+
                     // 站点已添加到路线
                     if (findStationIndex >= 0) {
                         dialogBuilder.setNeutralButton("删除", null)
-
-                    }
-                    // 站点不在路线中
-                    else {
-                        dialogBuilder.setNegativeButton("插入", null)
-                        dialogBuilder.setPositiveButton("添加到末尾", null)
                     }
 
                     val dialog = dialogBuilder.show()
@@ -2298,6 +2296,7 @@ class MainFragment : Fragment() {
                 v.performClick()
             }
             if (utils.getClickMapPauseAn()) {
+                runningSimRunning = false
                 pauseAnnounce()
             }
 
@@ -2332,14 +2331,14 @@ class MainFragment : Fragment() {
             if (utils.getIsLinePlanning()) {
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
                     .setTitle("")
-                    .setNegativeButton("从这出发") { p0, p1 ->
+                    .setNegativeButton("从这出发") { _, _ ->
                         planFrom = LatLng(it.latitude, it.longitude)
                         if (this::planFromMarker.isInitialized) planFromMarker.destroy()
                         planFromMarker = aMap.addMarker(
                             MarkerOptions().position(planFrom).title("起点")
                         )
                     }
-                    .setPositiveButton("去这里") { p0, p1 ->
+                    .setPositiveButton("去这里") { _, _ ->
                         planTo = LatLng(it.latitude, it.longitude)
                         if (!this::planFrom.isInitialized) {
                             planFrom = currentLngLat
@@ -2360,6 +2359,7 @@ class MainFragment : Fragment() {
 
         aMap.setOnMapTouchListener {
             if (utils.getClickMapPauseAn()) {
+                runningSimRunning = false
                 pauseAnnounce()
             }
             lastTouchMapTime = System.currentTimeMillis()
@@ -2635,7 +2635,7 @@ class MainFragment : Fragment() {
                         lineQuery.pageNumber = 0
                         lineQuery.extensions = "all"
                         val busLineSearch = BusLineSearch(requireContext(), lineQuery)
-                        busLineSearch.setOnBusLineSearchListener { res, rCode ->
+                        busLineSearch.setOnBusLineSearchListener { res, _ ->
 //                utils.showMsg("setOnBusLineSearchListener${res.busLines.size}")
                             if (res.busLines.isNotEmpty()) {
 //                            Log.d(tag, res.query.queryString)
@@ -2870,8 +2870,6 @@ class MainFragment : Fragment() {
         val outStationDistance =
             utils.getStationRangeByLineType(currentLine.type, "Out")         // 出站临界距离
 
-//        val outStationDistance = inStationDistance * 3.0         // 出站临界距离
-//        val willInStationDistance = inStationDistance * 2.4     // 即将进站临界距离
 
         val lineStationList = when (isReverseLine) {
             true -> currentReverseLineStationList
@@ -2965,7 +2963,7 @@ class MainFragment : Fragment() {
                 utils.longHaptic()
                 return true
             }
-            //出站条件：上次位于某站点内，现在位于这个站点外（进站范围）
+            //出站条件：上次位于某站点内，现在位于这个站点外（出站临界距离）
             else if (lastDistanceToStationList[i] < outStationDistance &&
                 currentDistanceToStationList[i] > outStationDistance &&
                 currentLine.name != resources.getString(
@@ -2985,7 +2983,9 @@ class MainFragment : Fragment() {
 
                 // 上行终点站出站
                 else if (currentLineDirection == onUp && i >= lineStationList.size - 1 && utils.getSwitchDirectionWhenOutFromTerminalWithOnUp()) {
-                    reverseLineDirection()
+                    if(!currentLine.isRingRoute){
+                        reverseLineDirection()
+                    }
                     setStationAndState(1, onNext)
                     announce()
                     utils.longHaptic()
@@ -3450,7 +3450,7 @@ class MainFragment : Fragment() {
 
                 val layout = LayoutInflater.from(requireContext())
                     .inflate(
-                        R.layout.item_station_of_line, null
+                        R.layout.item_station_of_line, binding.root
                     )
                 val stationIndexView = layout.findViewById<TextView>(R.id.station_index)
                 val lineHeight = stationIndexView.lineHeight
@@ -3579,19 +3579,6 @@ class MainFragment : Fragment() {
     private fun refreshEsToStaringAndTerminal() {
         refreshEs(toStaringAndTerminal = true)
     }
-
-    class PcmWithInfo(
-        var data: ByteArray?,
-        var pcmEncoding: Int,
-        var sampleRate: Int,
-        /**
-         * AudioFormat.CHANNEL_OUT_STEREO（双声道）
-         * or
-         * AudioFormat.CHANNEL_OUT_MONO（单声道） */
-        var channelMask: Int,
-        var durationUs: Long,
-        var fileIndex: Int
-    )
 
     val filePathList = ArrayList<String>()
 
@@ -3920,34 +3907,6 @@ class MainFragment : Fragment() {
 
     }
 
-    /**
-     * 计算PCM流总帧数
-     */
-    private fun calculateTotalFrames(pcmInfo: PcmWithInfo): Int {
-        val data = pcmInfo.data ?: return 0
-
-        // 1. 计算每帧的字节数
-        val bytesPerFrame = when (pcmInfo.pcmEncoding) {
-            AudioFormat.ENCODING_PCM_16BIT -> 2  // 16位 = 2字节
-            AudioFormat.ENCODING_PCM_8BIT -> 1   // 8位 = 1字节
-            AudioFormat.ENCODING_PCM_FLOAT -> 4  // 32位浮点 = 4字节
-            else -> 2  // 默认按16位处理
-        }
-
-        // 2. 乘以声道数
-        val channels = when (pcmInfo.channelMask) {
-            AudioFormat.CHANNEL_OUT_MONO -> 1
-            AudioFormat.CHANNEL_OUT_STEREO -> 2
-            else -> 2  // 默认立体声
-        }
-
-        val bytesPerSample = bytesPerFrame * channels
-
-        // 3. 计算总帧数
-        val totalFrames = data.size / bytesPerSample
-
-        return totalFrames
-    }
 
     /**
      * 刷新地图站点标记文本
@@ -4224,7 +4183,6 @@ class MainFragment : Fragment() {
         simRunningHandler.removeCallbacksAndMessages(null)
 
         audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-        runningSimRunning = false
 
         if (::audioStreamScope.isInitialized)
             audioStreamScope.cancel()
@@ -4258,17 +4216,17 @@ class MainFragment : Fragment() {
             if (toStaringAndTerminal) {
                 var frontDefaultItemIndex = -1
                 var hasB = false
-                for (i in 0 until esList.size) {
+                for ((i, element) in esList.withIndex()) {
                     // 寻找非特定状态显示内容
                     if (utils.extractNWA(
                             Regex("[NWASCT]"),
-                            esList[i].type
+                            element.type
                         ) == "" && frontDefaultItemIndex == -1
                     ) {
                         frontDefaultItemIndex = i
                     }
                     // 寻找首末站内容
-                    if (esList[i].type.contains("B")) {
+                    if (element.type.contains("B")) {
                         esPlayIndex = i
                         hasB = true
                         break
@@ -4352,9 +4310,9 @@ class MainFragment : Fragment() {
                         esPlayIndex = frontDefaultItemIndex
                     } else {
                         var resIndex = -1
-                        for (i in 0 until esList.size) {
+                        for ((i, element) in esList.withIndex()) {
                             // 寻找非特定状态显示内容（从所有的内容）
-                            if (utils.extractNWA(Regex("[NWASCT]"), esList[i].type) == ""
+                            if (utils.extractNWA(Regex("[NWASCT]"), element.type) == ""
                             ) {
                                 resIndex = i
                                 break
@@ -4978,7 +4936,7 @@ class MainFragment : Fragment() {
 //                Log.d("pointWithStationIndexMap", "$key\t$value")
 //            }
 
-            points.forEachIndexed { index, element ->
+            points.forEachIndexed { _, element ->
                 val longitude = element.asJsonObject.get("x").asDouble
                 val latitude = element.asJsonObject.get("y").asDouble
                 val latLng = LatLng(latitude, longitude)
@@ -5071,7 +5029,7 @@ class MainFragment : Fragment() {
 
             }
         } else {
-            mPolylineLatLngLists.forEachIndexed { index, points ->
+            mPolylineLatLngLists.forEachIndexed { index, _ ->
                 val lineColorId = when (index) {
                     0 -> R.mipmap.line_gray     //已经过的路径（灰）
                     1 -> R.mipmap.line_blue     //当前处在的路径（蓝）
@@ -5138,13 +5096,13 @@ class MainFragment : Fragment() {
         )
     }
 
-    fun setTargetGain(){
+    fun setTargetGain() {
 
-        if(audioSessionId == null){
+        if (audioSessionId == null) {
             return
         }
 
-        Log.d("L5146", "${audioSessionId}")
+        Log.d("L5146", "$audioSessionId")
         val loudnessEnhancer = LoudnessEnhancer(audioSessionId!!)
 
         // 使用audioSessionId创建音量增强器
@@ -5154,6 +5112,28 @@ class MainFragment : Fragment() {
         // 注意：需要将loudnessEnhancer保存在成员变量中防止被GC回收
         this@MainFragment.loudnessEnhancer = loudnessEnhancer
 
+    }
+
+
+    fun addLine(isRingRoute: Boolean = false) {
+
+        val newLine = Line(
+            name = lineEditorLineName,
+            upLineStation = lineEditorUpLineStationListStr,
+            downLineStation = lineEditorDownLineStationListStr,
+            isRingRoute = isRingRoute
+        )
+
+        lineDatabaseHelper.insert(newLine)
+
+        utils.showMsg("路线 $lineEditorLineName 添加成功")
+
+        // todo 通知LineFrag 刷新
+
+        binding.editLine.visibility = GONE
+        lineEditorLineId = -1
+        lineEditorStationList.clear()
+        lineEditorLineDirection = onUp
     }
 
 }

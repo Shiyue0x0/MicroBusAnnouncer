@@ -110,6 +110,8 @@
     <string name="autoAnPerSecond">Announcement Interval: %1$d s</string>
     <string name="loading">Loading…</string>
     <string name="now_search">Searching Line %2$s in %1$s</string>
+    <string name="title_activity_low_power_main_fragment">LowPowerMainFragment</string>
+    <string name="isRingRoute">Is Ring Route</string>
 
 
 </resources>
