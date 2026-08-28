@@ -1,4 +1,3 @@
-import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -51,21 +50,16 @@ android {
             include("arm64-v8a")
         }
     }
+
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-//    android.applicationVariants.all {
-//        val buildType = this.buildType.name
-//        val variant = this
-//        outputs.all {
-//            val abiName =
-//                this.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI.name }?.identifier
-//            val outputImpl = this as com.android.build.gradle.internal.api.ApkVariantOutputImpl
-//            outputImpl.outputFileName = "An-${variant.versionName}-${buildType}-${abiName}.apk"
-//        }
-//    }
+
+    layout.buildDirectory.set(file("C:/AndroidBuilds/Announcer"))
+
 
 }
 

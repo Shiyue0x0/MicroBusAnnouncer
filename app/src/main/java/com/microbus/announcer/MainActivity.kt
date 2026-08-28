@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -112,6 +113,9 @@ class MainActivity : AppCompatActivity(), TabSwitchListener {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MainScreen() {
+
+        val view = LocalView.current
+
         // 当前选中的Tab位置
         var currentTabPosition by remember { mutableIntStateOf(0) }
 
@@ -207,7 +211,7 @@ class MainActivity : AppCompatActivity(), TabSwitchListener {
                                                 .sendBroadcast(Intent().setAction(it))
                                         }
                                     }
-                                    utils.haptic(null)
+                                    utils.haptic(view)
                                 }
                             )
                         }

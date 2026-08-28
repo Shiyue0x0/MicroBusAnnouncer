@@ -414,7 +414,13 @@ LocationAndMapSettingsFragment : Fragment() {
                 switchValue,
                 switchSet,
                 title = actionName,
-                text = "当您位于该站点半径范围内，\n自动切换到${actionName}",
+                text = "当您位于该站点半径范围${
+                    when (action) {
+                        "WillIn", "In" -> "内"
+                        "Out" -> "外"
+                        else -> "内"
+                    }
+                }，\n自动切换到${actionName}",
                 icon = painterResource(id = R.drawable.arrow_up),
                 key = "autoSwitchStationStateWhen${action}",
                 iconRotate = when (action) {
@@ -509,7 +515,9 @@ LocationAndMapSettingsFragment : Fragment() {
 
                 binding.editValue.addTextChangedListener(object : TextWatcher {
                     override fun afterTextChanged(s: Editable?) {
-                        if (s.toString().toFloatOrNull() == null || s.toString().toFloatOrNull()?.let { it > 0 } == false) {
+                        if (s.toString().toFloatOrNull() == null || s.toString().toFloatOrNull()
+                                ?.let { it > 0 } == false
+                        ) {
                             utils.showMsg("请输入正整数半径")
                             return
                         }
