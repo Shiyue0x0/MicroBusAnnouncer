@@ -2,7 +2,7 @@ package com.microbus.announcer.bean
 
 import java.io.Serializable
 
-class Station(
+data class Station(
     var id: Int? = null,
     var cnName: String = "",
     var enName: String = "",

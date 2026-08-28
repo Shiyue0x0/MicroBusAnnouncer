@@ -23,11 +23,6 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioFormat
 import android.media.AudioManager
-import android.media.AudioTrack
-import android.media.AudioTrack.PLAYSTATE_PLAYING
-import android.media.MediaCodec
-import android.media.MediaExtractor
-import android.media.MediaFormat
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -51,6 +46,7 @@ import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
+import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
@@ -63,6 +59,14 @@ import androidx.core.widget.NestedScrollView
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC
+import androidx.media3.common.C.USAGE_MEDIA
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -127,7 +131,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -137,16 +141,16 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.net.UnknownHostException
-import java.nio.ByteBuffer
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.Timer
 import java.util.TimerTask
-import java.util.concurrent.ArrayBlockingQueue
 import java.util.stream.Collectors
+import kotlin.collections.set
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 
 
 class MainFragment : Fragment() {
@@ -211,7 +215,6 @@ class MainFragment : Fragment() {
     private lateinit var lineDatabaseHelper: LineDatabaseHelper
     private lateinit var stationDatabaseHelper: StationDatabaseHelper
 
-    private lateinit var audioTrack: AudioTrack
 
     /**初始位置：广西桂林市秀峰区十字街*/
     private var lastLngLat = LatLng(25.278617, 110.295833)
@@ -297,8 +300,6 @@ class MainFragment : Fragment() {
 
     private lateinit var audioStreamScope: Job
 
-    private lateinit var audioPlayScope: Job
-
     lateinit var locationClient: AMapLocationClient
 
     lateinit var locationMarker: Marker
@@ -329,7 +330,6 @@ class MainFragment : Fragment() {
 
     val locationInfoList = ArrayList<String>()
 
-    var isAnnouncing = false
 
     val simRunningHandler = Handler(mLooper)
 
@@ -338,6 +338,11 @@ class MainFragment : Fragment() {
     private var tabSwitchListener: TabSwitchListener? = null
 
     private var enableLowPowerMode = false
+
+    private lateinit var player: ExoPlayer
+
+    private var runningSimRunning = false
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -1486,46 +1491,15 @@ class MainFragment : Fragment() {
             //关闭报站
             pauseAnnounce()
 
+
             // 切换到起点站
             if (currentLineStationCount != 0) {
                 setStationAndState(0, onNext)
                 utils.haptic(binding.startingStation)
             }
 
-            var lastAnFinishTimestamp = Long.MIN_VALUE
-            var lastIsAnnouncing = false
-            val simRunningRunnable = object : Runnable {
-                override fun run() {
-
-//                    Log.d(tag, "simRunningRunnable running")
-
-                    simRunningHandler.postDelayed(this, 100L)
-
-
-                    if (!isAnnouncing) {
-
-                        if (lastIsAnnouncing) {
-                            lastAnFinishTimestamp = System.currentTimeMillis()
-                        }
-
-                        if (System.currentTimeMillis() >= lastAnFinishTimestamp + utils.getAutoAnInterval() * 1000L) {
-                            if (nextStation()) {
-                                isAnnouncing = true
-                                announce()
-                            } else {
-                                simRunningHandler.removeCallbacksAndMessages(null)
-                                utils.showMsg("模拟运行报站结束")
-
-                            }
-                        }
-                    }
-
-                    lastIsAnnouncing = isAnnouncing
-
-
-                }
-            }
-            simRunningHandler.postDelayed(simRunningRunnable, 1000L)
+            runningSimRunning = true
+            announce()
 
             utils.haptic(requireView())
 
@@ -1896,6 +1870,8 @@ class MainFragment : Fragment() {
     lateinit var audioAttributes: AudioAttributes
     lateinit var audioFormat: AudioFormat
     var bufferSizeInBytes = 0
+
+    @OptIn(UnstableApi::class)
     private fun initAnnouncement() {
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
@@ -1925,18 +1901,101 @@ class MainFragment : Fragment() {
         // 获取系统音频管理
         audioManager = requireContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
+
         // 设置音频格式
-        audioAttributes =
-            AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
-                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()
 
-        audioFormat = AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-            .setSampleRate(0).setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).build()
+        val exoAudioAttributes = androidx.media3.common.AudioAttributes.Builder()
+            .setUsage(USAGE_MEDIA)
+            .setContentType(AUDIO_CONTENT_TYPE_MUSIC)
+            .build()
 
-        bufferSizeInBytes = AudioTrack.getMinBufferSize(
-            0, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                /* minBufferMs = */ 50000,  // 最小缓冲时长，建议提高
+                /* maxBufferMs = */ 60000,  // 最大缓冲时长
+                /* minPlaybackStartMs = */ 2500, // 开始播放所需最小缓冲
+                /* minPlaybackResumeMs = */ 5000 // 恢复播放所需最小缓冲
+            )
+            .build()
+
+        player = ExoPlayer.Builder(requireContext())
+            .setLoadControl(loadControl)   // <--- 在这里设置
+            .setAudioAttributes(exoAudioAttributes, true)
+            .setHandleAudioBecomingNoisy(true)
+            .build()
+
+        player.addListener(object : Player.Listener {
+
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                when (playbackState) {
+
+                    Player.STATE_READY -> {
+                        // 播放准备就绪
+                        audioManager?.requestAudioFocus(audioFocusRequest!!)
+                        binding.stopAnnouncement.visibility = VISIBLE
+                        showAnSubtitle()
+                        Log.d("L1935", player.currentMediaItemIndex.toString())
+                    }
+
+                    Player.STATE_ENDED -> {
+                        // 播放完成
+                        player.clearMediaItems()
+                        audioReleaseHandler.removeCallbacksAndMessages(null)
+                        pauseAnnounce()
+
+                        if (runningSimRunning) {
+                            if (hasNextStation()) {
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    delay((utils.getAutoAnInterval() * 1000L).milliseconds)
+                                    withContext(Dispatchers.Main) {
+                                        if (nextStation()) {
+                                            announce()
+                                        } else {
+                                            stopSimRunning()
+                                        }
+                                    }
+                                }
+                            } else {
+                                stopSimRunning()
+                            }
+                        }
+
+                    }
+
+                }
+            }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                Log.d("L1966", "${player.currentMediaItemIndex} $reason")
+                if (utils.getAnSubtitle()) {
+                    if (reason == 3) {
+                        return
+                    }
+                    if (player.currentMediaItemIndex >= filePathList.size) {
+                        return
+                    }
+                    showAnSubtitle()
+                }
+            }
+
+
+            override fun onPlayerError(error: PlaybackException) {
+                utils.showMsg("播放异常: ${error.message}")
+                player.release()
+                pauseAnnounce()
+            }
+
+        })
+
+        // 开启预加载，目标时长为 30 秒 (10,000,000 微秒)
+        player.preloadConfiguration = ExoPlayer.PreloadConfiguration(30_000_000L)
+
+        Log.d(
+            tag, "${
+                player.volume
+            }"
         )
-
     }
 
     /**
@@ -3266,6 +3325,32 @@ class MainFragment : Fragment() {
     }
 
     /**
+     * 下一站
+     */
+    private fun hasNextStation(): Boolean {
+        if (currentLineStation.id == null) return false
+
+        when (currentLineStationState) {
+            onWillArrive -> {
+                return true
+            }
+
+            onNext -> {
+                return true
+            }
+
+            onArrive -> {
+                return currentLineStationCount < currentLineStationList.size - 1
+            }
+
+            else -> {
+                return false
+            }
+        }
+
+    }
+
+    /**
      * 切换站点及站点状态
      * @param stationCount 要切换到的站点在路线中的序号
      * @param stationState 要切换的站点状态
@@ -3499,6 +3584,7 @@ class MainFragment : Fragment() {
         var fileIndex: Int
     )
 
+    val filePathList = ArrayList<String>()
 
     /**
      * 语音播报
@@ -3515,17 +3601,12 @@ class MainFragment : Fragment() {
             return
         }
 
-        val filePathList = ArrayList<String>()
-
-        val pcmQueue = ArrayBlockingQueue<PcmWithInfo>(1024 * 1024)
+        filePathList.clear()
 
         audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-        isAnnouncing = false
 
-        if (::audioPlayScope.isInitialized)
-            audioPlayScope.cancel()
+        pauseAnnounce()
 
-        // 音频读取（TTS合成）与解码
         audioStreamScope = CoroutineScope(Dispatchers.IO).launch {
 
             if (currentLineStationList.isEmpty()) {
@@ -3723,7 +3804,7 @@ class MainFragment : Fragment() {
 
             val ttsTextList = ArrayList<String>()
             // 查找本地音频/合成TTS音频
-            val supportMediaFormatList = listOf("mp3", "wav", "ogg", "aac", "flac")
+            val supportMediaFormatList = listOf("mp3", "wav", "ogg", "aac", "flac", "m4a")
             for (voice in mediaList) {
 
                 var localFile = File("")
@@ -3768,6 +3849,7 @@ class MainFragment : Fragment() {
                     // 存在本地音频
                 } else {
                     filePathList.add(localFile.path)
+                    Log.d("L3835", localFile.path)
                 }
 
             }
@@ -3778,12 +3860,6 @@ class MainFragment : Fragment() {
 
             audioReleaseHandler.removeCallbacksAndMessages(null)
 
-//            if (::audioTrack.isInitialized) {
-//                audioTrack.release()
-//            }
-
-
-            // 音频解码
             filePathList.forEachIndexed { i, filePath ->
 
                 if (!isActive) {
@@ -3792,8 +3868,6 @@ class MainFragment : Fragment() {
                     }
                     return@launch
                 }
-
-                var pcmBytes: ByteArray? = null
 
                 // 等待TTS合成完成
                 if (filePath.split("/").reversed()[1] == "tts") {
@@ -3813,192 +3887,21 @@ class MainFragment : Fragment() {
                     }
                 }
 
-                var sampleRate = 0
-                var channelCount = 0
-                var pcmEncoding = 0
-                var durationUs = 0L
+                withContext(Dispatchers.Main) {
 
-                var decoder = MediaCodec.createDecoderByType("audio/mpeg")
-                val extractor = MediaExtractor().apply {
-//                    Log.d(tag, "filePath: $filePath")
-                    try {
-                        setDataSource(filePath)
-                    } catch (e: Exception) {
-                        Log.d(tag, "setDataSource Error")
-                        e.printStackTrace()
-                        withContext(Dispatchers.Main) {
-                            pauseAnnounce()
-                        }
-                        return@launch
+
+                    val mediaItem = MediaItem.Builder()
+                        .setUri(filePath)
+                        .build()
+                    player.addMediaItem(i, mediaItem)
+                    Log.d("L3863", filePath)
+
+                    if (i == 0) {
+                        // 准备并开始播放
+                        player.prepare()
+                        player.play()
                     }
 
-                    for (i in 0 until trackCount) {
-                        val format = getTrackFormat(i)
-                        val mime = format.getString(MediaFormat.KEY_MIME)
-                        if (mime?.startsWith("audio/") == true) {
-                            selectTrack(i)
-                            sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-                            channelCount = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-                            // 非pcm音频流无法获取KEY_PCM_ENCODING，默认16BIT
-                            pcmEncoding = try {
-                                format.getInteger(MediaFormat.KEY_PCM_ENCODING)
-                            } catch (_: Exception) {
-                                AudioFormat.ENCODING_PCM_16BIT
-                            }
-                            durationUs = format.getLong(MediaFormat.KEY_DURATION)
-
-                            decoder = MediaCodec.createDecoderByType(mime).apply {
-                                configure(format, null, null, 0)
-                                start()
-                            }
-                            break
-                        }
-                    }
-                }
-
-
-                val channelMask = if (channelCount == 2) {
-                    AudioFormat.CHANNEL_OUT_STEREO  // 双声道
-                } else {
-                    AudioFormat.CHANNEL_OUT_MONO  // 单声道
-                }
-
-                @Suppress("DEPRECATION")
-                val inputBuffers = decoder.inputBuffers
-
-                @Suppress("DEPRECATION")
-                val outputBuffers = decoder.outputBuffers
-
-                val info = MediaCodec.BufferInfo()
-                var eosReceived = false
-
-
-                while (!eosReceived) {
-
-                    if (!isActive) {
-                        withContext(Dispatchers.Main) {
-                            pauseAnnounce()
-                        }
-                        return@launch
-                    }
-
-                    // 输入
-//                    val inputBufferId = decoder.dequeueInputBuffer(100000)
-                    var inputBufferId = -1
-                    while (inputBufferId < 0) {
-                        inputBufferId = decoder.dequeueInputBuffer(-1)
-                    }
-
-                    if (inputBufferId >= 0) {
-                        val buffer = inputBuffers[inputBufferId]
-                        val sampleSize = extractor.readSampleData(buffer, 0)
-
-                        if (sampleSize < 0) {
-                            // 文件结束
-                            decoder.queueInputBuffer(
-                                inputBufferId,
-                                0,
-                                0,
-                                0,
-                                MediaCodec.BUFFER_FLAG_END_OF_STREAM
-                            )
-                            eosReceived = true
-                        } else {
-                            decoder.queueInputBuffer(
-                                inputBufferId,
-                                0,
-                                sampleSize,
-                                extractor.sampleTime,
-                                0
-                            )
-                            extractor.advance()
-                        }
-                    }
-
-                    // 输出
-                    var outIndex = -1
-                    while (outIndex < 0) {
-                        outIndex = decoder.dequeueOutputBuffer(info, -1)
-                    }
-                    when (outIndex) {
-//                    when (val outIndex = decoder.dequeueOutputBuffer(info, 100000)) {
-
-                        // 输出缓冲区已更改
-                        @Suppress("DEPRECATION")
-                        MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED -> {
-//                            Log.d(tag, "INFO_OUTPUT_BUFFERS_CHANGED")
-                        }
-
-                        // 输出格式已更改
-                        MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
-//                            Log.d(tag, "INFO_OUTPUT_FORMAT_CHANGED")
-                        }
-
-                        // 暂时没有可用输出
-                        MediaCodec.INFO_TRY_AGAIN_LATER -> {
-//                            Log.d(tag, "INFO_TRY_AGAIN_LATER")
-                        }
-
-                        else -> {
-                            if (outIndex >= 0) {
-//                                Log.d(tag, "outIndex $filePath $i")
-                                val outputBuffer: ByteBuffer
-                                try {
-                                    outputBuffer = outputBuffers[outIndex]
-                                    val pcmData = ByteArray(info.size)
-                                    outputBuffer.get(pcmData)
-
-                                    if (pcmBytes == null) {
-                                        pcmBytes = pcmData
-                                    } else {
-                                        pcmBytes += pcmData
-                                    }
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
-
-                                if (pcmBytes != null && pcmBytes.size > 64) {
-                                    pcmQueue.add(
-                                        PcmWithInfo(
-                                            pcmBytes,
-                                            pcmEncoding,
-                                            sampleRate,
-                                            channelMask,
-                                            durationUs,
-                                            i
-                                        )
-                                    )
-                                    pcmBytes = null
-                                }
-
-                                decoder.releaseOutputBuffer(outIndex, false)
-
-                            }
-                        }
-                    }
-
-                    if ((info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                        break
-                    }
-
-                }
-
-//                Log.d(tag, "pcm ok ${filePath}")
-
-//                Log.d(tag, "finish $filePath $i")
-
-                if (pcmBytes != null) {
-                    pcmQueue.add(
-                        PcmWithInfo(
-                            pcmBytes,
-                            pcmEncoding,
-                            sampleRate,
-                            channelMask,
-                            durationUs,
-                            i
-                        )
-                    )
-                    pcmBytes = null
                 }
 
             }
@@ -4006,158 +3909,6 @@ class MainFragment : Fragment() {
 
         }
 
-        if (::audioTrack.isInitialized)
-            audioTrack.release()
-
-        // 音频推流播放
-        audioPlayScope = CoroutineScope(Dispatchers.IO).launch {
-
-
-            var hasInitAudioTrack = false
-            var hasPost = false
-            val hasShowSubtitleMap = HashMap<Int, Boolean>() // <fileIndex, hasShow>
-            var curAudioTrackPlayDone = false
-
-//            audioManager?.requestAudioFocus(audioFocusRequest!!)
-            isAnnouncing = true
-
-            while (isActive) {
-
-//                Log.d(tag, "pcmQueue ${pcmQueue.size}")
-
-                val pcm = pcmQueue.poll()
-                if (pcm != null) {
-//                    Log.d(tag, "play ${filePathList[pcm.fileIndex]} ${pcm.sampleRate}")
-
-
-                    // 初始化audioTrack，或当音频格式变化时重建audioTrack
-                    if (!hasInitAudioTrack ||
-                        audioTrack.audioFormat != pcm.pcmEncoding ||
-                        audioTrack.sampleRate != pcm.sampleRate ||
-                        audioTrack.channelConfiguration != pcm.channelMask
-                    ) {
-
-                        hasInitAudioTrack = true
-
-                        audioFormat = AudioFormat.Builder().setEncoding(pcm.pcmEncoding)
-                            .setSampleRate(pcm.sampleRate).setChannelMask(pcm.channelMask)
-                            .build()
-
-                        bufferSizeInBytes = AudioTrack.getMinBufferSize(
-                            pcm.sampleRate, pcm.channelMask, pcm.pcmEncoding
-                        )
-
-
-//                        if (::audioTrack.isInitialized && audioTrack.state == AudioTrack.STATE_INITIALIZED) {
-//                            audioTrack.release()
-//                        }
-
-                        // 等待上个audioTrack播放完毕
-                        if (::audioTrack.isInitialized && audioTrack.state == AudioTrack.STATE_INITIALIZED) {
-                            while (!curAudioTrackPlayDone && isActive) {
-                            }
-                            // todo
-//                            audioTrack.release()
-                            curAudioTrackPlayDone = false
-                        }
-
-//                        audioTrack = AudioTrack(
-//                            audioAttributes,
-//                            audioFormat,
-//                            bufferSizeInBytes,
-//                            AudioTrack.MODE_STREAM,
-//                            1
-//                        )
-
-                        audioTrack = AudioTrack.Builder()
-                            .setAudioAttributes(audioAttributes)
-                            .setAudioFormat(audioFormat)
-                            .setBufferSizeInBytes(bufferSizeInBytes)
-                            .setTransferMode(AudioTrack.MODE_STREAM)
-                            .setSessionId(1)
-                            .build()
-
-                        audioTrack.setPlaybackPositionUpdateListener(object :
-                            AudioTrack.OnPlaybackPositionUpdateListener {
-                            override fun onMarkerReached(track: AudioTrack?) {
-                                curAudioTrackPlayDone = true
-                            }
-
-                            override fun onPeriodicNotification(track: AudioTrack?) {
-                            }
-                        })
-
-
-                        audioTrack.play()
-
-                        Log.d(tag, "rebuild audioTrack")
-
-                    }
-
-                    if (utils.getAnSubtitle()) {
-                        if (!hasShowSubtitleMap.containsKey(pcm.fileIndex) || hasShowSubtitleMap[pcm.fileIndex] == false) {
-
-                            requireActivity().runOnUiThread {
-                                val fileName = filePathList[pcm.fileIndex].split('/').last()
-                                val lastDotIndex = fileName.lastIndexOf(".")
-                                utils.showMsg(
-                                    fileName.take(lastDotIndex), true
-                                )
-                            }
-                            hasShowSubtitleMap[pcm.fileIndex] = true
-
-                        }
-                    }
-
-                    if (pcm.fileIndex == filePathList.size - 1 && !hasPost) {
-//                        Log.d(tag, "play finish")
-                        audioReleaseHandler.removeCallbacksAndMessages(null)
-                        audioReleaseHandler.postDelayed({
-                            requireActivity().runOnUiThread {
-                                if (isActive) {
-                                    audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-                                    binding.stopAnnouncement.visibility = GONE
-//                                audioPlayScope.cancel()
-                                    this@launch.cancel()
-                                }
-                            }
-                            isAnnouncing = false
-                        }, pcm.durationUs / 1000 + 500) //附加500ms延迟
-                        hasPost = true
-                    } else {
-                        requireActivity().runOnUiThread {
-                            audioManager?.requestAudioFocus(audioFocusRequest!!)
-                            binding.stopAnnouncement.visibility = VISIBLE
-                        }
-
-                    }
-
-                    synchronized(audioTrack) {
-                        if (pcm.data != null && audioTrack.state == AudioTrack.STATE_INITIALIZED
-                            && audioTrack.playState == PLAYSTATE_PLAYING
-                        ) {
-                            val writeResult = audioTrack.write(pcm.data!!, 0, pcm.data!!.size)
-                            Log.d(tag, "writeResult $writeResult")
-                            Log.d(tag, "audioTrack.state ${audioTrack.playState}")
-
-                            if (audioTrack.state == AudioTrack.STATE_INITIALIZED
-                                && audioTrack.playState == PLAYSTATE_PLAYING
-                            ) {
-                                audioTrack.setNotificationMarkerPosition(
-                                    audioTrack.notificationMarkerPosition +
-                                            calculateTotalFrames(pcm)
-                                )
-                            }
-
-//                        Log.d(tag, "play ${wl}/${pcm.data!!.size}")
-                        }
-                    }
-
-
-                }
-            }
-
-        }
     }
 
     /**
@@ -4464,17 +4215,14 @@ class MainFragment : Fragment() {
         simRunningHandler.removeCallbacksAndMessages(null)
 
         audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-        isAnnouncing = false
-
-        if (::audioPlayScope.isInitialized)
-            audioPlayScope.cancel()
+        runningSimRunning = false
 
         if (::audioStreamScope.isInitialized)
             audioStreamScope.cancel()
 
-        if (::audioTrack.isInitialized)
-            audioTrack.release()
 
+        player.stop()
+        player.clearMediaItems()
     }
 
     fun refreshEs(toStation: Boolean = false, toStaringAndTerminal: Boolean = false) {
@@ -5358,6 +5106,21 @@ class MainFragment : Fragment() {
                     Color.rgb(55, 178, 103)
             }
         }
+    }
+
+    fun stopSimRunning() {
+        runningSimRunning = false
+        simRunningHandler.removeCallbacksAndMessages(null)
+        utils.showMsg("模拟运行报站结束")
+    }
+
+    fun showAnSubtitle() {
+        val fileName =
+            filePathList[player.currentMediaItemIndex].split('/').last()
+        val lastDotIndex = fileName.lastIndexOf(".")
+        utils.showMsg(
+            fileName.take(lastDotIndex), true
+        )
     }
 
 }

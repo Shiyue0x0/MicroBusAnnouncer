@@ -16,9 +16,9 @@ android {
         applicationId = "com.microbus.announcer"
         minSdk = 26
         targetSdk = 37
-        versionCode = 311
+        versionCode = 312
         versionName =
-            "3.1.1-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
+            "3.1.2-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
     }
 
     buildTypes {
@@ -111,6 +111,9 @@ dependencies {
 
     // miuix
     implementation(libs.miuix.ui.android)
+
+    //exoplayer
+    implementation(libs.androidx.media3.exoplayer)
 
     // Test
     androidTestImplementation(platform(libs.androidx.compose.bom))
