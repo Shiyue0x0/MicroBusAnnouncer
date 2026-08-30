@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://android.com"
+    xmlns:tools="http://android.com">
 
     <!-- 允许访问网络，必选权限 -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -8,11 +8,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- 允许获取粗略位置，粗略定位必选 -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- 允许获取网络状态，用于网络定位（无gps情况下的定位），若需网络定位功能则必选 -->
+    <!-- 允许获取网络状态，用于网络定位 -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- 允许获取wifi网络信息，用于网络定位（无gps情况下的定位），若需网络定位功能则必选 -->
+    <!-- 允许获取wifi网络信息，用于网络定位 -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <!-- 允许获取wifi状态改变，用于网络定位（无gps情况下的定位），若需网络定位功能则必选 -->
+    <!-- 允许获取wifi状态改变，用于网络定位 -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <!-- 后台获取位置信息，若需后台定位则必选 -->
     <uses-permission
@@ -51,7 +51,6 @@
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
-
             <data android:scheme="https" />
         </intent>
     </queries>
@@ -69,31 +68,28 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MicroBusAnnouncer"
         android:usesCleartextTraffic="true"
-        tools:targetApi="36">
+        tools:targetApi="34"> <!-- 将实验性的 api36 修正为当前主流稳定的 34 (Android 14) 或 35 -->
+        
         <activity
             android:name=".WebviewActivity"
             android:exported="false" />
-        <!-- <service -->
-        <!-- android:name=".service.LineRunningService" -->
-        <!-- android:enabled="false" -->
-        <!-- android:exported="false" -->
-        <!-- android:foregroundServiceType="location|mediaPlayback" /> -->
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:hardwareAccelerated="true"
             android:launchMode="standard"
-            android:screenOrientation="portrait"
+            android:screenOrientation="unspecified" <!-- 核心修改：解除强制竖屏，交给系统或布局自己决定，防止手机端初始化闪退 -->
             android:windowSoftInputMode="adjustPan"
-            tools:ignore="DiscouragedApi,LockedOrientationActivity">
+            tools:ignore="DiscouragedApi">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <service android:name="com.amap.api.location.APSService" /> <!-- @string/amapKey是高德地图的key -->
+        <service android:name="com.amap.api.location.APSService" />
+        
         <meta-data
             android:name="com.amap.api.v2.apikey"
             android:value="@string/amapKey_android" />
@@ -108,7 +104,7 @@
         <service
             android:name=".service.AnnounceService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
     </application>
 
 </manifest>
