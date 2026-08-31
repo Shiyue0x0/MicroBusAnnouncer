@@ -1,3 +1,4 @@
+![UI预览](app/src/main/res/mipmap-hdpi/an_round.png)
 # MicroBusAnnouncer
 
 ### 这是什么？
@@ -6,7 +7,7 @@
 
 [演示视频](https://www.bilibili.com/video/BV1sdn7zhEQo)
 
-![UI预览](readme/img/uiPreview.jpg)
+![UI预览](readme/img/uiPreview.webp)
 
 ### 快速开始
 

@@ -1921,8 +1921,8 @@ class MainFragment : Fragment() {
             .setBufferDurationsMs(
                 /* minBufferMs = */ 50000,  // 最小缓冲时长，建议提高
                 /* maxBufferMs = */ 60000,  // 最大缓冲时长
-                /* minPlaybackStartMs = */ 2500, // 开始播放所需最小缓冲
-                /* minPlaybackResumeMs = */ 5000 // 恢复播放所需最小缓冲
+                /* bufferForPlaybackMs = */ 2500, // 开始播放所需最小缓冲
+                /* bufferForPlaybackAfterRebufferMs = */ 5000 // 恢复播放所需最小缓冲
             )
             .build()
 
