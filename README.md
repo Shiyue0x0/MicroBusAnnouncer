@@ -4,6 +4,7 @@
 # Announcer
 
 [![Latest release](https://img.shields.io/github/v/release/Shiyue0x0/MicroBusAnnouncer?label=Release&logo=github)](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases/latest)
+[![Latest release](https://img.shields.io/gitee/v/release/shiyue0x0/micro-bus-announcer?label=Release&logo=gitee)](https://gitee.com/shiyue0x0/micro-bus-announcer/releases/latest)
 
 ### 这是什么？
 
@@ -17,39 +18,36 @@
 
 无需过多配置，只需要一些步骤即可体验Announcer的基本功能。
 
-1. 准备一台Android 8.0+的手机，从下列渠道下载最新版应用和体验语音库。
+1. 准备一台Android 8.0+的手机，从 `GitHub` 或 `Gitee` 下载最新版 `应用本体` 和 `体验语音库` ：
 
-   [Github](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases)
-   [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/releases)
+   GitHub: [![Latest release](https://img.shields.io/github/v/release/Shiyue0x0/MicroBusAnnouncer?label=Release&logo=github)](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases/latest)
 
+   Gitee: [![Latest release](https://img.shields.io/gitee/v/release/shiyue0x0/micro-bus-announcer?label=Release&logo=gitee)](https://gitee.com/shiyue0x0/micro-bus-announcer/releases/latest)
+
+```text
    语音来源：
-
    Firefly：《崩坏：星穹铁道》流萤
-
    桂林公交：`@ZK6858HAA` `@机场闪电359`
-
    鸣谢：
-
    GPT-SoVITS开发者：`@花儿不哭`
-
    模型训练者：`@红血球AE3803 &` `@白菜工厂1145号员工`
-
    推理特化包适配 & 在线推理：`@AI-Hobbyist`
+```
 
-2. 将体验语音库的`Announcer`文件夹解压到手机的根目录。
+2. 将体验语音库的 `Announcer` 文件夹解压到手机的根目录。
 
 3. 安装并启动应用，并授予所需的权限。
 
-4. 点击右下角的`设置`-`数据与关于`，点击`加载预设数据` `站点和路线`。
+4. 点击右下角的 `设置`-`数据与关于` ，点击 `加载预设数据` `站点和路线`。
 
 
 喜报！您已经完成了所有的初始设置。现在可以试着自行探索一下，或者是继续跟随文档操作。
 
 ### 开始运行
 
-1. 现在，来试着运行路线。请先点击左下角的`主控`，接下来大部分的操作会在`主控`页进行。
+1. 现在，来试着运行路线。请先点击左下角的 `主控`，接下来大部分的操作会在 `主控` 页进行。
 
-2. 点击最上方的`模拟电显`，然后选择要运行的路线。也可以点击`线路`页中更换路线。
+2. 点击最上方的卡片 `模拟电显` ，然后选择要运行的路线。也可以点击`线路`页中更换路线。
 
 3. 此时，您选择的路线已经开始运行。`Announcer`在前台运行时会根据实时定位，在进站和出站时进行自动报站。
 
