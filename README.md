@@ -1,5 +1,9 @@
-![UI预览](app/src/main/res/mipmap-hdpi/an_round.png)
-# MicroBusAnnouncer
+<img align="left" src='app/src/main/res/mipmap-hdpi/an_round.png' width='100px'>
+<br/>
+
+# Announcer
+
+[![Latest release](https://img.shields.io/github/v/release/Shiyue0x0/MicroBusAnnouncer?label=Release&logo=github)](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases/latest)
 
 ### 这是什么？
 
