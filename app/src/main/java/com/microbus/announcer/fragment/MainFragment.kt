@@ -600,7 +600,14 @@ class MainFragment : Fragment() {
                     "${currentLineStationList.last().cnName}\t${currentLineStationList.last().enName}"
                 )
             }
+
+
+            val originCnName = currentLineStationList.last().cnName
+            currentLineStationList.last().cnName = utils.getStationNameFromCn(originCnName, "cn")
+            currentLineStationList.last().enName = utils.getStationNameFromCn(originCnName, "en")
+
         }
+
 
         //获取当前反向路线站点列表
         currentReverseLineStationList.clear()
@@ -639,9 +646,9 @@ class MainFragment : Fragment() {
 
             //更新终点站卡片
             binding.terminalName.text = if (utils.getUILang() == "zh")
-                utils.getStationNameFromCn(currentLineStationList.last().cnName, "cn")
+                currentLineStationList.last().cnName
             else
-                utils.getStationNameFromCn(currentLineStationList.last().cnName, "en")
+                currentLineStationList.last().enName
 
         } else {
             binding.terminalName.text = getString(R.string.main_to_station_name)
@@ -1309,7 +1316,7 @@ class MainFragment : Fragment() {
                 return@addOnButtonCheckedListener
             }
 
-            if(currentLine.isRingRoute){
+            if (currentLine.isRingRoute) {
                 utils.showMsg("该路线为环线")
                 group.post {
                     group.uncheck(checkedId)
@@ -2592,7 +2599,7 @@ class MainFragment : Fragment() {
                         }
                     }).setNeutralButton("当前站点") { _, _ ->
                         setStationAndState(position, currentLineStationState)
-                        refreshLineStationList()
+                        refreshLineStationListAndNotice()
                         utils.haptic(binding.lineStationList)
                     }.show()
             }
@@ -2983,7 +2990,7 @@ class MainFragment : Fragment() {
 
                 // 上行终点站出站
                 else if (currentLineDirection == onUp && i >= lineStationList.size - 1 && utils.getSwitchDirectionWhenOutFromTerminalWithOnUp()) {
-                    if(!currentLine.isRingRoute){
+                    if (!currentLine.isRingRoute) {
                         reverseLineDirection()
                     }
                     setStationAndState(1, onNext)
@@ -3086,7 +3093,7 @@ class MainFragment : Fragment() {
                     indexText = if (i < 9) "0${i + 1}"
                     else "${i + 1}"
                     "$indexText ${
-                        utils.getStationNameFromCn(currentLineStationList[i].cnName, "cn")
+                        currentLineStationList[i].cnName
                     }"
                 } else {
                     indexText = if (utils.getIsMapEditLineMode()) {
@@ -3104,12 +3111,7 @@ class MainFragment : Fragment() {
                     } else {
                         ""
                     }
-                    "${indexText}${
-                        utils.getStationNameFromCn(
-                            currentLineStationList[i].cnName,
-                            "cn"
-                        )
-                    }[${currentLineStationList[i].id!!}]"
+                    "${indexText}${currentLineStationList[i].cnName}[${currentLineStationList[i].id!!}]"
                 }
 
 
@@ -3411,7 +3413,7 @@ class MainFragment : Fragment() {
      * 更新路线站点显示、小卡片和通知
      */
     @SuppressLint("NotifyDataSetChanged")
-    private fun refreshLineStationList() {
+    private fun refreshLineStationListAndNotice() {
 
         val currentStationStateText = when (currentLineStationState) {
             onNext -> requireContext().resources.getString(R.string.next)
@@ -3422,10 +3424,9 @@ class MainFragment : Fragment() {
 
         binding.currentStationState.text = currentStationStateText
         val stationName = if (utils.getUILang() == "zh")
-            utils.getStationNameFromCn(currentLineStation.cnName, "cn")
+            currentLineStation.cnName
         else
-            utils.getStationNameFromCn(currentLineStation.cnName, "en")
-
+            currentLineStation.enName
         binding.currentStationName.text = stationName
         binding.navStationName.showText(stationName)
         binding.navStationName.requestLayout()
@@ -3479,32 +3480,27 @@ class MainFragment : Fragment() {
                 utils.showMsg("不希望接收运行信息，请前往“设置”-“系统与电显”关闭")
             }
 
-            if (currentLine.name == getString(R.string.line_all)) {
-                notification.setContentTitle(currentLine.name)
-                    .setContentText(
-                        if (utils.getUILang() == "zh")
-                            "${binding.currentStationState.text} ${currentLineStation.cnName}"
-                        else
-                            "${binding.currentStationState.text} ${currentLineStation.enName}"
-                    )
-            } else if (currentLineStationList.isNotEmpty()) {
-                notification.setContentTitle(
-                    if (utils.getUILang() == "zh")
-                        "${currentLine.name} ${currentLineStationList.first().cnName} - ${currentLineStationList.last().cnName}"
-                    else
-                        "${currentLine.name} ${currentLineStationList.last().enName}"
-                )
-                    .setContentText(
-                        if (utils.getUILang() == "zh")
-                            "${binding.currentStationState.text} ${currentLineStation.cnName}"
-                        else
-                            "${binding.currentStationState.text} ${currentLineStation.enName}"
-                    )
 
-            } else {
-                notification.setContentTitle("临时路线")
-                    .setContentText(currentLine.name)
+            // title
+            var title = currentLine.name
+            if (currentLine.name != getString(R.string.line_all) && currentLineStationList.isNotEmpty()) {
+                title += if (utils.getUILang() == "zh")
+                    " ${
+                        currentLineStationList.first().cnName
+                    } - ${currentLineStationList.last().cnName}"
+                else
+                    " To ${currentLineStationList.last().enName}"
             }
+            notification.setContentTitle(title)
+
+            // text
+            var text = "${binding.currentStationState.text} "
+            text += if (utils.getUILang() == "zh")
+                currentLineStation.cnName
+            else
+                currentLineStation.enName
+            notification.setContentText(text)
+
             notification.setWhen(System.currentTimeMillis())
             notificationManager.notify(0, notification.build())
         }
@@ -3539,15 +3535,14 @@ class MainFragment : Fragment() {
 
 
         val stationName = if (utils.getUILang() == "zh")
-            utils.getStationNameFromCn(currentLineStation.cnName, "cn")
+            currentLineStation.cnName
         else
-            utils.getStationNameFromCn(currentLineStation.cnName, "en")
-
+            currentLineStation.enName
         val terminalName = if (currentLineStationList.isNotEmpty()) {
             if (utils.getUILang() == "zh")
-                utils.getStationNameFromCn(currentLineStationList.last().cnName, "cn")
+                currentLineStationList.last().cnName
             else
-                utils.getStationNameFromCn(currentLineStationList.last().cnName, "en")
+                currentLineStationList.last().enName
         } else {
             ""
         }
@@ -3738,10 +3733,14 @@ class MainFragment : Fragment() {
                             } else
                                 item.drop(3).dropLast(1)
                             mediaList.add(
-                                "/${lang}/station/" + utils.getStationNameFromCn(
-                                    station.cnName,
-                                    lang
-                                )
+                                when (lang) {
+                                    "cn" -> station.cnName
+                                    "en" -> station.enName
+                                    else -> "/${lang}/station/" + utils.getStationNameFromCn(
+                                        station.cnName,
+                                        lang
+                                    )
+                                }
                             )
                         }
                     }
@@ -4449,7 +4448,7 @@ class MainFragment : Fragment() {
     fun refreshUI(isRefreshEs: Boolean = true) {
 
         //更新路线站点显示、小卡片和通知
-        refreshLineStationList()
+        refreshLineStationListAndNotice()
 
         //更新路线站点更新信息和系统通知
         refreshLineStationChangeInfo()
@@ -4852,7 +4851,11 @@ class MainFragment : Fragment() {
                     key.substring(3, 5)
                 } else
                     key.drop(3).dropLast(1)
-                utils.getStationNameFromCn(station.cnName, lang)
+                when (lang) {
+                    "cn" -> station.cnName
+                    "en" -> station.enName
+                    else -> utils.getStationNameFromCn(station.cnName, lang)
+                }
             }
         }
     }
