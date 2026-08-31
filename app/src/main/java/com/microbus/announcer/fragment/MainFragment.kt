@@ -3273,22 +3273,23 @@ class MainFragment : Fragment() {
         if (currentLineStation.id == null) return false
 
         when (currentLineStationState) {
-            onWillArrive -> {
+
+            onNext -> {
+                if (currentLineStationCount <= 0) return false
+                currentLineStationCount--
+                currentLineStation = currentLineStationList[currentLineStationCount]
                 currentLineStationState = onArrive
                 refreshUI()
                 return true
             }
 
-            onArrive -> {
-                if (currentLineStationCount <= 0) return false
-                currentLineStationCount--
-                currentLineStation = currentLineStationList[currentLineStationCount]
-                currentLineStationState = onWillArrive
+            onWillArrive -> {
+                currentLineStationState = onNext
                 refreshUI()
                 return true
             }
 
-            onNext -> {
+            onArrive -> {
                 currentLineStationState = onWillArrive
                 refreshUI()
                 return true
@@ -3307,14 +3308,15 @@ class MainFragment : Fragment() {
         if (currentLineStation.id == null) return false
 
         when (currentLineStationState) {
-            onWillArrive -> {
-                currentLineStationState = onArrive
+
+            onNext -> {
+                currentLineStationState = onWillArrive
                 refreshUI()
                 return true
             }
 
-            onNext -> {
-                currentLineStationState = onWillArrive
+            onWillArrive -> {
+                currentLineStationState = onArrive
                 refreshUI()
                 return true
             }
