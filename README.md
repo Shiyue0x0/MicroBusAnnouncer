@@ -9,6 +9,11 @@
 
 `Announcer`是一款Android公交报站器，集成了 `站点与路线管理` `语音播报` `运行信息与地图实况` `自定义模拟电显` 等功能。
 
+[演示视频](https://www.bilibili.com/video/BV1sdn7zhEQo)
+
+![UI预览](readme/img/uiPreview.webp)
+
+
 1. 站点与路线管理
 
 - 自定义站点与路线
@@ -32,9 +37,6 @@
 - 可显示多语言站点名称、速度、时间等
 - 动态切换，可根据当前路线运行状态显示不同文本
 
-[演示视频](https://www.bilibili.com/video/BV1sdn7zhEQo)
-
-![UI预览](readme/img/uiPreview.webp)
 
 ### 快速开始
 
