@@ -4,6 +4,7 @@
 # Announcer
 
 [![Latest release](https://img.shields.io/github/v/release/Shiyue0x0/MicroBusAnnouncer?label=Release&logo=github)](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases/latest)
+[![License](https://img.shields.io/github/license/Shiyue0x0/MicroBusAnnouncer)](https://github.com/Shiyue0x0/MicroBusAnnouncer/blob/main/LICENSE)
 
 ### 这是什么？
 
