@@ -4,7 +4,7 @@
 # Announcer
 
 [![Latest release](https://img.shields.io/github/v/release/Shiyue0x0/MicroBusAnnouncer?label=Release&logo=github)](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases/latest)
-[![Latest release](https://img.shields.io/gitee/v/release/shiyue0x0/micro-bus-announcer?label=Release&logo=gitee)](https://gitee.com/shiyue0x0/micro-bus-announcer/releases/latest)
+[Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/releases/latest)
 
 ### 这是什么？
 
@@ -22,7 +22,7 @@
 
    GitHub: [![Latest release](https://img.shields.io/github/v/release/Shiyue0x0/MicroBusAnnouncer?label=Release&logo=github)](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases/latest)
 
-   Gitee: [![Latest release](https://img.shields.io/gitee/v/release/shiyue0x0/micro-bus-announcer?label=Release&logo=gitee)](https://gitee.com/shiyue0x0/micro-bus-announcer/releases/latest)
+   Gitee: [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/releases/latest)
 
 ```text
    语音来源：
