@@ -18,29 +18,30 @@
 
 [使用视频：桂林公交K2路 自制报站 全程运行示意](https://www.bilibili.com/video/BV1mE9uBzE5H)
 
+### 主要功能
 
 1. 站点与路线管理
 
-- 自定义站点与路线
-- 可以导入高德地图中的公交/地铁路线
+   - 自定义站点与路线
+   - 可以导入高德地图中的公交/地铁路线
 
 2. 语音播报
 
-- 自定义播报文本内容
-- 自定义播报音频资源
-- 可调用系统TTS文字转语音
+   - 自定义播报文本内容
+   - 自定义播报音频资源
+   - 可调用系统TTS文字转语音
 
 3. 运行信息与地图实况
 
-- 运行点屏（站点列表）
-- 当前站点/距离/速度显示
-- 地图站点/路线轨迹显示
+   - 运行点屏（站点列表）
+   - 当前站点/距离/速度显示
+   - 地图站点/路线轨迹显示
 
 4. 自定义模拟电显
 
-- 自定义电显内容
-- 可显示多语言站点名称、速度、时间等
-- 动态切换，可根据当前路线运行状态显示不同文本
+   - 自定义电显内容
+   - 可显示多语言站点名称、速度、时间等
+   - 动态切换，可根据当前路线运行状态显示不同文本
 
 
 ### 快速开始
@@ -49,19 +50,20 @@
 
 1. 准备一台Android 8.0+的手机，从 `GitHub` 或 `Gitee` 下载最新版 `应用本体` 和 `体验语音库` ：
 
-   GitHub: [![Latest release](https://img.shields.io/github/v/release/Shiyue0x0/MicroBusAnnouncer?label=Release&logo=github)](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases/latest)
-
-   Gitee: [Gitee](https://gitee.com/shiyue0x0/micro-bus-announcer/releases/latest)
-
-```text
-   语音来源：
-   Firefly：《崩坏：星穹铁道》流萤
-   桂林公交：`@ZK6858HAA` `@机场闪电359`
-   鸣谢：
-   GPT-SoVITS开发者：`@花儿不哭`
-   模型训练者：`@红血球AE3803 &` `@白菜工厂1145号员工`
-   推理特化包适配 & 在线推理：`@AI-Hobbyist`
-```
+      GitHub:  [![Latest release](https://img.shields.io/github/v/release/Shiyue0x0/MicroBusAnnouncer?label=Release&logo=github)](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases/latest)
+   
+      Gitee:   [Gitee Release](https://gitee.com/shiyue0x0/micro-bus-announcer/releases/latest)
+   
+   ```text
+      语音来源：
+      Firefly：《崩坏：星穹铁道》流萤
+      桂林公交：@ZK6858HAA @机场闪电359
+      
+      鸣谢：
+      GPT-SoVITS开发者：@花儿不哭
+      模型训练者：@红血球AE3803 & @白菜工厂1145号员工
+      推理特化包适配 & 在线推理：@AI-Hobbyist
+   ```
 
 2. 将体验语音库的 `Announcer` 文件夹解压到手机的根目录。
 

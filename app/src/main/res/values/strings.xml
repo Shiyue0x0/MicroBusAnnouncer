@@ -92,7 +92,7 @@
     <string name="search_station_not_have_voice_finish">已将缺失音频的站点复制到剪切板</string>
     <string name="xPixelPerSecond">%1$d 像素/秒</string>
     <string name="online_search">在线搜索</string>
-    <string name="setAsLineName">设为名称</string>
+    <string name="setAsLineName">设路线名</string>
     <string name="stationTypeDefault">B</string>
     <string name="SysAndEs">系统与电显</string>
     <string name="Announcement">语音与播报</string>

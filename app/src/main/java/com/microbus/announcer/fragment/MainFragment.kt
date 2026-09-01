@@ -147,7 +147,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.Timer
 import java.util.TimerTask
-import java.util.stream.Collectors
 import kotlin.collections.set
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
@@ -601,10 +600,14 @@ class MainFragment : Fragment() {
                 )
             }
 
+            if (currentLineStationList.isNotEmpty()) {
+                val originCnName = currentLineStationList.last().cnName
+                currentLineStationList.last().cnName =
+                    utils.getStationNameFromCn(originCnName, "cn")
+                currentLineStationList.last().enName =
+                    utils.getStationNameFromCn(originCnName, "en")
+            }
 
-            val originCnName = currentLineStationList.last().cnName
-            currentLineStationList.last().cnName = utils.getStationNameFromCn(originCnName, "cn")
-            currentLineStationList.last().enName = utils.getStationNameFromCn(originCnName, "en")
 
         }
 
@@ -892,14 +895,9 @@ class MainFragment : Fragment() {
                     .setView(dialogBinding.root)
 //                    .setTitle(resources.getString(R.string.switch_line))
                     .setNeutralButton(resources.getString(R.string.setAsLineName)) { _, _ ->
-
-                        //                    Log.d(tag, "设为临时路线")
-                        currentLine = Line(name = dialogBinding.lineNameInput.text.toString())
-                        initLineInterval()
-                        originLine = currentLine
-                        currentLineStationState = onNext
-                        binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-                        loadLine(currentLine)
+                        currentLine.name = dialogBinding.lineNameInput.text.toString()
+                        binding.headerMiddleNew.showText(currentLine.name)
+                        refreshUI(true)
                     }
                     .setPositiveButton(
                         resources.getString(R.string.out_line_running)
@@ -2477,14 +2475,16 @@ class MainFragment : Fragment() {
         binding.lineStationList.adapter = adapter
 //        adapter.isScroll = true
 
-        //单击切换区间起点/终点
+        //单击设为 区间起点/终点 或 当前站点
         adapter.setOnItemClickListener(object : StationOfLineAdapter.OnItemClickListener {
             override fun onItemClick(view: View?, position: Int) {
                 if (isOperationLock) {
                     utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
                     return
                 }
-                val chosenStationCname = currentLineStationList[position].cnName
+
+                val chosenStationCnName = currentLineStationList[position].cnName
+                val chosenStationEnName = currentLineStationList[position].enName
 
                 var currentLineStartingIndex = when (currentLineDirection) {
                     onUp -> currentUpLineStartingIndex
@@ -2500,14 +2500,15 @@ class MainFragment : Fragment() {
 
                 // 上/下行线路
                 val lineList: List<String> = when (currentLineDirection) {
-                    onUp -> originLine.upLineStation.split(" ")
-                    onDown -> originLine.downLineStation.split(" ")
+                    onUp -> currentLine.upLineStation.split(" ")
+                    onDown -> currentLine.downLineStation.split(" ")
                     else -> ArrayList()
                 }
 
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                    .setTitle("将 $chosenStationCname 设为")
-                    .setPositiveButton("区间起点", object : DialogInterface.OnClickListener {
+                    .setTitle("${String.format("%02d", position + 1)} $chosenStationCnName")
+                    .setMessage(chosenStationEnName)
+                    .setPositiveButton("设为区间起点", object : DialogInterface.OnClickListener {
                         override fun onClick(p0: DialogInterface?, p1: Int) {
 
                             val startingId = currentLineStationList[position].id
@@ -2520,40 +2521,19 @@ class MainFragment : Fragment() {
                             }
 
                             if (currentLineTerminalIndex - currentLineStartingIndex < 1) {
-                                utils.showMsg("不能将原终点站设置为始发站")
+                                utils.showMsg("不能将原终点站设置为起点站")
                                 return
                             }
 
-                            val newLine = Line()
-                            newLine.id = originLine.id
-                            if (false) {
-                                newLine.name = originLine.name + " 区间"
-                            }
-                            newLine.isUpAndDownInvert = originLine.isUpAndDownInvert
-                            when (currentLineDirection) {
-                                onUp -> {
-                                    newLine.downLineStation = currentLine.downLineStation
-                                    newLine.upLineStation =
-                                        lineList.slice(currentLineStartingIndex..currentLineTerminalIndex)
-                                            .stream().map { n -> java.lang.String.valueOf(n) }
-                                            .collect(Collectors.joining(" "))
-                                }
+                            setShuttleLine(
+                                lineList,
+                                currentLineStartingIndex,
+                                currentLineTerminalIndex
+                            )
 
-                                onDown -> {
-                                    newLine.upLineStation = currentLine.upLineStation
-                                    newLine.downLineStation =
-                                        lineList.slice(currentLineStartingIndex..currentLineTerminalIndex)
-                                            .stream().map { n -> java.lang.String.valueOf(n) }
-                                            .collect(Collectors.joining(" "))
-                                }
-                            }
-
-                            loadLine(newLine)
-                            utils.haptic(binding.headerMiddleNew)
-//                            adapter.isScroll = true
                         }
                     })
-                    .setNegativeButton("区间终点", object : DialogInterface.OnClickListener {
+                    .setNegativeButton("设为区间终点", object : DialogInterface.OnClickListener {
                         override fun onClick(p0: DialogInterface?, p1: Int) {
 
                             val startingId = currentLineStationList[position].id
@@ -2567,37 +2547,19 @@ class MainFragment : Fragment() {
                             }
 
                             if (currentLineTerminalIndex - currentLineStartingIndex < 1) {
-                                utils.showMsg("不能将原始发站设置终点站")
+                                utils.showMsg("不能将原起点站设置终点站")
                                 return
                             }
 
-                            val newLine = Line()
-                            newLine.id = originLine.id
-                            if (false) {
-                                newLine.name = originLine.name + " 区间"
-                            }
-                            newLine.isUpAndDownInvert = originLine.isUpAndDownInvert
-                            when (currentLineDirection) {
-                                onUp -> {
-                                    newLine.downLineStation = currentLine.downLineStation
-                                    newLine.upLineStation =
-                                        lineList.slice(currentLineStartingIndex..currentLineTerminalIndex)
-                                            .stream().map { n -> java.lang.String.valueOf(n) }
-                                            .collect(Collectors.joining(" "))
-                                }
+                            setShuttleLine(
+                                lineList,
+                                currentLineStartingIndex,
+                                currentLineTerminalIndex
+                            )
 
-                                onDown -> {
-                                    newLine.upLineStation = currentLine.upLineStation
-                                    newLine.downLineStation =
-                                        lineList.slice(currentLineStartingIndex..currentLineTerminalIndex)
-                                            .stream().map { n -> java.lang.String.valueOf(n) }
-                                            .collect(Collectors.joining(" "))
-                                }
-                            }
-
-                            loadLine(newLine)
                         }
-                    }).setNeutralButton("当前站点") { _, _ ->
+                    })
+                    .setNeutralButton("设为当前站点") { _, _ ->
                         setStationAndState(position, currentLineStationState)
                         refreshLineStationListAndNotice()
                         utils.haptic(binding.lineStationList)
@@ -4735,7 +4697,7 @@ class MainFragment : Fragment() {
         binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
         loadLine(line)
 
-        utils.showMsg("已切换至 ${line.name} 运行")
+        utils.showMsg("正在运行路线：${line.name}", true)
 
     }
 
@@ -5139,6 +5101,37 @@ class MainFragment : Fragment() {
         lineEditorLineId = -1
         lineEditorStationList.clear()
         lineEditorLineDirection = onUp
+    }
+
+    // 设置区间线
+    fun setShuttleLine(
+        lineList: List<String>,
+        currentLineStartingIndex: Int,
+        currentLineTerminalIndex: Int
+    ) {
+        val newLine = Line()
+        newLine.id = originLine.id
+        newLine.name = originLine.name
+        newLine.isUpAndDownInvert = originLine.isUpAndDownInvert
+
+        val stationRange = lineList.slice(currentLineStartingIndex..currentLineTerminalIndex)
+        val stationStr = stationRange.joinToString(" ")
+
+        when (currentLineDirection) {
+            onUp -> {
+                newLine.downLineStation = currentLine.downLineStation
+                newLine.upLineStation = stationStr
+            }
+
+            onDown -> {
+                newLine.upLineStation = currentLine.upLineStation
+                newLine.downLineStation = stationStr
+            }
+        }
+
+        loadLine(newLine)
+
+        utils.haptic(binding.headerMiddleNew)
     }
 
 }
