@@ -401,8 +401,9 @@ class MainFragment : Fragment() {
             }
         } else {
             // Android 11以下使用旧方式
-            binding.root.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+//            binding.root.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+//                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            WindowCompat.setDecorFitsSystemWindows(requireActivity().window, false)
             // 需要设置fitsSystemWindows为false
             binding.root.fitsSystemWindows = false
         }
@@ -2456,6 +2457,7 @@ class MainFragment : Fragment() {
             ArrayList(),
             0
         )
+        binding.lineStationList.adapter = adapter
 
         binding.lineStationList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -2472,7 +2474,6 @@ class MainFragment : Fragment() {
             }
         })
 
-        binding.lineStationList.adapter = adapter
 //        adapter.isScroll = true
 
         //单击设为 区间起点/终点 或 当前站点
