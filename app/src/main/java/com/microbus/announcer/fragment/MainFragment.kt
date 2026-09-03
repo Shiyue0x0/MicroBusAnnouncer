@@ -1,6 +1,7 @@
 package com.microbus.announcer.fragment
 
 import android.annotation.SuppressLint
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -18,7 +19,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.res.Resources
+import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.drawable.Icon
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -49,8 +52,8 @@ import android.widget.TextView
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
+import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -127,6 +130,9 @@ import com.microbus.announcer.databinding.DialogLineSwitchBinding
 import com.microbus.announcer.databinding.DialogLoadingBinding
 import com.microbus.announcer.databinding.DialogRunningInfoBinding
 import com.microbus.announcer.databinding.FragmentMainBinding
+import com.microbus.announcer.model.StationStatus
+import com.microbus.announcer.model.LineDirection
+import com.microbus.announcer.service.LocationService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -147,7 +153,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.Timer
 import java.util.TimerTask
-import kotlin.collections.set
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -156,23 +161,15 @@ class MainFragment : Fragment() {
 
     private var tag = javaClass.simpleName
 
+    private lateinit var utils: Utils
+
+    private var _binding: FragmentMainBinding? = null
+    val binding get() = _binding!!
+
+    private lateinit var prefs: SharedPreferences
+
     private val appRootPath =
         Environment.getExternalStorageDirectory().absolutePath + "/Announcer"
-
-    /**正前往下一站标志*/
-    private val onNext = 0
-
-    /**正前往下一站标志*/
-    private val onWillArrive = 1
-
-    /**已到达站点标志*/
-    private val onArrive = 2
-
-    /**路线上行标志*/
-    val onUp = 0
-
-    /**路线下行标志*/
-    val onDown = 1
 
     val lastDistanceToStationList = ArrayList<Double>()
     val currentDistanceToStationList = ArrayList<Double>()
@@ -180,12 +177,6 @@ class MainFragment : Fragment() {
     val reverseLastDistanceToStationList = ArrayList<Double>()
     val reverseCurrentDistanceToStationList = ArrayList<Double>()
 
-    private lateinit var utils: Utils
-
-    private var _binding: FragmentMainBinding? = null
-    val binding get() = _binding!!
-
-    private lateinit var prefs: SharedPreferences
 
     private var lastTimeMillis = System.currentTimeMillis()
     private var currentTimeMillis = System.currentTimeMillis()
@@ -230,7 +221,7 @@ class MainFragment : Fragment() {
 //    private var currentLineStationIdList = ArrayList<Int>()
 
     /**当前路线站点运行方向（上下行）*/
-    var currentLineDirection = onUp
+    var currentLineDirection = LineDirection.ON_UP
 
     /**当前路线运行方向站点列表*/
     private var currentLineStationList = ArrayList<Station>()
@@ -244,7 +235,7 @@ class MainFragment : Fragment() {
 
     /**当前路线运行站点计数，对应currentLineStation的下标*/
     private var currentLineStationCount = 0
-    private var currentLineStationState: Int = onNext
+    private var currentLineStationState: Int = StationStatus.ON_NEXT
 
     //    private var markerList = ArrayList<Marker>()
     private var circleList = ArrayList<Circle>()
@@ -273,7 +264,7 @@ class MainFragment : Fragment() {
     private var audioFocusRequest: AudioFocusRequest? = null
 
     private lateinit var notificationManager: NotificationManager
-    private lateinit var notification: NotificationCompat.Builder
+    private lateinit var notificationBuilder: Notification.Builder
 
     // 当前上行线路区间始发站下标（-1为未设置）
     private var currentUpLineStartingIndex = -1
@@ -559,15 +550,15 @@ class MainFragment : Fragment() {
 
         //获取当前方向路线站点下标（String形式）序列
         val currentLineStationIndexStrList = when (currentLineDirection) {
-            onUp -> currentLine.upLineStation.split(' ')
-            onDown -> currentLine.downLineStation.split(' ')
+            LineDirection.ON_UP -> currentLine.upLineStation.split(' ')
+            LineDirection.ON_DOWN -> currentLine.downLineStation.split(' ')
             else -> List(0) { "" }
         }
 
         //获取当前反向向路线站点下标（String形式）序列
         val currentReverseLineStationIndexStrList = when (currentLineDirection) {
-            onUp -> currentLine.downLineStation.split(' ')
-            onDown -> currentLine.upLineStation.split(' ')
+            LineDirection.ON_UP -> currentLine.downLineStation.split(' ')
+            LineDirection.ON_DOWN -> currentLine.upLineStation.split(' ')
             else -> List(0) { "" }
         }
 
@@ -590,15 +581,19 @@ class MainFragment : Fragment() {
             }
             // 云端路线
             else if (strIndex.toIntOrNull() != null) {
-//                Log.d(
-//                    tag,
-//                    "strIndex: ${strIndex.toInt()} ${cloudStationList.find { it.id == strIndex.toInt() }!!.cnName}"
-//                )
-                currentLineStationList.add(cloudStationList.find { it.id == strIndex.toInt() }!!)
-                Log.d(
-                    tag,
-                    "${currentLineStationList.last().cnName}\t${currentLineStationList.last().enName}"
-                )
+                val cloudStation =
+                    cloudStationList.find { station -> station.id == strIndex.toInt() }
+                if (cloudStation != null) {
+                    currentLineStationList.add(cloudStation.copy())
+                } else {
+                    currentLineStationList.add(
+                        Station(
+                            id = Int.MAX_VALUE,
+                            cnName = "未知站点",
+                            enName = "unknown"
+                        )
+                    )
+                }
             }
 
             if (currentLineStationList.isNotEmpty()) {
@@ -870,6 +865,7 @@ class MainFragment : Fragment() {
 
         locationClient.startLocation()
 
+
     }
 
     /**
@@ -898,7 +894,7 @@ class MainFragment : Fragment() {
                     .setNeutralButton(resources.getString(R.string.setAsLineName)) { _, _ ->
                         currentLine.name = dialogBinding.lineNameInput.text.toString()
                         binding.headerMiddleNew.showText(currentLine.name)
-                        refreshUI(true)
+                        binding.headerMiddleNew.requestLayout()
                     }
                     .setPositiveButton(
                         resources.getString(R.string.out_line_running)
@@ -906,7 +902,7 @@ class MainFragment : Fragment() {
                         val line = Line(name = getString(R.string.main_line_0))
                         originLine = line
                         initLineInterval()
-                        currentLineStationState = onNext
+                        currentLineStationState = StationStatus.ON_NEXT
                         binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
                         loadLine(line)
                         utils.haptic(binding.headerMiddleNew)
@@ -1047,7 +1043,7 @@ class MainFragment : Fragment() {
                                                 if (lineInfoList[which] != "") {
                                                     originLine = otherLineList[which]
                                                     initLineInterval()
-                                                    currentLineStationState = onNext
+                                                    currentLineStationState = StationStatus.ON_NEXT
                                                     binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
                                                     loadLine(otherLineList[which])
                                                     utils.haptic(binding.headerMiddleNew)
@@ -1261,7 +1257,11 @@ class MainFragment : Fragment() {
                     utils.showRequestLocationPermissionDialog(permissionManager)
                     return@addOnCheckedChangeListener
                 }
+
                 locationClient.startLocation()
+//                val intent = Intent(requireContext(), LocationService::class.java)
+//                requireContext().startForegroundService(intent)
+
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 1f
                 binding.navStationCard.visibility = VISIBLE
@@ -1324,9 +1324,9 @@ class MainFragment : Fragment() {
             }
 
             currentLineDirection = if (checkedId == binding.lineDirectionBtnUp.id) {
-                onUp
+                LineDirection.ON_UP
             } else {
-                onDown
+                LineDirection.ON_DOWN
             }
 
             if (currentLine.id == null) return@addOnButtonCheckedListener
@@ -1360,7 +1360,7 @@ class MainFragment : Fragment() {
                 return@setOnClickListener
             }
             if (currentLineStationCount != 0) {
-                setStationAndState(0, onNext)
+                setStationAndState(0, StationStatus.ON_NEXT)
                 utils.haptic(binding.startingStation)
             }
 
@@ -1373,7 +1373,7 @@ class MainFragment : Fragment() {
                 return@setOnClickListener
             }
             if (currentLineStationCount != currentLineStationList.size - 1) {
-                setStationAndState(currentLineStationList.size - 1, onArrive)
+                setStationAndState(currentLineStationList.size - 1, StationStatus.ON_ARRIVE)
                 utils.haptic(binding.terminal)
             }
 
@@ -1511,7 +1511,7 @@ class MainFragment : Fragment() {
 
             // 切换到起点站
             if (currentLineStationCount != 0) {
-                setStationAndState(0, onNext)
+                setStationAndState(0, StationStatus.ON_NEXT)
                 utils.haptic(binding.startingStation)
             }
 
@@ -1591,8 +1591,8 @@ class MainFragment : Fragment() {
             }
 
             val directionStr = when (lineEditorLineDirection) {
-                onUp -> "上行"
-                onDown -> "下行"
+                LineDirection.ON_UP -> "上行"
+                LineDirection.ON_DOWN -> "下行"
                 else -> ""
             }
 
@@ -1625,7 +1625,7 @@ class MainFragment : Fragment() {
                 if (lineEditorMode == "new") {
 
                     // 上行
-                    if (lineEditorLineDirection == onUp) {
+                    if (lineEditorLineDirection == LineDirection.ON_UP) {
                         val continueEditDownDialog = MaterialAlertDialogBuilder(
                             requireContext(),
                             R.style.CustomAlertDialogStyle
@@ -1685,7 +1685,7 @@ class MainFragment : Fragment() {
                     }
 
                     // 下行
-                    else if (lineEditorLineDirection == onDown) {
+                    else if (lineEditorLineDirection == LineDirection.ON_DOWN) {
                         // todo
                         lineEditorDownLineStationListStr = stationIdListStr
                     }
@@ -1703,11 +1703,11 @@ class MainFragment : Fragment() {
                     val oldLine = lineDatabaseHelper.queryById(lineEditorLineId).first()
 
                     when (lineEditorLineDirection) {
-                        onUp -> {
+                        LineDirection.ON_UP -> {
                             oldLine.upLineStation = stationIdListStr
                         }
 
-                        onDown -> {
+                        LineDirection.ON_DOWN -> {
                             oldLine.downLineStation = stationIdListStr
                         }
 
@@ -1723,7 +1723,7 @@ class MainFragment : Fragment() {
                     binding.editLine.visibility = GONE
                     lineEditorLineId = -1
                     lineEditorStationList.clear()
-                    lineEditorLineDirection = onUp
+                    lineEditorLineDirection = LineDirection.ON_UP
 
                     dialog.dismiss()
                 }
@@ -1885,12 +1885,19 @@ class MainFragment : Fragment() {
 
     }
 
+    var ttsReady = false
+
     @OptIn(UnstableApi::class)
     private fun initAnnouncement() {
+
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 tts.language = Locale.CHINA
+                ttsReady = true
+            } else {
+                utils.showMsg("TTS加载失败")
             }
+            Log.d("L1895", status.toString())
         }
 
         //设置音频属性
@@ -2097,7 +2104,7 @@ class MainFragment : Fragment() {
                     planLine.downLineStation = planLine.downLineStation.substring(0, length - 1)
                     originLine = planLine
                     initLineInterval()
-                    currentLineStationState = onNext
+                    currentLineStationState = StationStatus.ON_NEXT
                     binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
                     loadLine(planLine)
                 } else {
@@ -2118,7 +2125,7 @@ class MainFragment : Fragment() {
     // 当前路线编辑路线信息
     var lineEditorLineId = -1
     var lineEditorLineName = ""
-    var lineEditorLineDirection = onUp
+    var lineEditorLineDirection = LineDirection.ON_UP
 
     var lineEditorUpLineStationListStr = ""
     var lineEditorDownLineStationListStr = ""
@@ -2415,7 +2422,7 @@ class MainFragment : Fragment() {
         notificationManager =
             requireContext().getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val notificationChannel =
-            NotificationChannel("0", "路线运行中", NotificationManager.IMPORTANCE_HIGH)
+            NotificationChannel("0", "路线运行实况", NotificationManager.IMPORTANCE_HIGH)
         notificationManager.createNotificationChannel(notificationChannel)
 
         //初始化通知本体
@@ -2428,9 +2435,9 @@ class MainFragment : Fragment() {
             arrayOf(intent),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        notification =
-            NotificationCompat.Builder(requireContext(), "0").setSmallIcon(R.mipmap.an)
-                .setPriority(NotificationManager.IMPORTANCE_HIGH)
+        notificationBuilder =
+            Notification.Builder(requireContext(), "0")
+                .setSmallIcon(R.mipmap.an)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
                 .setWhen(System.currentTimeMillis())
@@ -2488,21 +2495,21 @@ class MainFragment : Fragment() {
                 val chosenStationEnName = currentLineStationList[position].enName
 
                 var currentLineStartingIndex = when (currentLineDirection) {
-                    onUp -> currentUpLineStartingIndex
-                    onDown -> currentDownLineStartingIndex
+                    LineDirection.ON_UP -> currentUpLineStartingIndex
+                    LineDirection.ON_DOWN -> currentDownLineStartingIndex
                     else -> 0
                 }
 
                 var currentLineTerminalIndex = when (currentLineDirection) {
-                    onUp -> currentUpLineTerminalIndex
-                    onDown -> currentDownLineTerminalIndex
+                    LineDirection.ON_UP -> currentUpLineTerminalIndex
+                    LineDirection.ON_DOWN -> currentDownLineTerminalIndex
                     else -> 0
                 }
 
                 // 上/下行线路
                 val lineList: List<String> = when (currentLineDirection) {
-                    onUp -> currentLine.upLineStation.split(" ")
-                    onDown -> currentLine.downLineStation.split(" ")
+                    LineDirection.ON_UP -> currentLine.upLineStation.split(" ")
+                    LineDirection.ON_DOWN -> currentLine.downLineStation.split(" ")
                     else -> ArrayList()
                 }
 
@@ -2633,7 +2640,7 @@ class MainFragment : Fragment() {
                                     if (!hasLoad && onlineLine.upLineStation != "" && onlineLine.downLineStation != "") {
                                         originLine = onlineLine
                                         initLineInterval()
-                                        currentLineStationState = onNext
+                                        currentLineStationState = StationStatus.ON_NEXT
                                         binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
                                         loadLine(onlineLine)
                                         utils.haptic(binding.headerMiddleNew)
@@ -2650,7 +2657,7 @@ class MainFragment : Fragment() {
 //            utils.showMsg(localLineList.first().name)
             originLine = localLineList.first()
             initLineInterval()
-            currentLineStationState = onNext
+            currentLineStationState = StationStatus.ON_NEXT
             binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
             loadLine(originLine)
             utils.haptic(binding.headerMiddleNew)
@@ -2866,7 +2873,7 @@ class MainFragment : Fragment() {
             ) {
 
                 //当前站点及状态相同，直接返回
-                if ((lineStationList[i].id == currentLineStation.id && currentLineStationState == onArrive)) {
+                if ((lineStationList[i].id == currentLineStation.id && currentLineStationState == StationStatus.ON_ARRIVE)) {
                     return true
                 }
 
@@ -2878,7 +2885,7 @@ class MainFragment : Fragment() {
                 if (isReverseLine) {
                     reverseLineDirection()
                 } else {
-                    setStationAndState(i, onArrive)
+                    setStationAndState(i, StationStatus.ON_ARRIVE)
                 }
 
                 // 自动切换线路方向
@@ -2907,7 +2914,7 @@ class MainFragment : Fragment() {
             ) {
 
                 //当前站点及状态相同，直接返回
-                if (((currentLineStationState == onWillArrive || currentLineStationState == onArrive))
+                if (((currentLineStationState == StationStatus.ON_WILL_ARRIVE || currentLineStationState == StationStatus.ON_ARRIVE))
                     && lineStationList[i].id == currentLineStation.id
                 ) {
                     return true
@@ -2926,7 +2933,7 @@ class MainFragment : Fragment() {
 //                    setStationAndState(i, onNext)
 //                }
                 else {
-                    setStationAndState(i, onWillArrive)
+                    setStationAndState(i, StationStatus.ON_WILL_ARRIVE)
                 }
 
                 announce()
@@ -2952,15 +2959,15 @@ class MainFragment : Fragment() {
                 }
 
                 // 上行终点站出站
-                else if (currentLineDirection == onUp && i >= lineStationList.size - 1 && utils.getSwitchDirectionWhenOutFromTerminalWithOnUp()) {
+                else if (currentLineDirection == LineDirection.ON_UP && i >= lineStationList.size - 1 && utils.getSwitchDirectionWhenOutFromTerminalWithOnUp()) {
                     if (!currentLine.isRingRoute) {
                         reverseLineDirection()
                     }
-                    setStationAndState(1, onNext)
+                    setStationAndState(1, StationStatus.ON_NEXT)
                     announce()
                     utils.longHaptic()
                 } else if (i < lineStationList.size - 1) {
-                    setStationAndState(i + 1, onNext)
+                    setStationAndState(i + 1, StationStatus.ON_NEXT)
                     announce()
                     utils.longHaptic()
                 }
@@ -3127,14 +3134,14 @@ class MainFragment : Fragment() {
 
                     currentLineStationCount - 1 -> {
                         mPolylineLatLngLists[0].add(latLngList[i])
-                        if (currentLineStationState == onNext)
+                        if (currentLineStationState == StationStatus.ON_NEXT)
                             mPolylineLatLngLists[1].add(latLngList[i])
                         else
                             mPolylineLatLngLists[0].add(latLngList[i])
                     }
 
                     currentLineStationCount -> {
-                        if (currentLineStationState == onNext)
+                        if (currentLineStationState == StationStatus.ON_NEXT)
                             mPolylineLatLngLists[1].add(latLngList[i])
                         else
                             mPolylineLatLngLists[0].add(latLngList[i])
@@ -3237,23 +3244,23 @@ class MainFragment : Fragment() {
 
         when (currentLineStationState) {
 
-            onNext -> {
+            StationStatus.ON_NEXT -> {
                 if (currentLineStationCount <= 0) return false
                 currentLineStationCount--
                 currentLineStation = currentLineStationList[currentLineStationCount]
-                currentLineStationState = onArrive
+                currentLineStationState = StationStatus.ON_ARRIVE
                 refreshUI()
                 return true
             }
 
-            onWillArrive -> {
-                currentLineStationState = onNext
+            StationStatus.ON_WILL_ARRIVE -> {
+                currentLineStationState = StationStatus.ON_NEXT
                 refreshUI()
                 return true
             }
 
-            onArrive -> {
-                currentLineStationState = onWillArrive
+            StationStatus.ON_ARRIVE -> {
+                currentLineStationState = StationStatus.ON_WILL_ARRIVE
                 refreshUI()
                 return true
             }
@@ -3272,23 +3279,24 @@ class MainFragment : Fragment() {
 
         when (currentLineStationState) {
 
-            onNext -> {
-                currentLineStationState = onWillArrive
+            StationStatus.ON_NEXT -> {
+//                currentLineStationState = StationStatus.ON_WILL_ARRIVE
+                currentLineStationState = StationStatus.ON_ARRIVE
                 refreshUI()
                 return true
             }
 
-            onWillArrive -> {
-                currentLineStationState = onArrive
+            StationStatus.ON_WILL_ARRIVE -> {
+                currentLineStationState = StationStatus.ON_ARRIVE
                 refreshUI()
                 return true
             }
 
-            onArrive -> {
+            StationStatus.ON_ARRIVE -> {
                 if (currentLineStationCount >= currentLineStationList.size - 1) return false
                 currentLineStationCount++
                 currentLineStation = currentLineStationList[currentLineStationCount]
-                currentLineStationState = onNext
+                currentLineStationState = StationStatus.ON_NEXT
                 refreshUI()
                 return true
             }
@@ -3307,15 +3315,15 @@ class MainFragment : Fragment() {
         if (currentLineStation.id == null) return false
 
         when (currentLineStationState) {
-            onWillArrive -> {
+            StationStatus.ON_WILL_ARRIVE -> {
                 return true
             }
 
-            onNext -> {
+            StationStatus.ON_NEXT -> {
                 return true
             }
 
-            onArrive -> {
+            StationStatus.ON_ARRIVE -> {
                 return currentLineStationCount < currentLineStationList.size - 1
             }
 
@@ -3381,9 +3389,9 @@ class MainFragment : Fragment() {
     private fun refreshLineStationListAndNotice() {
 
         val currentStationStateText = when (currentLineStationState) {
-            onNext -> requireContext().resources.getString(R.string.next)
-            onWillArrive -> requireContext().resources.getString(R.string.will_arrive)
-            onArrive -> requireContext().resources.getString(R.string.arrive)
+            StationStatus.ON_NEXT -> requireContext().resources.getString(R.string.next)
+            StationStatus.ON_WILL_ARRIVE -> requireContext().resources.getString(R.string.will_arrive)
+            StationStatus.ON_ARRIVE -> requireContext().resources.getString(R.string.arrive)
             else -> ""
         }
 
@@ -3397,9 +3405,9 @@ class MainFragment : Fragment() {
         binding.navStationName.requestLayout()
 
         binding.navStationSign.text = when (currentLineStationState) {
-            onNext -> "→"
-            onWillArrive -> "↘"
-            onArrive -> "↓"
+            StationStatus.ON_NEXT -> "→"
+            StationStatus.ON_WILL_ARRIVE -> "↘"
+            StationStatus.ON_ARRIVE -> "↓"
             else -> ""
         }
 
@@ -3435,7 +3443,8 @@ class MainFragment : Fragment() {
 
 
         //更新通知
-        if (utils.getNotice()) {
+        // TODO 实时动态开关
+        if (utils.getNotice() && true) {
 
             initNotification()
 
@@ -3456,7 +3465,7 @@ class MainFragment : Fragment() {
                 else
                     " To ${currentLineStationList.last().enName}"
             }
-            notification.setContentTitle(title)
+            notificationBuilder.setContentTitle(title)
 
             // text
             var text = "${binding.currentStationState.text} "
@@ -3464,10 +3473,78 @@ class MainFragment : Fragment() {
                 currentLineStation.cnName
             else
                 currentLineStation.enName
-            notification.setContentText(text)
+            notificationBuilder.setContentText(text)
 
-            notification.setWhen(System.currentTimeMillis())
-            notificationManager.notify(0, notification.build())
+            notificationBuilder.setWhen(System.currentTimeMillis())
+
+            notificationBuilder.setSmallIcon(R.mipmap.an_full_round)
+//            notificationBuilder.setLargeIcon(
+//                BitmapFactory.decodeResource(
+//                    resources,
+//                    R.mipmap.an_round
+//                )
+//            )
+
+            // Android 16.1+
+            if (Build.VERSION.SDK_INT_FULL >= Build.VERSION_CODES_FULL.BAKLAVA_1) {
+
+
+                val progressStyle = Notification.ProgressStyle().apply {
+                    setStyledByProgress(false)
+                    setProgress(currentLineStationList.size) // 设置总进度
+                    // 添加分段 (Segment)
+                    setProgressSegments(
+                        listOf(
+                            Notification.ProgressStyle.Segment(currentLineStationCount)
+                                .setColor("#B6B6B6".toColorInt()),  // 已过
+                            Notification.ProgressStyle
+                                .Segment(currentLineStationList.size - currentLineStationCount - 1)
+                                .setColor("#37B267".toColorInt())     // 前方站
+                        )
+                    )
+
+                    // 设置进度
+                    val originalIcon =
+                        Icon.createWithResource(requireContext(), R.drawable.to_right)
+
+                    setProgressTrackerIcon(
+                        when (currentLineStationState) {
+                            StationStatus.ON_NEXT -> utils.rotateIcon(
+                                requireContext(),
+                                originalIcon,
+                                0f
+                            )
+
+                            StationStatus.ON_WILL_ARRIVE -> utils.rotateIcon(
+                                requireContext(),
+                                originalIcon,
+                                0f
+                            )
+
+                            StationStatus.ON_ARRIVE -> utils.rotateIcon(
+                                requireContext(),
+                                originalIcon,
+                                90f
+                            )
+
+                            else -> utils.rotateIcon(requireContext(), originalIcon, 0f)
+                        }
+                    )
+                    setProgress(currentLineStationCount)
+                }
+
+
+                notificationBuilder
+                    .setRequestPromotedOngoing(true)
+                    .setSmallIcon(utils.createTextIcon(requireContext(),currentLine.name, 96))
+                    .setShortCriticalText(currentLineStationList.last().cnName)
+                    .setStyle(progressStyle)
+
+            }
+
+            notificationManager.notify(0, notificationBuilder.build())
+
+
         }
 
     }
@@ -3580,9 +3657,9 @@ class MainFragment : Fragment() {
                 else -> "Default"
             }
             val stationState = when (currentLineStationState) {
-                onArrive -> "Arrive"
-                onNext -> "Next"
-                onWillArrive -> "WillArrive"
+                StationStatus.ON_ARRIVE -> "Arrive"
+                StationStatus.ON_NEXT -> "Next"
+                StationStatus.ON_WILL_ARRIVE -> "WillArrive"
                 else -> ""
             }
 
@@ -3623,7 +3700,6 @@ class MainFragment : Fragment() {
                             "<second>"
                         ) -> {
                             val str = when (item) {
-//                                "<line>" -> currentLine.name
                                 "<year>" -> LocalDate.now().year.toString()
                                 "<years>" -> (LocalDate.now().year % 100).toString()
                                 "<month>" -> LocalDate.now().monthValue.toString()
@@ -3698,7 +3774,7 @@ class MainFragment : Fragment() {
                             } else
                                 item.drop(3).dropLast(1)
                             mediaList.add(
-                                when (lang) {
+                                "/${lang}/station/" + when (lang) {
                                     "cn" -> station.cnName
                                     "en" -> station.enName
                                     else -> "/${lang}/station/" + utils.getStationNameFromCn(
@@ -3736,7 +3812,7 @@ class MainFragment : Fragment() {
 
             val utteranceIdDoneList = ArrayList<String>()
 
-            if (utils.getIsUseTTS()) {
+            if (utils.getIsUseTTS() && ttsReady) {
 
                 File("$tempFilePath/tts").walkTopDown().forEach {
                     it.delete()
@@ -3766,6 +3842,8 @@ class MainFragment : Fragment() {
             // 查找本地音频/合成TTS音频
             val supportMediaFormatList = listOf("mp3", "wav", "ogg", "aac", "flac", "m4a")
             for (voice in mediaList) {
+
+                Log.d("L3770", voice)
 
                 var localFile = File("")
                 for (format in supportMediaFormatList) {
@@ -4040,7 +4118,7 @@ class MainFragment : Fragment() {
                 if (lineInfoList[which] != "") {
                     originLine = sortedMatchLineList[which]
                     initLineInterval()
-                    currentLineStationState = onNext
+                    currentLineStationState = StationStatus.ON_NEXT
                     binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
                     loadLine(sortedMatchLineList[which])
                     utils.haptic(binding.headerMiddleNew)
@@ -4103,7 +4181,7 @@ class MainFragment : Fragment() {
             override fun onItemClick(line: Line) {
                 originLine = line
                 initLineInterval()
-                currentLineStationState = onNext
+                currentLineStationState = StationStatus.ON_NEXT
                 binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
                 binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
                 loadLine(line)
@@ -4401,7 +4479,7 @@ class MainFragment : Fragment() {
 
             originLine = allStationLine
             initLineInterval()
-            currentLineStationState = onArrive
+            currentLineStationState = StationStatus.ON_ARRIVE
             binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
             loadLine(allStationLine)
 
@@ -4494,7 +4572,7 @@ class MainFragment : Fragment() {
         CoroutineScope(Dispatchers.Main).launch {
             originLine = line
             initLineInterval()
-            currentLineStationState = onNext
+            currentLineStationState = StationStatus.ON_NEXT
             binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
             loadLine(line)
             utils.haptic(binding.headerMiddleNew)
@@ -4595,9 +4673,9 @@ class MainFragment : Fragment() {
 
     fun getStationStateTypeMap(): HashMap<String, Int> {
         val typeMap = HashMap<String, Int>()
-        typeMap["N"] = onNext
-        typeMap["W"] = onWillArrive
-        typeMap["A"] = onArrive
+        typeMap["N"] = StationStatus.ON_NEXT
+        typeMap["W"] = StationStatus.ON_WILL_ARRIVE
+        typeMap["A"] = StationStatus.ON_ARRIVE
         return typeMap
     }
 
@@ -4733,8 +4811,8 @@ class MainFragment : Fragment() {
 
         //获取当前方向路线站点下标（String形式）序列
         val currentLineStationIndexStrList = when (lineEditorLineDirection) {
-            onUp -> line.upLineStation.split(' ')
-            onDown -> line.downLineStation.split(' ')
+            LineDirection.ON_UP -> line.upLineStation.split(' ')
+            LineDirection.ON_DOWN -> line.downLineStation.split(' ')
             else -> List(0) { "" }
         }
 
@@ -4945,7 +5023,7 @@ class MainFragment : Fragment() {
                             0
 
                         currentLineStationCount ->
-                            if (currentLineStationState == onNext)
+                            if (currentLineStationState == StationStatus.ON_NEXT)
                                 1
                             else
                                 0
@@ -5101,7 +5179,7 @@ class MainFragment : Fragment() {
         binding.editLine.visibility = GONE
         lineEditorLineId = -1
         lineEditorStationList.clear()
-        lineEditorLineDirection = onUp
+        lineEditorLineDirection = LineDirection.ON_UP
     }
 
     // 设置区间线
@@ -5114,22 +5192,24 @@ class MainFragment : Fragment() {
         newLine.id = originLine.id
         newLine.name = originLine.name
         newLine.isUpAndDownInvert = originLine.isUpAndDownInvert
+        newLine.upLineStation = originLine.upLineStation
+        newLine.downLineStation = originLine.downLineStation
 
         val stationRange = lineList.slice(currentLineStartingIndex..currentLineTerminalIndex)
         val stationStr = stationRange.joinToString(" ")
 
         when (currentLineDirection) {
-            onUp -> {
-                newLine.downLineStation = currentLine.downLineStation
+            LineDirection.ON_UP -> {
                 newLine.upLineStation = stationStr
             }
 
-            onDown -> {
-                newLine.upLineStation = currentLine.upLineStation
+            LineDirection.ON_DOWN -> {
                 newLine.downLineStation = stationStr
             }
         }
 
+        Log.d("L5190", newLine.upLineStation)
+        Log.d("L5190", newLine.downLineStation)
         loadLine(newLine)
 
         utils.haptic(binding.headerMiddleNew)

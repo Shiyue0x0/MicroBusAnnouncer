@@ -6,6 +6,7 @@ easypermissions = "3.0.0"
 exoplayerCore = "2.19.1"
 exoplayerHls = "2.19.1"
 exoplayerDash = "2.19.1"
+focusApi = "1.4"
 fragmentKtx = "1.9.0"
 gson = "2.14.0"
 kotlin = "2.4.10"
@@ -50,6 +51,7 @@ easypermissions = { module = "pub.devrel:easypermissions", version.ref = "easype
 exoplayer-dash = { module = "com.google.android.exoplayer:exoplayer-dash", version.ref = "exoplayerDash" }
 exoplayer-hls = { module = "com.google.android.exoplayer:exoplayer-hls", version.ref = "exoplayerHls" }
 exoplayer-core = { module = "com.google.android.exoplayer:exoplayer-core", version.ref = "exoplayerCore" }
+focus-api = { module = "com.xzakota.hyper.notification:focus-api", version.ref = "focusApi" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }

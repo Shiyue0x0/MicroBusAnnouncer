@@ -39,6 +39,11 @@ class PermissionManager(private val context: Context, private val activity: Acti
         if (Build.VERSION.SDK_INT >= 33)
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
 
+        // Android 16.1+
+        if (Build.VERSION.SDK_INT_FULL >= Build.VERSION_CODES_FULL.BAKLAVA_1) {
+            permissions.add(Manifest.permission.POST_PROMOTED_NOTIFICATIONS)
+        }
+
         return requestPermission(permissions, REQUEST_ALL)
 
     }

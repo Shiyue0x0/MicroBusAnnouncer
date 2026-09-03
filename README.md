@@ -48,7 +48,7 @@
 
 无需过多配置，只需要一些步骤即可体验Announcer的基本功能。
 
-1. 准备一台Android 8.0+的手机，从 `GitHub` 或 `Gitee` 下载最新版 `应用本体` 和 `体验语音库` ：
+1. 准备一台Android 8.1+的手机，从 `GitHub` 或 `Gitee` 下载最新版 `应用本体` 和 `体验语音库` ：
 
       GitHub:  [![Latest release](https://img.shields.io/github/v/release/Shiyue0x0/MicroBusAnnouncer?label=Release&logo=github)](https://github.com/Shiyue0x0/MicroBusAnnouncer/releases/latest)
    

@@ -44,16 +44,6 @@
         android:layout_height="wrap_content">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/onlineSearch"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:layout_weight="1"
-            android:text="@string/online_search"
-            app:icon="@drawable/cloud_search" />
-
-        <com.google.android.material.button.MaterialButton
             android:id="@+id/switchToLineAll"
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
@@ -62,6 +52,16 @@
             android:layout_weight="1"
             android:text="@string/line_all"
             app:icon="@drawable/name_a" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/onlineSearch"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:layout_weight="1"
+            android:text="@string/online_search"
+            app:icon="@drawable/cloud_search" />
 
     </LinearLayout>
 

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -139,6 +140,7 @@ class LineAdapter(
         else {
             val holder = holder as LineViewHolder
             val position = position - 1
+            Log.d("L143", "${allLineList[position].id}")
             holder.line = lineDatabaseHelper.queryById(allLineList[position].id ?: -1).first()
             holder.lineName.text = holder.line.name
 
@@ -220,7 +222,7 @@ class LineAdapter(
                 override fun onItemClick(view: View?, position: Int) {
                     val adapter = holder.lineStationList.adapter as StationOfLineAdapter
                     val station = adapter.stationList[position]
-                    utils.showMsg("${station.cnName}[${station.id}]\n${station.enName}")
+//                    utils.showMsg("${station.cnName}[${station.id}]\n${station.enName}", true)
                     utils.haptic(holder.lineStationList)
 
                     val intent = Intent()
@@ -320,7 +322,7 @@ class LineAdapter(
                 0 -> "已切换到上行"
                 1 -> "已切换到下行"
                 else -> "切换错误"
-            },true
+            }, true
         )
 
     }
@@ -332,7 +334,6 @@ class LineAdapter(
     override fun getItemId(position: Int): Long {
         return position.toLong()
     }
-
 
     override fun getItemViewType(position: Int): Int {
         return if (position == 0)
@@ -380,7 +381,9 @@ class LineAdapter(
                 .setPositiveButton("提交", null)
                 .setNeutralButton("删除路线") { _, _ ->
                     lineDatabaseHelper.delById(holder.line.id ?: -1)
-                    notifyItemRemoved(position)
+                    allLineList.removeAll { it.id == (holder.line.id ?: -1) }
+                    notifyItemRemoved(position + 1)
+                    notifyItemRangeChanged(position + 1, itemCount - (position + 1))
                 }
                 .setNegativeButton("到地图编辑") { _, _ ->
 

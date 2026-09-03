@@ -24,11 +24,9 @@
         <com.amap.api.maps.MapView
             android:id="@+id/map"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-        </com.amap.api.maps.MapView>
+            android:layout_height="match_parent"></com.amap.api.maps.MapView>
 
     </com.microbus.announcer.view.Container>
-
 
 
     <!--  状态栏填充  -->
@@ -685,7 +683,9 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/switch_location"
-                            app:icon="@drawable/location_on" />
+                            android:textColor="@color/text_color_selector"
+                            app:icon="@drawable/location_on"
+                            app:iconTint="@color/text_color_selector" />
 
                     </com.google.android.material.button.MaterialButtonToggleGroup>
 
@@ -702,8 +702,9 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/switch_map"
-
-                            app:icon="@drawable/map" />
+                            android:textColor="@color/text_color_selector"
+                            app:icon="@drawable/map"
+                            app:iconTint="@color/text_color_selector" />
 
                     </com.google.android.material.button.MaterialButtonToggleGroup>
 
@@ -720,14 +721,18 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:minWidth="0dp"
-                            android:text="@string/up_line" />
+                            android:text="@string/up_line"
+                            android:textColor="@color/text_color_selector"
+                            app:iconTint="@color/text_color_selector" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/lineDirectionBtnDown"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:minWidth="0dp"
-                            android:text="@string/down_line" />
+                            android:text="@string/down_line"
+                            android:textColor="@color/text_color_selector"
+                            app:iconTint="@color/text_color_selector" />
 
                     </com.google.android.material.button.MaterialButtonToggleGroup>
 
@@ -887,56 +892,52 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/mapLocation"
             style="?attr/materialIconButtonFilledStyle"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_marginEnd="16dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:contentDescription=""
             app:backgroundTint="@color/an_contain_bg_tran"
             app:icon="@drawable/location"
             app:iconGravity="textTop"
-            app:iconTint="@color/md_theme_primary"
-            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+            app:iconSize="22dp"
+            app:iconTint="@color/md_theme_primary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/switchPowerSavingMode"
             style="?attr/materialIconButtonFilledStyle"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_marginEnd="16dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:contentDescription=""
             app:backgroundTint="@color/an_contain_bg_tran"
             app:icon="@drawable/power_saving"
             app:iconGravity="textTop"
-            app:iconTint="@color/md_theme_primary"
-            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+            app:iconSize="22dp"
+            app:iconTint="@color/md_theme_primary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/editLine"
             style="?attr/materialIconButtonFilledStyle"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_marginEnd="16dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:contentDescription="@string/starting_station"
             android:visibility="gone"
             app:backgroundTint="@color/an_contain_bg_tran"
             app:icon="@drawable/edit"
             app:iconGravity="textTop"
-            app:iconTint="@color/md_theme_primary"
-            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+            app:iconSize="22dp"
+            app:iconTint="@color/md_theme_primary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/stopAnnouncement"
             style="?attr/materialIconButtonFilledStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="60dp"
-            android:layout_marginEnd="16dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:contentDescription="@string/starting_station"
             android:visibility="gone"
             app:backgroundTint="@color/an_contain_bg_tran"
             app:icon="@drawable/stop"
             app:iconGravity="textTop"
-            app:iconTint="@color/md_theme_primary"
-            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+            app:iconSize="22dp"
+            app:iconTint="@color/md_theme_primary" />
 
     </LinearLayout>
 
@@ -954,25 +955,25 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/runningInfo"
             style="?attr/materialIconButtonFilledStyle"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_marginStart="16dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:contentDescription=""
             app:backgroundTint="@color/an_contain_bg_tran"
             app:icon="@drawable/list"
             app:iconGravity="textTop"
+            app:iconSize="22dp"
             app:iconTint="@color/md_theme_primary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/serviceBtn"
             style="?attr/materialIconButtonFilledStyle"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_marginStart="16dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:contentDescription=""
             app:backgroundTint="@color/an_contain_bg_tran"
             app:icon="@drawable/service"
             app:iconGravity="textTop"
+            app:iconSize="22dp"
             app:iconTint="@color/md_theme_primary" />
 
     </LinearLayout>

@@ -5,7 +5,7 @@
     <color name="an_text_0">#C8C8C8</color>
     <color name="an_text_1">#646464</color>
 
-    <color name="md_theme_surface_tran">#B3FAF8FF</color>
-    <color name="md_theme_surface_tran2">#DCFAF8FF</color>
+    <color name="md_theme_surface_tran">#1A3383FF</color>
+    <color name="md_theme_surface_tran2">#0A3383FF</color>
 
 </resources>

@@ -1,6 +1,7 @@
 package com.microbus.announcer
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -8,6 +9,13 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Environment
 import android.os.VibrationEffect
@@ -21,6 +29,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
+import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import androidx.core.os.LocaleListCompat
 import androidx.preference.PreferenceManager
@@ -50,6 +59,7 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import androidx.core.graphics.toColorInt
 
 
 class Utils(private val context: Context) {
@@ -573,7 +583,7 @@ class Utils(private val context: Context) {
             alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).text = "删除"
             alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
                 .setOnClickListener {
-                    stationDatabaseHelper.delById(oldStation.id!!)
+                    stationDatabaseHelper.delById(oldStation.id ?: -1)
                     alertDialog.dismiss()
                     onDelDone()
                 }
@@ -1439,6 +1449,53 @@ class Utils(private val context: Context) {
 
     fun isOperationLock(): Boolean {
         return false;
+    }
+
+    @SuppressLint("UseKtx")
+    fun rotateIcon(context: Context?, icon: Icon, degrees: Float): Icon {
+        // 1. 将 Icon 转为 Bitmap
+        val bitmap = icon.loadDrawable(context)?.let { drawable ->
+            val bmp = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
+            val canvas = Canvas(bmp)
+            drawable.setBounds(0, 0, canvas.width, canvas.height)
+            drawable.draw(canvas)
+            bmp
+        } ?: return icon
+
+        // 2. 旋转 Bitmap
+        val matrix = Matrix().apply { postRotate(degrees) }
+        val rotatedBitmap = Bitmap.createBitmap(
+            bitmap,
+            0,
+            0,
+            bitmap.width,
+            bitmap.height,
+            matrix,
+            true
+        )
+
+        // 3. 转回 Icon
+        return Icon.createWithBitmap(rotatedBitmap)
+    }
+
+    fun createTextIcon(context: Context, text: String, size: Int = 64): Icon {
+        val bitmap = createBitmap(size, size)
+        val canvas = Canvas(bitmap)
+
+        // 文字
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textSize = size * 0.6f
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+        }
+
+        // 垂直居中
+        val metrics = textPaint.fontMetrics
+        val y = size / 2f - (metrics.ascent + metrics.descent) / 2f
+        canvas.drawText(text, size / 2f, y, textPaint)
+
+        return Icon.createWithBitmap(bitmap)
     }
 }
 

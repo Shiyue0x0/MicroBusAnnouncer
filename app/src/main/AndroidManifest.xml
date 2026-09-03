@@ -38,10 +38,17 @@
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="AllFilesAccessPolicy,ScopedStorage" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission
         android:name="android.permission.POST_NOTIFICATIONS"
         android:minSdkVersion="33" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="false" />
 
     <queries>
         <intent>
@@ -98,17 +105,18 @@
             android:name="com.amap.api.v2.apikey"
             android:value="@string/amapKey_android" />
 
-        <activity
-            android:name=".fragment.LowPowerMainFragment"
-            android:exported="false"
-            android:label="@string/title_activity_low_power_main_fragment"
-            android:theme="@style/Theme.MicroBusAnnouncer"
-            android:windowSoftInputMode="adjustResize" />
-
         <service
             android:name=".service.AnnounceService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
+
+
+        <service
+            android:name=".service.LocationService"
+            android:enabled="true"
+            android:exported="true"
+            android:foregroundServiceType="location" />
+
     </application>
 
 </manifest>

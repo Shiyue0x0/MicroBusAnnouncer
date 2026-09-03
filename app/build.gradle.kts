@@ -18,18 +18,28 @@ android {
         versionCode = 314
         versionName =
             versionCode.toString().toCharArray().joinToString(".") + "-" + LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("yyMMdd-HHmm"))
+                //noinspection WrongGradleMethod
+                .format(DateTimeFormatter.ofPattern("yyMMdd-HHmm")) + "-" + if (gradle.startParameter.taskNames.any {
+                    it.contains(
+                        "Release",
+                        ignoreCase = true
+                    )
+                }) {
+                "release"
+            } else {
+                "debug"
+            }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
             isShrinkResources = false
             signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(
+//                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
 
         }
     }
@@ -103,7 +113,6 @@ dependencies {
     implementation(files("libs/AMap3DMap_11.2.100_AMapSearch_9.8.1_AMapLocation_11.2.100_20260805.jar"))
     implementation(libs.appleliquidglassforandroid)
 
-
     // miuix
     implementation(libs.miuix.ui.android)
 
@@ -111,7 +120,6 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
 
     // Test
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 
     // debug
