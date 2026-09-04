@@ -56,15 +56,16 @@ import com.microbus.announcer.ui.theme.AnnouncerTheme
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
-// 定义页面枚举
-enum class TabPage(val position: Int, val titleResId: Int, val iconResId: Int) {
-    MAIN(0, R.string.nav_main, R.drawable.keyboard_command_key),
-    LINE(1, R.string.nav_line, R.drawable.line),
-    STATION(2, R.string.nav_station, R.drawable.station),
-    SETTING(3, R.string.nav_setting, R.drawable.settings)
-}
 
 class MainActivity : AppCompatActivity(), TabSwitchListener {
+
+    // 定义页面枚举
+    enum class TabPage(val position: Int, val titleResId: Int, val iconResId: Int) {
+        MAIN(0, R.string.nav_main, R.drawable.keyboard_command_key),
+        LINE(1, R.string.nav_line, R.drawable.line),
+        STATION(2, R.string.nav_station, R.drawable.station),
+        SETTING(3, R.string.nav_setting, R.drawable.settings)
+    }
 
     var tag: String = javaClass.simpleName
     private lateinit var utils: Utils

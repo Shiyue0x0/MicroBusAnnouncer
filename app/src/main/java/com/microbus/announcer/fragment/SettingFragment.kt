@@ -24,7 +24,7 @@ import com.microbus.announcer.fragment.settings.ESSettings
 import com.microbus.announcer.fragment.settings.LocationSettings
 import com.microbus.announcer.fragment.settings.MapSettings
 import com.microbus.announcer.fragment.settings.SystemSettings
-import com.microbus.announcer.fragment.settings.VoiceBroadcastFragment
+import com.microbus.announcer.fragment.settings.VoiceBroadcastSettings
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
@@ -120,7 +120,7 @@ class SettingFragment : Fragment() {
                                 val announcementPreferences = listOf(
                                     ArrowPreferenceItem(
                                         title = getString(R.string.voice_broadcast),
-                                        fragmentClass = VoiceBroadcastFragment::class.java
+                                        fragmentClass = VoiceBroadcastSettings::class.java
                                     ),
                                     ArrowPreferenceItem(
                                         title = getString(R.string.announcement_library),
