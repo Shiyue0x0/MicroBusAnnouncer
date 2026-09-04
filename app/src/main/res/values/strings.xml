@@ -94,10 +94,25 @@
     <string name="online_search">在线搜索</string>
     <string name="setAsLineName">设路线名</string>
     <string name="stationTypeDefault">B</string>
+
     <string name="SysAndEs">系统与电显</string>
     <string name="Announcement">语音与播报</string>
     <string name="MapAndLocation">定位与地图</string>
     <string name="DateAndAbout">数据与关于</string>
+
+    <string name="system">系统</string>
+    <string name="es">电显</string>
+
+    <string name="voice_broadcast">语音播报</string>
+    <string name="announcement_library">语音库</string>
+    <string name="anFormat">播报格式</string>
+
+    <string name="location">定位</string>
+    <string name="map">地图</string>
+
+    <string name="stationAndLineDate">站点与路线数据</string>
+    <string name="about">关于 Announcer</string>
+
     <string name="lineNameDefault">K99</string>
     <string name="SAndTText">起点站 - 终点站</string>
     <string name="lineTypeDefault">B</string>

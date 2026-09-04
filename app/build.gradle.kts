@@ -115,6 +115,8 @@ dependencies {
 
     // miuix
     implementation(libs.miuix.ui.android)
+    implementation(libs.miuix.preference)
+
 
     //exoplayer
     implementation(libs.androidx.media3.exoplayer)

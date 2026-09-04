@@ -16,18 +16,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -53,9 +52,14 @@ import com.microbus.announcer.compose.BaseSettingItem
 import com.microbus.announcer.compose.SwitchSettingItem
 import com.microbus.announcer.databinding.DialogInputBinding
 import com.microbus.announcer.databinding.DialogSliderBinding
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
 
 
-class AnSettingsFragment : Fragment() {
+class AnFormatSettings : Fragment() {
 
     lateinit var utils: Utils
     private lateinit var prefs: SharedPreferences
@@ -107,61 +111,12 @@ class AnSettingsFragment : Fragment() {
     @Preview
     fun MainView() {
 
-        val (announcementLibrary, setAnnouncementLibrary) = remember {
-            mutableStateOf(utils.getAnnouncementLibrary())
-        }
-
-        val (cnVoiceCount, setCnVoiceCount) = remember {
-            mutableIntStateOf(
-                utils.getLibVoiceCount(
-                    "cn"
-                )
-            )
-        }
-
-        val (enVoiceCount, setEnVoiceCount) = remember {
-            mutableIntStateOf(
-                utils.getLibVoiceCount(
-                    "en"
-                )
-            )
-        }
-
         val customLangList = utils.getLangList()
         customLangList.remove("cn")
         customLangList.remove("en")
-        val (customLangListStr, setCustomLangListStr) = remember {
-            mutableStateOf(
-                customLangList.joinToString(" ")
-            )
-        }
-
-        val (useTTS, setUseTTS) = remember {
-            mutableStateOf(utils.getIsUseTTS())
-        }
-
-        val (stationChangeVibrator, setStationChangeVibrator) = remember {
-            mutableStateOf(utils.getIsStationChangeVibrator())
-        }
-
-        val (anSubtitle, setAnSubtitle) = remember {
-            mutableStateOf(utils.getAnSubtitle())
-        }
-
-        val (clickMapPauseAn, setClickMapPauseAn) = remember {
-            mutableStateOf(utils.getClickMapPauseAn())
-        }
 
         val (serviceLanguageStr, setServiceLanguageStr) = remember {
             mutableStateOf(utils.getServiceLanguageStr())
-        }
-
-        val (autoAnInterval, setAutoAnInterval) = remember {
-            mutableStateOf(utils.getAutoAnInterval())
-        }
-
-        val (loudnessBoostAmount, setLoudnessBoostAmount) = remember {
-            mutableStateOf(utils.getLoudnessBoostAmount())
         }
 
         val anFormatArrayOri = Array(3) { Array(4) { "" } }
@@ -189,41 +144,13 @@ class AnSettingsFragment : Fragment() {
 //                utils.showMsg(key ?: "")
                 when (key) {
                     "announcementLibrary" -> {
-                        setAnnouncementLibrary(prefs.getString(key, "") ?: "")
-                        setCnVoiceCount(utils.getLibVoiceCount("cn"))
-                        setEnVoiceCount(utils.getLibVoiceCount("en"))
                         val customLangList = utils.getLangList()
                         customLangList.remove("cn")
                         customLangList.remove("en")
-                        setCustomLangListStr(customLangList.joinToString(" "))
-                    }
-
-                    "useTTS" -> {
-                        setUseTTS(utils.getIsUseTTS())
-                    }
-
-                    "stationChangeVibrator" -> {
-                        setStationChangeVibrator(utils.getIsStationChangeVibrator())
-                    }
-
-                    "anSubtitle" -> {
-                        setAnSubtitle(utils.getAnSubtitle())
-                    }
-
-                    "clickMapPauseAn" -> {
-                        setClickMapPauseAn(utils.getClickMapPauseAn())
                     }
 
                     "serviceLanguageStr" -> {
                         setServiceLanguageStr(utils.getServiceLanguageStr())
-                    }
-
-                    "autoAnInterval" -> {
-                        setAutoAnInterval(utils.getAutoAnInterval())
-                    }
-
-                    "loudnessBoostAmount" -> {
-                        setLoudnessBoostAmount(utils.getLoudnessBoostAmount())
                     }
 
                     else -> {
@@ -249,35 +176,35 @@ class AnSettingsFragment : Fragment() {
             contentColor = colorResource(R.color.md_theme_onSurface),
             color = colorResource(R.color.md_theme_surface)
         ) {
-            MaterialTheme {
-                val scrollState = rememberScrollState()
-                Column(
-                    modifier = Modifier
-                        .verticalScroll(scrollState)
-                        .padding(horizontal = 16.dp)
-                ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        LibraryItem(
-                            announcementLibrary,
-                            cnVoiceCount,
-                            enVoiceCount,
-                            customLangListStr
+            val controller = remember { ThemeController(ColorSchemeMode.System) }
+            MiuixTheme(
+                controller = controller
+            ) {
+                Scaffold(
+                    topBar = {
+                        SmallTopAppBar(
+                            title = getString(R.string.anFormat)
                         )
-                        TTSItem(useTTS, setUseTTS)
-                        TTSSetting()
-                        StationChangeVibratorItem(stationChangeVibrator, setStationChangeVibrator)
-                        AnSubtitleItem(anSubtitle, setAnSubtitle)
-                        ClickMapPauseAnItem(clickMapPauseAn, setClickMapPauseAn)
-                        ServiceLanguageItem(serviceLanguageStr)
-                        AutoAnIntervalItem(autoAnInterval)
-                        LoudnessBoostAmountItem(loudnessBoostAmount)
-                        AnFormatGroup(anFormatArray)
-                        Spacer(modifier = Modifier.height(1.dp))
-                    }
-                }
+                    },
+                    content = { innerPadding ->
+                        val scrollState = rememberScrollState()
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding)
+                                .verticalScroll(scrollState)
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                ServiceLanguageItem(serviceLanguageStr)
+                                AnFormatGroup(anFormatArray)
+                                Spacer(modifier = Modifier.height(1.dp))
+                            }
+                        }
+                    })
+
             }
         }
     }
@@ -305,16 +232,16 @@ class AnSettingsFragment : Fragment() {
                     return@BaseSettingItem
                 }
 
-            //                val loadingDialogBinding =
-            //                    DialogLoadingBinding.inflate(LayoutInflater.from(requireContext()))
-            //                loadingDialogBinding.title.text = "正在加载语音库"
-            //
-            //                val loadingDialog = MaterialAlertDialogBuilder(
-            //                    requireContext(),
-            //                    R.style.CustomAlertDialogStyle
-            //                )
-            //                    .setView(loadingDialogBinding.root)
-            //                    .show()
+                //                val loadingDialogBinding =
+                //                    DialogLoadingBinding.inflate(LayoutInflater.from(requireContext()))
+                //                loadingDialogBinding.title.text = "正在加载语音库"
+                //
+                //                val loadingDialog = MaterialAlertDialogBuilder(
+                //                    requireContext(),
+                //                    R.style.CustomAlertDialogStyle
+                //                )
+                //                    .setView(loadingDialogBinding.root)
+                //                    .show()
 
                 val libraryList = utils.getAnnouncementLibraryList()
                 MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
@@ -616,7 +543,9 @@ class AnSettingsFragment : Fragment() {
     fun LoudnessBoostAmountItem(amount: Int) {
         val itemText = "音量增强幅度"
         BaseSettingItem(
-            itemText, getString(R.string.volumeBoostAmountMdB, amount), painterResource(id = R.drawable.sound),
+            itemText,
+            getString(R.string.volumeBoostAmountMdB, amount),
+            painterResource(id = R.drawable.sound),
             {
                 val binding = DialogSliderBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
@@ -659,6 +588,7 @@ class AnSettingsFragment : Fragment() {
             },
         )
     }
+
     @Composable
     fun AnFormatGroup(anFormatArray: Array<Array<String>>) {
         val stationStateList = utils.getStationStateList()

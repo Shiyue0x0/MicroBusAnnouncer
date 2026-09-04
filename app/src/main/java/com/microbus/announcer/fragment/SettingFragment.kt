@@ -1,82 +1,194 @@
 package com.microbus.announcer.fragment
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
-import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.tabs.TabLayout
-import com.microbus.announcer.adapter.FragFragAdapter
-import com.microbus.announcer.databinding.FragmentSettingBinding
-import com.microbus.announcer.fragment.settings.AnSettingsFragment
-import com.microbus.announcer.fragment.settings.DataAndAboutSettingsFragment
-import com.microbus.announcer.fragment.settings.LocationAndMapSettingsFragment
-import com.microbus.announcer.fragment.settings.SysAndEsSettingsFragment
+import androidx.fragment.compose.content
+import com.microbus.announcer.FragmentContainerActivity
+import com.microbus.announcer.R
+import com.microbus.announcer.fragment.settings.AboutSettings
+import com.microbus.announcer.fragment.settings.AnFormatSettings
+import com.microbus.announcer.fragment.settings.AnnouncementLibrarySettings
+import com.microbus.announcer.fragment.settings.DataSettings
+import com.microbus.announcer.fragment.settings.ESSettings
+import com.microbus.announcer.fragment.settings.LocationSettings
+import com.microbus.announcer.fragment.settings.MapSettings
+import com.microbus.announcer.fragment.settings.SystemSettings
+import com.microbus.announcer.fragment.settings.VoiceBroadcastFragment
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
 
 class SettingFragment : Fragment() {
 
-    private var _binding: FragmentSettingBinding? = null
-    private val binding get() = _binding!!
-
-    private val tag = javaClass.simpleName
-
-    val fragmentList: MutableList<Fragment> = ArrayList()
-
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
-
-        _binding = FragmentSettingBinding.inflate(inflater, container, false)
-
-        //设置状态栏填充高度
-//        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
-//        binding.bar.layoutParams.height = resources.getDimensionPixelSize(resourceId)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-
-        fragmentList.add(SysAndEsSettingsFragment())
-        fragmentList.add(AnSettingsFragment())
-        fragmentList.add(LocationAndMapSettingsFragment())
-        fragmentList.add(DataAndAboutSettingsFragment())
-//        fragmentList.add(SettingPreferenceFragment())
-
-        binding.viewPager.adapter = FragFragAdapter(this, fragmentList)
-        binding.viewPager.offscreenPageLimit = binding.viewPager.adapter!!.itemCount
-
-        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                binding.viewPager.currentItem = tab.position
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab) {
-            }
-
-            override fun onTabReselected(tab: TabLayout.Tab) {
-            }
-        })
-
-        binding.viewPager.registerOnPageChangeCallback(object :
-            ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                super.onPageSelected(position)
-                binding.tabLayout.selectTab(binding.tabLayout.getTabAt(position))
-            }
-        })
-
-        // TODO 左右切换冲突
-
-        return binding.root
-
+    ) = content {
+        MainUI()
     }
 
 
+    @Composable
+    @Preview
+    fun MainUI() {
+
+        data class ArrowPreferenceItem(
+            val title: String = "",
+            val summary: String = "",
+            val fragmentClass: Class<out Fragment>
+        )
+
+        val controller = remember { ThemeController(ColorSchemeMode.System) }
+
+        MiuixTheme(
+            controller = controller
+        ) {
+            Scaffold(
+                topBar = {
+                    SmallTopAppBar(
+                        title = getString(R.string.nav_setting),
+                    )
+                },
+                content = { paddingValues ->
+                    Box(
+                        modifier = Modifier
+                            .padding(top = paddingValues.calculateTopPadding())
+                            .fillMaxSize()
+                    ) {
+                        Column {
+                            val cardModifier = Modifier.padding(
+                                start = 16.dp,
+                                top = 16.dp,
+                                end = 16.dp,
+                                bottom = 0.dp
+                            )
+                            Card(
+                                cornerRadius = 16.dp,
+                                modifier = cardModifier
+                            ) {
+                                val mainPreferences = listOf(
+                                    ArrowPreferenceItem(
+                                        title = getString(R.string.es),
+                                        fragmentClass = ESSettings::class.java
+                                    ),
+
+                                    ArrowPreferenceItem(
+                                        title = getString(R.string.map),
+                                        fragmentClass = MapSettings::class.java
+                                    ),
+                                    ArrowPreferenceItem(
+                                        title = getString(R.string.location),
+                                        fragmentClass = LocationSettings::class.java
+                                    )
+                                )
+                                Column {
+                                    mainPreferences.forEach { item ->
+                                        ArrowPreference(
+                                            title = item.title,
+                                            onClick = {
+                                                FragmentContainerActivity.start(
+                                                    requireContext(),
+                                                    item.fragmentClass
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Card(
+                                cornerRadius = 16.dp,
+                                modifier = cardModifier
+
+                            ) {
+                                val announcementPreferences = listOf(
+                                    ArrowPreferenceItem(
+                                        title = getString(R.string.voice_broadcast),
+                                        fragmentClass = VoiceBroadcastFragment::class.java
+                                    ),
+                                    ArrowPreferenceItem(
+                                        title = getString(R.string.announcement_library),
+                                        fragmentClass = AnnouncementLibrarySettings::class.java
+                                    ),
+                                    ArrowPreferenceItem(
+                                        title = getString(R.string.anFormat),
+                                        fragmentClass = AnFormatSettings::class.java
+                                    ),
+                                )
+                                Column {
+                                    announcementPreferences.forEach { item ->
+                                        ArrowPreference(
+                                            title = item.title,
+                                            onClick = {
+                                                FragmentContainerActivity.start(
+                                                    requireContext(),
+                                                    item.fragmentClass
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Card(
+                                cornerRadius = 16.dp,
+                                modifier = cardModifier
+
+                            ) {
+                                val otherPreferences = listOf(
+                                    ArrowPreferenceItem(
+                                        title = getString(R.string.system),
+                                        fragmentClass = SystemSettings::class.java
+                                    ),
+                                    ArrowPreferenceItem(
+                                        title = getString(R.string.stationAndLineDate),
+                                        fragmentClass = DataSettings::class.java
+                                    ),
+                                    ArrowPreferenceItem(
+                                        title = getString(R.string.about),
+                                        fragmentClass = AboutSettings::class.java
+                                    )
+                                )
+                                Column {
+                                    otherPreferences.forEach { item ->
+                                        ArrowPreference(
+                                            title = item.title,
+                                            onClick = {
+                                                FragmentContainerActivity.start(
+                                                    requireContext(),
+                                                    item.fragmentClass
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+
+            )
+
+
+        }
+    }
 
 }

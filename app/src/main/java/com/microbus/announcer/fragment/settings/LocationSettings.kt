@@ -12,9 +12,11 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -51,17 +53,22 @@ import com.microbus.announcer.Utils
 import com.microbus.announcer.compose.BaseSettingItem
 import com.microbus.announcer.compose.SwitchSettingItem
 import com.microbus.announcer.databinding.DialogSliderBinding
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
 
 
 class
-LocationAndMapSettingsFragment : Fragment() {
+LocationSettings : Fragment() {
 
     lateinit var utils: Utils
     private lateinit var prefs: SharedPreferences
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View? {
+    ): View {
 
         utils = Utils(requireContext())
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
@@ -86,23 +93,6 @@ LocationAndMapSettingsFragment : Fragment() {
     @Composable
     @Preview
     fun MainView() {
-
-        // LineStationRange Begin
-//        val (cLineStationRange, setCLineStationRange) = remember {
-//            mutableFloatStateOf(utils.getStationRangeByLineType("C", "WillIn"))
-//        }
-//
-//        val (bLineStationRange, setBLineStationRange) = remember {
-//            mutableFloatStateOf(utils.getStationRangeByLineType("B", "WillIn"))
-//        }
-//
-//        val (uLineStationRange, setULineStationRange) = remember {
-//            mutableFloatStateOf(utils.getStationRangeByLineType("U", "WillIn"))
-//        }
-//
-//        val (tLineStationRange, setTLineStationRange) = remember {
-//            mutableFloatStateOf(utils.getStationRangeByLineType("T", "WillIn"))
-//        }
 
         val lineStationRangeMap = mutableMapOf<Pair<String, String>, MutableFloatState>()
         val lineTypes = listOf("C", "B", "U", "T")
@@ -133,87 +123,20 @@ LocationAndMapSettingsFragment : Fragment() {
             mutableStateOf(utils.getSwitchDirectionWhenOutFromTerminalWithOnUp())
         }
 
-        val (mapEditLineMode, setMapEditLineMode) = remember {
-            mutableStateOf(utils.getIsMapEditLineMode())
-        }
 
         val (autoSwitchLineDirection, setAutoSwitchLineDirection) = remember {
             mutableStateOf(utils.getIsAutoSwitchLineDirection())
         }
 
-        val (clickMapToCopyLngLat, setClickMapToCopyLngLat) = remember {
-            mutableStateOf(utils.getIsClickMapToCopyLngLat())
-        }
-
-        val (clickMapToAddStation, setClickMapToAddStation) = remember {
-            mutableStateOf(utils.getIsClickMapToAddStation())
-        }
-
-        val (clickLocationButtonToCopyLngLat, setClickLocationButtonToCopyLngLat) = remember {
-            mutableStateOf(utils.getIsClickLocationButtonToCopyLngLat())
-        }
-
-        val (linePlanning, setLinePlanning) = remember {
-            mutableStateOf(utils.getIsLinePlanning())
-        }
-
-        val (lineTrajectoryCorrection, setLineTrajectoryCorrection) = remember {
-            mutableStateOf(utils.getIsLineTrajectoryCorrection())
-        }
-
-
-        val (isMapTrafficEnabled, setIsMapTrafficEnabled) = remember {
-            mutableStateOf(utils.getIsMapTrafficEnabled())
-        }
-
-
-
         DisposableEffect(prefs) {
             val listener = OnSharedPreferenceChangeListener { prefs, key ->
                 when (key) {
-
-//                    "CLineStationRange" -> setCLineStationRange(
-//                        utils.getStationRangeByLineType(
-//                            "C",
-//                            "WillIn"
-//                        )
-//                    )
-//
-//                    "BLineStationRange" -> setBLineStationRange(
-//                        utils.getStationRangeByLineType(
-//                            "B",
-//                            "WillIn"
-//                        )
-//                    )
-//
-//                    "ULineStationRange" -> setULineStationRange(
-//                        utils.getStationRangeByLineType(
-//                            "U",
-//                            "WillIn"
-//                        )
-//                    )
-//
-//                    "TLineStationRange" -> setTLineStationRange(
-//                        utils.getStationRangeByLineType(
-//                            "T",
-//                            "WillIn"
-//                        )
-//                    )
 
                     "locationInterval" -> setLocationInterval(utils.getLocationInterval())
                     "autoSwitchLineDirection" -> setAutoSwitchLineDirection(utils.getIsAutoSwitchLineDirection())
                     "switchDirectionWhenOutFromTerminalWithOnUp" -> setSwitchDirectionWhenOutFromTerminalWithOnUp(
                         utils.getSwitchDirectionWhenOutFromTerminalWithOnUp()
                     )
-
-                    "mapEditLineMode" -> setMapEditLineMode(utils.getIsMapEditLineMode())
-                    "clickMapToCopyLngLat" -> setClickMapToCopyLngLat(utils.getIsClickMapToCopyLngLat())
-                    "clickMapToAddStation" -> setClickMapToAddStation(utils.getIsClickMapToAddStation())
-                    "clickLocationButtonToCopyLngLat" -> setClickLocationButtonToCopyLngLat(utils.getIsClickLocationButtonToCopyLngLat())
-                    "linePlanning" -> setLinePlanning(utils.getIsLinePlanning())
-                    "lineTrajectoryCorrection" -> setLineTrajectoryCorrection(utils.getIsLineTrajectoryCorrection())
-
-                    "isMapTrafficEnabled" -> setIsMapTrafficEnabled(utils.getIsMapTrafficEnabled())
 
                 }
 
@@ -225,7 +148,7 @@ LocationAndMapSettingsFragment : Fragment() {
                         val end = key.indexOf("StationRange")
                         val action = key.substring(start, end)
 
-                        lineStationRangeMap[Pair(key.first().toString(), action)]!!.value =
+                        lineStationRangeMap[Pair(key.first().toString(), action)]!!.floatValue =
                             utils.getStationRangeByLineType(key.first().toString(), action)
                     }
 
@@ -246,134 +169,79 @@ LocationAndMapSettingsFragment : Fragment() {
             contentColor = colorResource(R.color.md_theme_onSurface),
             color = colorResource(R.color.md_theme_surface)
         ) {
-            MaterialTheme {
-                val scrollState = rememberScrollState()
-                Column(
-                    modifier = Modifier
-                        .verticalScroll(scrollState)
-                        .padding(horizontal = 16.dp)
-                ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            "自动切换站点",
-                            fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
-                            modifier = Modifier.padding(16.dp, 8.dp, 0.dp, 4.dp)
+            val controller = remember { ThemeController(ColorSchemeMode.System) }
+            MiuixTheme(
+                controller = controller
+            ) {
+                Scaffold(
+                    topBar = {
+                        SmallTopAppBar(
+                            title = getString(R.string.location)
                         )
-                        EsKeywordItemGroup(
-                            lineStationRangeMap[Pair("C", "WillIn")]!!.value,
-                            lineStationRangeMap[Pair("B", "WillIn")]!!.value,
-                            lineStationRangeMap[Pair("U", "WillIn")]!!.value,
-                            lineStationRangeMap[Pair("T", "WillIn")]!!.value,
-                            autoSwitchStationStateMap["WillIn"]!!,
-                            "WillIn"
-                        )
-                        EsKeywordItemGroup(
-                            lineStationRangeMap[Pair("C", "In")]!!.value,
-                            lineStationRangeMap[Pair("B", "In")]!!.value,
-                            lineStationRangeMap[Pair("U", "In")]!!.value,
-                            lineStationRangeMap[Pair("T", "In")]!!.value,
-                            autoSwitchStationStateMap["In"]!!,
-                            "In"
-                        )
-                        EsKeywordItemGroup(
-                            lineStationRangeMap[Pair("C", "Out")]!!.value,
-                            lineStationRangeMap[Pair("B", "Out")]!!.value,
-                            lineStationRangeMap[Pair("U", "Out")]!!.value,
-                            lineStationRangeMap[Pair("T", "Out")]!!.value,
-                            autoSwitchStationStateMap["Out"]!!,
-                            "Out"
-                        )
-                        Text(
-                            "定位基础",
-                            fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
-                            modifier = Modifier.padding(16.dp, 8.dp, 0.dp, 4.dp)
-                        )
-                        LocationIntervalMsItem(locationInterval)
-                        SwitchItem(
-                            autoSwitchLineDirection,
-                            setAutoSwitchLineDirection,
-                            title = "自动切换上下行",
-                            text = "检测到您折回站点时，切换上/下行",
-                            icon = painterResource(id = R.drawable.switch2),
-                            key = "autoSwitchLineDirection",
-                        )
-                        SwitchItem(
-                            switchDirectionWhenOutFromTerminalWithOnUp,
-                            setSwitchDirectionWhenOutFromTerminalWithOnUp,
-                            title = "从上行终点站出站时切换下行",
-                            text = "上行终点站出站时，\n自动切换到下行，环线回起点站",
-                            icon = painterResource(id = R.drawable.switch2),
-                            key = "switchDirectionWhenOutFromTerminalWithOnUp",
-                        )
+                    },
+                    content = { innerPadding ->
+                        val scrollState = rememberScrollState()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding)
+                                .verticalScroll(scrollState)
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                LocationIntervalMsItem(locationInterval)
+                                SwitchItem(
+                                    autoSwitchLineDirection,
+                                    setAutoSwitchLineDirection,
+                                    title = "自动切换上下行",
+                                    text = "检测到您折回站点时，切换上/下行",
+                                    icon = painterResource(id = R.drawable.switch2),
+                                    key = "autoSwitchLineDirection",
+                                )
+                                SwitchItem(
+                                    switchDirectionWhenOutFromTerminalWithOnUp,
+                                    setSwitchDirectionWhenOutFromTerminalWithOnUp,
+                                    title = "从上行终点站出站时切换下行",
+                                    text = "上行终点站出站时，\n自动切换到下行，环线回起点站",
+                                    icon = painterResource(id = R.drawable.switch2),
+                                    key = "switchDirectionWhenOutFromTerminalWithOnUp",
+                                )
+                                Text(
+                                    "根据定位切换站点",
+                                    fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
+                                    modifier = Modifier.padding(16.dp, 8.dp, 0.dp, 4.dp)
+                                )
+                                EsKeywordItemGroup(
+                                    lineStationRangeMap[Pair("C", "WillIn")]!!.floatValue,
+                                    lineStationRangeMap[Pair("B", "WillIn")]!!.floatValue,
+                                    lineStationRangeMap[Pair("U", "WillIn")]!!.floatValue,
+                                    lineStationRangeMap[Pair("T", "WillIn")]!!.floatValue,
+                                    autoSwitchStationStateMap["WillIn"]!!,
+                                    "WillIn"
+                                )
+                                EsKeywordItemGroup(
+                                    lineStationRangeMap[Pair("C", "In")]!!.floatValue,
+                                    lineStationRangeMap[Pair("B", "In")]!!.floatValue,
+                                    lineStationRangeMap[Pair("U", "In")]!!.floatValue,
+                                    lineStationRangeMap[Pair("T", "In")]!!.floatValue,
+                                    autoSwitchStationStateMap["In"]!!,
+                                    "In"
+                                )
+                                EsKeywordItemGroup(
+                                    lineStationRangeMap[Pair("C", "Out")]!!.floatValue,
+                                    lineStationRangeMap[Pair("B", "Out")]!!.floatValue,
+                                    lineStationRangeMap[Pair("U", "Out")]!!.floatValue,
+                                    lineStationRangeMap[Pair("T", "Out")]!!.floatValue,
+                                    autoSwitchStationStateMap["Out"]!!,
+                                    "Out"
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        }
+                    })
 
-                        Text(
-                            "地图",
-                            fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
-                            modifier = Modifier.padding(16.dp, 8.dp, 0.dp, 4.dp)
-                        )
-                        SwitchItem(
-                            mapEditLineMode,
-                            setMapEditLineMode,
-                            title = "地图编辑路线模式",
-                            text = "开启该模式并且运行全站路线，\n可以在地图上便捷地编辑路线",
-                            icon = painterResource(id = R.drawable.line),
-                            key = "mapEditLineMode",
-                        )
-                        SwitchItem(
-                            clickMapToCopyLngLat,
-                            setClickMapToCopyLngLat,
-                            title = "点击地图复制经纬度",
-                            text = "将点击位置的经纬度复制到剪切板",
-                            icon = painterResource(id = R.drawable.location__),
-                            key = "clickMapToCopyLngLat",
-                        )
-                        SwitchItem(
-                            clickMapToAddStation,
-                            setClickMapToAddStation,
-                            title = "点击地图添加站点",
-                            text = "添加位于点击位置的站点",
-                            icon = painterResource(id = R.drawable.add),
-                            key = "clickMapToAddStation",
-                        )
-                        SwitchItem(
-                            clickLocationButtonToCopyLngLat,
-                            setClickLocationButtonToCopyLngLat,
-                            title = "点击定位按钮复制经纬度",
-                            text = "将当前位置的经纬度复制到剪切板",
-                            icon = painterResource(id = R.drawable.location__),
-                            key = "clickLocationButtonToCopyLngLat",
-                        )
-                        SwitchItem(
-                            linePlanning,
-                            setLinePlanning,
-                            title = "路线规划",
-                            text = "根据本地站点规划路线",
-                            icon = painterResource(id = R.drawable.line),
-                            key = "linePlanning",
-                        )
-                        SwitchItem(
-                            isMapTrafficEnabled,
-                            setIsMapTrafficEnabled,
-                            title = "显示路况",
-                            text = "地图实时显示交通情况",
-                            icon = painterResource(id = R.drawable.traffic),
-                            key = "isMapTrafficEnabled",
-                        )
-                        SwitchItem(
-                            lineTrajectoryCorrection,
-                            setLineTrajectoryCorrection,
-                            title = "路线贴合道路",
-                            text = "线路轨迹将贴合道路",
-                            icon = painterResource(id = R.drawable.road),
-                            key = "lineTrajectoryCorrection",
-                        )
-
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
             }
         }
     }
@@ -388,8 +256,6 @@ LocationAndMapSettingsFragment : Fragment() {
         action: String
     ) {
         val actionName = getActionName(action)
-
-
 
         Column(
             modifier = Modifier

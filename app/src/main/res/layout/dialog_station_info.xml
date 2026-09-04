@@ -77,7 +77,7 @@
                 android:autofillHints=""
                 android:ems="10"
                 android:hint="@string/station_longitude"
-                android:inputType="numberDecimal"
+                android:inputType="text"
                 android:text="" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -94,7 +94,7 @@
                 android:autofillHints=""
                 android:ems="10"
                 android:hint="@string/station_latitude"
-                android:inputType="numberDecimal"
+                android:inputType="text"
                 android:text="" />
 
         </com.google.android.material.textfield.TextInputLayout>

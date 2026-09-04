@@ -100,22 +100,17 @@
             </intent-filter>
         </activity>
 
-        <service android:name="com.amap.api.location.APSService" /> <!-- @string/amapKey是高德地图的key -->
+        <activity
+            android:name="FragmentContainerActivity"
+            android:exported="true"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustPan" />
+
+        <!-- @string/amapKey是高德地图的key -->
+        <service android:name="com.amap.api.location.APSService" />
         <meta-data
             android:name="com.amap.api.v2.apikey"
             android:value="@string/amapKey_android" />
-
-        <service
-            android:name=".service.AnnounceService"
-            android:enabled="true"
-            android:exported="true" />
-
-
-        <service
-            android:name=".service.LocationService"
-            android:enabled="true"
-            android:exported="true"
-            android:foregroundServiceType="location" />
 
     </application>
 

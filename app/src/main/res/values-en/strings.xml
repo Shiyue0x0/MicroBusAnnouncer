@@ -95,10 +95,25 @@
     <string name="online_search">Online Search</string>
     <string name="setAsLineName">Set as Name</string>
     <string name="stationTypeDefault">B</string>
+
     <string name="SysAndEs">Sys and ES</string>
     <string name="Announcement">Announcement</string>
     <string name="MapAndLocation">Location and Map</string>
     <string name="DateAndAbout">Data and About</string>
+
+    <string name="system">System</string>
+    <string name="es">Electronic Display</string>
+
+    <string name="voice_broadcast">Voice Broadcast</string>
+    <string name="announcement_library">Voice Library</string>
+    <string name="anFormat">Broadcast Format</string>
+
+    <string name="location">Location</string>
+    <string name="map">Map</string>
+
+    <string name="stationAndLineDate">Station &amp; Line Date</string>
+    <string name="about">About Announcer</string>
+
     <string name="lineNameDefault">K99</string>
     <string name="SAndTText">Starting Station - Terminal</string>
     <string name="lineTypeDefault">B</string>

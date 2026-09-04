@@ -336,17 +336,6 @@ class Utils(private val context: Context) {
     }
 
 
-    /**
-     * 从设置中获取头屏显示信息
-     */
-    fun getHeadSignShowInfo(): MutableSet<String>? {
-        return prefs.getStringSet(
-            "headSignShowInfo",
-            setOf("0", "1", "2", "3")
-        )
-    }
-
-
 //    /**
 //     * 从设置中获取超过秒数自动跟随定位
 //     */
@@ -652,6 +641,10 @@ class Utils(private val context: Context) {
                         return@setOnClickListener
                     }
                     val latLng = binding.editTextLongitude.text.toString().split(' ')
+                    if (latLng.size < 2) {
+                        this.showMsg("经纬度格式错误")
+                        return@setOnClickListener
+                    }
                     binding.editTextLongitude.setText(latLng[0])
                     binding.editTextLatitude.setText(latLng[1])
                 }
@@ -664,6 +657,10 @@ class Utils(private val context: Context) {
 
                 if (binding.editTextLatitude.text.toString() == "") {
                     val latLng = binding.editTextLongitude.text.toString().split(' ')
+                    if (latLng.size < 2) {
+                        this.showMsg("经纬度格式错误")
+                        return@setOnClickListener
+                    }
                     binding.editTextLongitude.setText(latLng[0])
                     binding.editTextLatitude.setText(latLng[1])
                 }
@@ -852,6 +849,8 @@ class Utils(private val context: Context) {
                     if ((itemRegex.matches(item) && item != "") ||
                         (item.length >= 3 && item.substring(1, 3) == "ms")
                     ) {
+                        anList.add(item)
+                    } else if (item.startsWith("<blank") && item.endsWith(">")) {
                         anList.add(item)
                     } else {
                         return ArrayList(listOf("ERROR", item))
@@ -1497,5 +1496,7 @@ class Utils(private val context: Context) {
 
         return Icon.createWithBitmap(bitmap)
     }
+
+
 }
 
