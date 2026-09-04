@@ -6,7 +6,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".fragment.LineFragment">
+    tools:context=".ui.LineFragment">
 
     <!--  状态栏填充  -->
     <LinearLayout

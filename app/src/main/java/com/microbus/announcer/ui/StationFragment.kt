@@ -1,4 +1,4 @@
-package com.microbus.announcer.fragment
+package com.microbus.announcer.ui
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver

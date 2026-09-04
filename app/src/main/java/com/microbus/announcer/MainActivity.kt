@@ -1,12 +1,10 @@
-package com.microbus.announcer.activity
+package com.microbus.announcer
 
-import kotlinx.coroutines.flow.MutableStateFlow
 import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.PowerManager
-import android.os.PowerManager.WakeLock
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
@@ -16,10 +14,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,10 +24,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
@@ -44,33 +40,28 @@ import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
-import com.microbus.announcer.PermissionManager
-import com.microbus.announcer.R
-import com.microbus.announcer.TabSwitchListener
-import com.microbus.announcer.Utils
-import com.microbus.announcer.fragment.LineFragment
-import com.microbus.announcer.fragment.MainFragment
-import com.microbus.announcer.fragment.SettingFragment
-import com.microbus.announcer.fragment.StationFragment
-import com.microbus.announcer.ui.theme.AnnouncerTheme
+import com.microbus.announcer.ui.LineFragment
+import com.microbus.announcer.ui.MainFragment
+import com.microbus.announcer.ui.SettingFragment
+import com.microbus.announcer.ui.StationFragment
+import com.microbus.announcer.model.TabPage
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.NavigationBar
+import top.yukonga.miuix.kmp.basic.NavigationBarItem
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
 
 class MainActivity : AppCompatActivity(), TabSwitchListener {
-
-    // 定义页面枚举
-    enum class TabPage(val position: Int, val titleResId: Int, val iconResId: Int) {
-        MAIN(0, R.string.nav_main, R.drawable.keyboard_command_key),
-        LINE(1, R.string.nav_line, R.drawable.line),
-        STATION(2, R.string.nav_station, R.drawable.station),
-        SETTING(3, R.string.nav_setting, R.drawable.settings)
-    }
 
     var tag: String = javaClass.simpleName
     private lateinit var utils: Utils
     private lateinit var powerManager: PowerManager
-    private lateinit var wakeLock: WakeLock
+    private lateinit var wakeLock: PowerManager.WakeLock
     private var backPressedTime: Long = 0
 
     // ViewPager2 和 Adapter 引用
@@ -104,9 +95,7 @@ class MainActivity : AppCompatActivity(), TabSwitchListener {
         wakeLock.acquire(60 * 60 * 1000L)
 
         setContent {
-            AnnouncerTheme {
-                MainScreen()
-            }
+            MainScreen()
         }
     }
 
@@ -168,99 +157,97 @@ class MainActivity : AppCompatActivity(), TabSwitchListener {
         BackHandler {
             onBack()
         }
+        val controller = remember { ThemeController(ColorSchemeMode.System) }
 
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            bottomBar = {
-                if (isShowBottomBar && utils.getIsShowBottomBar()) {
-                    // 使用Compose的NavigationBar作为底部导航
-                    NavigationBar(
-                        containerColor = colorResource(id = R.color.an_contain_bg)
-                    ) {
-                        TabPage.entries.forEach { tab ->
-                            NavigationBarItem(
-                                icon = {
-                                    Icon(
-                                        painterResource(id = tab.iconResId),
-                                        contentDescription = null
-                                    )
-                                },
-                                label = { Text(stringResource(id = tab.titleResId)) },
-                                selected = currentTabPosition == tab.position,
-                                onClick = {
-                                    // 主控锁定检查
-                                    if (utils.isOperationLock()) {
-                                        utils.showMsg(getString(R.string.operation_lock_on_tip))
-                                        // 切换到主页
-                                        viewPager.currentItem = TabPage.MAIN.position
-                                        return@NavigationBarItem
-                                    }
+        MiuixTheme(
+            controller = controller
+        ) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                bottomBar = {
+                    if (isShowBottomBar && utils.getIsShowBottomBar()) {
+                        // 使用Compose的NavigationBar作为底部导航
+                        NavigationBar {
+                            TabPage.entries.forEach { tab ->
+                                NavigationBarItem(
+                                    icon = ImageVector.vectorResource(tab.iconResId),
+                                    label = stringResource(id = tab.titleResId),
+                                    selected = currentTabPosition == tab.position,
+                                    onClick = {
+                                        // 主控锁定检查
+                                        if (utils.isOperationLock()) {
+                                            utils.showMsg(getString(R.string.operation_lock_on_tip))
+                                            // 切换到主页
+                                            viewPager.currentItem = TabPage.MAIN.position
+                                            return@NavigationBarItem
+                                        }
 
-                                    if (currentTabPosition != tab.position) {
-                                        // 切换到对应的Tab
-                                        viewPager.currentItem = tab.position
-                                    } else {
-                                        // 点击当前项滚动到顶部
-                                        val action = when (tab) {
-                                            TabPage.LINE -> utils.lineListScrollToTopActionName
-                                            TabPage.STATION -> utils.stationListScrollToTopActionName
-                                            else -> null
+                                        if (currentTabPosition != tab.position) {
+                                            // 切换到对应的Tab
+                                            viewPager.currentItem = tab.position
+                                        } else {
+                                            // 点击当前项滚动到顶部
+                                            val action = when (tab) {
+                                                TabPage.LINE -> utils.lineListScrollToTopActionName
+                                                TabPage.STATION -> utils.stationListScrollToTopActionName
+                                                else -> null
+                                            }
+                                            action?.let {
+                                                LocalBroadcastManager.getInstance(this@MainActivity)
+                                                    .sendBroadcast(Intent().setAction(it))
+                                            }
                                         }
-                                        action?.let {
-                                            LocalBroadcastManager.getInstance(this@MainActivity)
-                                                .sendBroadcast(Intent().setAction(it))
-                                        }
+                                        utils.haptic(view)
                                     }
-                                    utils.haptic(view)
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
+            ) { innerPadding ->
+                // 使用AndroidView包装ViewPager2
+                AndroidView(
+                    factory = { context ->
+                        // 创建ViewPager2
+                        viewPager = ViewPager2(context).apply {
+                            id = View.generateViewId()
+                            // 滑动切换
+                            isUserInputEnabled = true
+                            // 设置离屏页面数量为页面总数，确保所有Fragment都保持存活
+                            offscreenPageLimit = TabPage.entries.size - 1
+                        }
+
+                        // 初始化Adapter
+                        pagerAdapter = MainPagerAdapter(this@MainActivity)
+                        viewPager.adapter = pagerAdapter
+
+                        // 设置页面切换监听
+                        viewPager.registerOnPageChangeCallback(object :
+                            ViewPager2.OnPageChangeCallback() {
+                            override fun onPageSelected(position: Int) {
+                                super.onPageSelected(position)
+                                currentTabPosition = position
+                            }
+                        })
+
+                        viewPager
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            start = 0.dp,
+                            top = 0.dp,
+                            end = 0.dp,
+                            bottom = innerPadding.calculateBottomPadding()
+                        ),
+                    update = { view ->
+                        // 当主题变化或其他更新时，可以在这里处理
+                        // 例如更新Fragment的配置等
+                    }
+                )
             }
-
-        ) { innerPadding ->
-            // 使用AndroidView包装ViewPager2
-            AndroidView(
-                factory = { context ->
-                    // 创建ViewPager2
-                    viewPager = ViewPager2(context).apply {
-                        id = View.generateViewId()
-                        // 滑动切换
-                        isUserInputEnabled = true
-                        // 设置离屏页面数量为页面总数，确保所有Fragment都保持存活
-                        offscreenPageLimit = TabPage.entries.size - 1
-                    }
-
-                    // 初始化Adapter
-                    pagerAdapter = MainPagerAdapter(this@MainActivity)
-                    viewPager.adapter = pagerAdapter
-
-                    // 设置页面切换监听
-                    viewPager.registerOnPageChangeCallback(object :
-                        ViewPager2.OnPageChangeCallback() {
-                        override fun onPageSelected(position: Int) {
-                            super.onPageSelected(position)
-                            currentTabPosition = position
-                        }
-                    })
-
-                    viewPager
-                },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
-                        start = 0.dp,
-                        top = 0.dp,
-                        end = 0.dp,
-                        bottom = innerPadding.calculateBottomPadding()
-                    ),
-                update = { view ->
-                    // 当主题变化或其他更新时，可以在这里处理
-                    // 例如更新Fragment的配置等
-                }
-            )
         }
+
     }
 
     // 页面适配器

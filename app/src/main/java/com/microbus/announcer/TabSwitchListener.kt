@@ -1,6 +1,6 @@
 package com.microbus.announcer
 
-import com.microbus.announcer.activity.TabPage
+import com.microbus.announcer.model.TabPage
 
 interface TabSwitchListener {
     /**

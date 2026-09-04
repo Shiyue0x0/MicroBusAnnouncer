@@ -1,4 +1,4 @@
-package com.microbus.announcer.fragment
+package com.microbus.announcer.ui
 
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -43,6 +43,7 @@ import android.view.View.GONE
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
+import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
@@ -51,6 +52,15 @@ import android.widget.TextView
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
@@ -60,6 +70,7 @@ import androidx.core.view.setPadding
 import androidx.core.widget.NestedScrollView
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
+import androidx.fragment.compose.content
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC
@@ -116,9 +127,9 @@ import com.google.gson.JsonParser
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
-import com.microbus.announcer.activity.TabPage
 import com.microbus.announcer.TabSwitchListener
 import com.microbus.announcer.Utils
+import com.microbus.announcer.activity.FragmentContainerActivity
 import com.microbus.announcer.adapter.LineOfSearchAdapter
 import com.microbus.announcer.adapter.StationOfLineAdapter
 import com.microbus.announcer.adapter.StationOfRunningInfoAdapter
@@ -132,9 +143,9 @@ import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogLineSwitchBinding
 import com.microbus.announcer.databinding.DialogLoadingBinding
 import com.microbus.announcer.databinding.DialogRunningInfoBinding
-import com.microbus.announcer.databinding.FragmentMainBinding
 import com.microbus.announcer.model.StationStatus
 import com.microbus.announcer.model.LineDirection
+import com.microbus.announcer.model.TabPage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -147,6 +158,13 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
 import java.io.File
 import java.net.UnknownHostException
 import java.time.LocalDate
@@ -157,8 +175,7 @@ import java.util.Timer
 import java.util.TimerTask
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
-
-
+import com.microbus.announcer.databinding.FragmentMainBinding
 class MainFragment : Fragment() {
 
     private var tag = javaClass.simpleName
@@ -359,7 +376,7 @@ class MainFragment : Fragment() {
             binding.root.setOnApplyWindowInsetsListener { view, insets ->
                 // 保留系统手势区域的内边距，但忽略状态栏
                 val systemGestureInsets = insets.getInsets(
-                    android.view.WindowInsets.Type.systemGestures()
+                    WindowInsets.Type.systemGestures()
                 )
                 // 设置内边距，只保留系统手势区域，让内容延伸到状态栏后面
                 view.setPadding(

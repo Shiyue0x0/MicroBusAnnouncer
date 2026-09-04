@@ -1,8 +1,9 @@
-package com.microbus.announcer.fragment
+package com.microbus.announcer.ui
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -68,19 +69,23 @@ class SettingFragment : Fragment() {
                 content = { paddingValues ->
                     Box(
                         modifier = Modifier
-                            .padding(top = paddingValues.calculateTopPadding())
+                            .padding(
+                                top = paddingValues.calculateTopPadding(),
+                                bottom = 16.dp,
+                                start = 16.dp,
+                                end = 16.dp,
+                            )
                             .fillMaxSize()
                     ) {
-                        Column {
-                            val cardModifier = Modifier.padding(
-                                start = 16.dp,
-                                top = 16.dp,
-                                end = 16.dp,
-                                bottom = 0.dp
-                            )
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+//                            val cardModifier = Modifier.padding(
+//                                start = 16.dp,
+//                                top = 16.dp,
+//                                end = 16.dp,
+//                                bottom = 0.dp
+//                            )
                             Card(
-                                cornerRadius = 16.dp,
-                                modifier = cardModifier
+                                cornerRadius = 16.dp
                             ) {
                                 val mainPreferences = listOf(
                                     ArrowPreferenceItem(
@@ -113,9 +118,7 @@ class SettingFragment : Fragment() {
                             }
 
                             Card(
-                                cornerRadius = 16.dp,
-                                modifier = cardModifier
-
+                                cornerRadius = 16.dp
                             ) {
                                 val announcementPreferences = listOf(
                                     ArrowPreferenceItem(
@@ -147,9 +150,7 @@ class SettingFragment : Fragment() {
                             }
 
                             Card(
-                                cornerRadius = 16.dp,
-                                modifier = cardModifier
-
+                                cornerRadius = 16.dp
                             ) {
                                 val otherPreferences = listOf(
                                     ArrowPreferenceItem(

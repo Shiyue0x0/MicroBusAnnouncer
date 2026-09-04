@@ -9,7 +9,7 @@
     android:clipToPadding="false"
     android:fillViewport="true"
     android:fitsSystemWindows="false"
-    tools:context=".fragment.MainFragment">
+    tools:context=".ui.MainFragment">
 
     <!--  地图  -->
     <com.microbus.announcer.view.Container

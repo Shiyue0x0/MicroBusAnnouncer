@@ -86,7 +86,7 @@
         <!-- android:exported="false" -->
         <!-- android:foregroundServiceType="location|mediaPlayback" /> -->
         <activity
-            android:name=".activity.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:hardwareAccelerated="true"
             android:launchMode="standard"

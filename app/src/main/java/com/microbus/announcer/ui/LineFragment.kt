@@ -1,4 +1,4 @@
-package com.microbus.announcer.fragment
+package com.microbus.announcer.ui
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -23,7 +23,6 @@ import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.LineAdapter
 import com.microbus.announcer.bean.Line
-import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogInputBinding
