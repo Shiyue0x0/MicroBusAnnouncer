@@ -55,7 +55,6 @@ import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.descendants
 import androidx.core.view.isVisible
 import androidx.core.view.setPadding
 import androidx.core.widget.NestedScrollView
@@ -117,7 +116,7 @@ import com.google.gson.JsonParser
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
-import com.microbus.announcer.TabPage
+import com.microbus.announcer.activity.TabPage
 import com.microbus.announcer.TabSwitchListener
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.LineOfSearchAdapter

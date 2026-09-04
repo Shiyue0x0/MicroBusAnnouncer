@@ -1,4 +1,4 @@
-package com.microbus.announcer
+package com.microbus.announcer.activity
 
 import android.content.Context
 import android.content.Intent

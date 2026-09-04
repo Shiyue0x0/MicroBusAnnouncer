@@ -1,4 +1,4 @@
-package com.microbus.announcer
+package com.microbus.announcer.activity
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import android.app.NotificationManager
@@ -30,12 +30,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
@@ -46,6 +44,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
+import com.microbus.announcer.PermissionManager
+import com.microbus.announcer.R
+import com.microbus.announcer.TabSwitchListener
+import com.microbus.announcer.Utils
 import com.microbus.announcer.fragment.LineFragment
 import com.microbus.announcer.fragment.MainFragment
 import com.microbus.announcer.fragment.SettingFragment
@@ -53,9 +55,6 @@ import com.microbus.announcer.fragment.StationFragment
 import com.microbus.announcer.ui.theme.AnnouncerTheme
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
-import top.yukonga.miuix.kmp.icon.MiuixIcons
 
 // 定义页面枚举
 enum class TabPage(val position: Int, val titleResId: Int, val iconResId: Int) {

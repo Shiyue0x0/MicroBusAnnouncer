@@ -14,7 +14,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.fragment.compose.content
-import com.microbus.announcer.FragmentContainerActivity
+import com.microbus.announcer.activity.FragmentContainerActivity
 import com.microbus.announcer.R
 import com.microbus.announcer.fragment.settings.AboutSettings
 import com.microbus.announcer.fragment.settings.AnFormatSettings

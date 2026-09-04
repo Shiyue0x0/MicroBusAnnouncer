@@ -1,5 +1,7 @@
 package com.microbus.announcer
 
+import com.microbus.announcer.activity.TabPage
+
 interface TabSwitchListener {
     /**
      * 切换到指定Tab

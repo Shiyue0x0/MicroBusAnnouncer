@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".WebviewActivity">
+    tools:context=".activity.WebviewActivity">
 
     <!--  状态栏填充  -->
     <LinearLayout

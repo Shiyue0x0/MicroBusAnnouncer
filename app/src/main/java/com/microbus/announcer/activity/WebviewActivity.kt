@@ -1,10 +1,11 @@
-package com.microbus.announcer
+package com.microbus.announcer.activity
 
 import android.os.Bundle
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.microbus.announcer.Utils
 import com.microbus.announcer.databinding.ActivityWebviewBinding
 
 class WebviewActivity : AppCompatActivity() {
