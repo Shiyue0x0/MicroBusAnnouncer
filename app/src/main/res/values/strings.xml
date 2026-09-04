@@ -111,7 +111,8 @@
     <string name="map">地图</string>
 
     <string name="stationAndLineDate">站点与路线数据</string>
-    <string name="about">关于 Announcer</string>
+    <string name="about_an">关于 Announcer</string>
+    <string name="about">关于</string>
 
     <string name="lineNameDefault">K99</string>
     <string name="SAndTText">起点站 - 终点站</string>

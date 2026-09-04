@@ -14,10 +14,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,7 +44,8 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
-import com.microbus.announcer.compose.BaseSettingItem
+import com.microbus.announcer.ui.compose.AnSmallTopAppBar
+import com.microbus.announcer.ui.compose.BaseSettingItem
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
@@ -181,9 +180,7 @@ class AnnouncementLibrarySettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        SmallTopAppBar(
-                            title = getString(R.string.announcement_library)
-                        )
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.announcement_library))
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()

@@ -112,7 +112,8 @@
     <string name="map">Map</string>
 
     <string name="stationAndLineDate">Station &amp; Line Date</string>
-    <string name="about">About Announcer</string>
+    <string name="about_an">About Announcer</string>
+    <string name="about">About</string>
 
     <string name="lineNameDefault">K99</string>
     <string name="SAndTText">Starting Station - Terminal</string>

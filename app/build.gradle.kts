@@ -116,6 +116,7 @@ dependencies {
     // miuix
     implementation(libs.miuix.ui.android)
     implementation(libs.miuix.preference)
+    implementation(libs.miuix.icons)
 
 
     //exoplayer

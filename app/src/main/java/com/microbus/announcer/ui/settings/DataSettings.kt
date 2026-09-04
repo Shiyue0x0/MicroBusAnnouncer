@@ -41,8 +41,9 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
-import com.microbus.announcer.compose.BaseSettingItem
+import com.microbus.announcer.ui.compose.BaseSettingItem
 import com.microbus.announcer.databinding.DialogLoadingBinding
+import com.microbus.announcer.ui.compose.AnSmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
@@ -108,9 +109,7 @@ class DataSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        SmallTopAppBar(
-                            title = getString(R.string.stationAndLineDate)
-                        )
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.stationAndLineDate))
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()

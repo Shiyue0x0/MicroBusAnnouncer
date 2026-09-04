@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,33 +15,43 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.JsonParser
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
-import com.microbus.announcer.compose.BaseSettingItem
+import com.microbus.announcer.ui.compose.BaseSettingItem
 import com.microbus.announcer.databinding.DialogLoadingBinding
+import com.microbus.announcer.ui.compose.AnSmallTopAppBar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
@@ -87,9 +98,7 @@ class AboutSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        SmallTopAppBar(
-                            title = getString(R.string.about)
-                        )
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.about))
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()
@@ -101,17 +110,13 @@ class AboutSettings : Fragment() {
                                 .padding(horizontal = 16.dp)
                         ) {
                             Column(
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Image(
-                                    painter = painterResource(id = R.mipmap.an_round),
-                                    contentDescription = getString(R.string.app_name)
-                                )
+                                AboutItem()
                                 ProjectUrlItem()
                                 DeveloperItem()
                                 HelperItem()
                                 CheckForUpdatesItem()
-                                AboutItem()
                             }
                             Spacer(modifier = Modifier.height(8.dp))
 
@@ -126,18 +131,43 @@ class AboutSettings : Fragment() {
 
 
     @Composable
+    @Preview
     fun AboutItem() {
+
         val info = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
-        BaseSettingItem(
-            getString(R.string.app_name),
-            info.versionName ?: "",
-            painterResource(id = R.mipmap.an_round),
-            clickFun = {
-                utils.showMsg("MicroBus 欢迎您")
-                utils.showMsg("鸣谢 yukonga Updater")
-            },
-            isIcon = false,
-        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(24.dp))
+                .clickable {
+                    utils.showMsg("MicroBus 欢迎您")
+                    utils.showMsg("鸣谢 yukonga Updater")
+                },
+            horizontalAlignment = Alignment.CenterHorizontally,
+
+            ) {
+            Image(
+                painter = painterResource(id = R.mipmap.an_round),
+                modifier = Modifier
+                    .padding(top = 64.dp, bottom = 64.dp)
+                    .size(100.dp),
+                contentDescription = getString(R.string.app_name)
+            )
+            Text(
+                text = getString(R.string.app_name),
+                style = MiuixTheme.textStyles.headline1,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = info.versionName ?: "",
+                fontSize = 10.sp,
+                color = MiuixTheme.colorScheme.onSurfaceContainerVariant,
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+            )
+
+        }
     }
 
     @Composable

@@ -49,10 +49,11 @@ import com.google.android.material.textfield.TextInputEditText
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
-import com.microbus.announcer.compose.BaseSettingItem
-import com.microbus.announcer.compose.SwitchSettingItem
+import com.microbus.announcer.ui.compose.BaseSettingItem
+import com.microbus.announcer.ui.compose.SwitchSettingItem
 import com.microbus.announcer.databinding.DialogInputBinding
 import com.microbus.announcer.databinding.DialogSliderBinding
+import com.microbus.announcer.ui.compose.AnSmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
@@ -186,9 +187,7 @@ class ESSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        SmallTopAppBar(
-                            title = getString(R.string.es)
-                        )
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.es))
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()

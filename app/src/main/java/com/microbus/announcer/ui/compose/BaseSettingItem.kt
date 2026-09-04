@@ -1,4 +1,4 @@
-package com.microbus.announcer.compose
+package com.microbus.announcer.ui.compose
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

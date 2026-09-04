@@ -162,7 +162,7 @@ class SettingFragment : Fragment() {
                                         fragmentClass = DataSettings::class.java
                                     ),
                                     ArrowPreferenceItem(
-                                        title = getString(R.string.about),
+                                        title = getString(R.string.about_an),
                                         fragmentClass = AboutSettings::class.java
                                     )
                                 )

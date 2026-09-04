@@ -37,8 +37,9 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
-import com.microbus.announcer.compose.BaseSettingItem
-import com.microbus.announcer.compose.SwitchSettingItem
+import com.microbus.announcer.ui.compose.AnSmallTopAppBar
+import com.microbus.announcer.ui.compose.BaseSettingItem
+import com.microbus.announcer.ui.compose.SwitchSettingItem
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
@@ -168,9 +169,7 @@ MapSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        SmallTopAppBar(
-                            title = getString(R.string.map)
-                        )
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.map))
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()
