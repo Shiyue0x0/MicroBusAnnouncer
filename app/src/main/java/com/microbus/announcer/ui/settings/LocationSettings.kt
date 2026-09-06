@@ -1,4 +1,4 @@
-package com.microbus.announcer.fragment.settings
+package com.microbus.announcer.ui.settings
 
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
@@ -55,7 +55,6 @@ import com.microbus.announcer.ui.compose.SwitchSettingItem
 import com.microbus.announcer.databinding.DialogSliderBinding
 import com.microbus.announcer.ui.compose.AnSmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController

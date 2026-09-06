@@ -1,32 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:focusable="true"
-    android:focusableInTouchMode="true"
-    tools:context=".ui.StationFragment">
+    android:layout_height="match_parent">
 
-    <!--  状态栏填充  -->
-    <LinearLayout
-        android:id="@+id/bar"
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/TopAppBar"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:orientation="horizontal"
-        tools:ignore="MissingConstraints" />
-
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        app:layout_constraintTop_toBottomOf="@+id/bar"
-        app:title="@string/nav_station" />
-
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefreshLayout"
@@ -36,13 +20,12 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbar"
-        tools:context=".ui.StationFragment">
+        app:layout_constraintTop_toBottomOf="@id/TopAppBar">
 
         <com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
             android:id="@+id/stationRecyclerView"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:fadingEdgeLength="20dp"
             android:requiresFadingEdge="vertical"
             app:fastScrollAutoHide="false"

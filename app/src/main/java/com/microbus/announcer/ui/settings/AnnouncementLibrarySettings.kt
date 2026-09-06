@@ -1,4 +1,4 @@
-package com.microbus.announcer.fragment.settings
+package com.microbus.announcer.ui.settings
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -47,7 +47,6 @@ import com.microbus.announcer.Utils
 import com.microbus.announcer.ui.compose.AnSmallTopAppBar
 import com.microbus.announcer.ui.compose.BaseSettingItem
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController

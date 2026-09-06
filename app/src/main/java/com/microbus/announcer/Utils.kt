@@ -87,6 +87,8 @@ class Utils(private val context: Context) {
 
     val setLoudnessBoostAmountName = "${baseActionName}.set_loudness_boost_amount"
 
+    val backHomeName = "${baseActionName}.back_home"
+
     lateinit var toast: Toast
 
     /**

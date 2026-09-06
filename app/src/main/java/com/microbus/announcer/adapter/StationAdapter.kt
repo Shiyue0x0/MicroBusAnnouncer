@@ -20,7 +20,7 @@ internal class StationAdapter(
     private val context: Context,
     private val activity: Activity,
     private val lineDatabaseHelper: LineDatabaseHelper,
-    private val key: String,
+    private var key: String,
 ) :
     RecyclerView.Adapter<ViewHolder>() {
 
@@ -186,5 +186,22 @@ internal class StationAdapter(
         if (listener != null) {
             this.mClickListener = listener
         }
+    }
+
+
+    /**
+     * 更新搜索关键词并刷新数据
+     */
+    fun updateSearchKey(newKey: String) {
+        this.key = newKey
+        refreshData()
+    }
+
+    /**
+     * 刷新数据（从数据库重新加载）
+     */
+    fun refreshData() {
+        @SuppressLint("NotifyDataSetChanged")
+        notifyDataSetChanged()
     }
 }

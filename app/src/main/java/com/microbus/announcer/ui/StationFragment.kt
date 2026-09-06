@@ -7,19 +7,19 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
-import android.view.View.FOCUSABLE
 import android.view.ViewGroup
-import android.view.inputmethod.EditorInfo
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SearchView
-import androidx.core.view.MenuHost
-import androidx.core.view.MenuProvider
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -30,11 +30,31 @@ import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.FragmentStationBinding
+import com.microbus.announcer.ui.compose.NavHelpBox
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.InputField
+import top.yukonga.miuix.kmp.basic.RichTooltip
+import top.yukonga.miuix.kmp.basic.SearchBar
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TooltipBox
+import top.yukonga.miuix.kmp.basic.TooltipDefaults
+import top.yukonga.miuix.kmp.basic.rememberTooltipState
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.basic.Check
+import top.yukonga.miuix.kmp.icon.extended.Help
+import top.yukonga.miuix.kmp.icon.extended.Home
+import kotlin.time.Duration.Companion.milliseconds
 
 
 class StationFragment : Fragment() {
 
-    private var binding: FragmentStationBinding? = null
+    private lateinit var binding: FragmentStationBinding
 
     private lateinit var stationDatabaseHelper: StationDatabaseHelper
     private lateinit var lineDatabaseHelper: LineDatabaseHelper
@@ -53,77 +73,70 @@ class StationFragment : Fragment() {
         //获取Utils
         utils = Utils(requireContext())
 
-        //设置Toolbar
-        (requireActivity() as AppCompatActivity).setSupportActionBar(binding!!.toolbar)
+        // 设置 TopAppBar
+        binding.TopAppBar.apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                    SmallTopAppBar(
+                        title = getString(R.string.nav_station),
+                        navigationIcon = {
+                            IconButton(onClick = {
+                                val intent = Intent()
+                                    .setAction(utils.backHomeName)
+                                LocalBroadcastManager.getInstance(context)
+                                    .sendBroadcast(intent)
+                            }) {
+                                Icon(MiuixIcons.Home, contentDescription = "返回主控")
+                            }
+                        },
+                        actions = {
+                            NavHelpBox(
+                                listOf(
+                                    "轻触站点：试听报站",
+                                    "长按站点：编辑站点",
+                                )
+                            )
+                        }
+                    )
 
-        //设置状态栏填充高度
-//        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
-//        binding!!.bar.layoutParams.height = resources.getDimensionPixelSize(resourceId)
-        ViewCompat.setOnApplyWindowInsetsListener(binding!!.main) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
+                    var searchText by remember { mutableStateOf("") }
+                    var expanded by remember { mutableStateOf(false) }
 
-        //获取当前Fragment的Activity，并转换为MenuHost
-        val menuHost: MenuHost = requireActivity()
-        //添加MenuProvider
-        menuHost.addMenuProvider(object : MenuProvider {
+                    SearchBar(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = it },
+                        inputField = {
+                            InputField(
+                                query = searchText,
+                                expanded = expanded,
+                                onExpandedChange = { expanded = it },
+                                label = "输入站点ID、中文或英文名称",
+                                onQueryChange = {
+                                    searchText = it
+                                    if (searchText == "") {
+                                        refreshStationList(searchText)
+                                    }
+                                },
+                                onSearch = {
+                                    searchText = it
+                                    refreshStationList(searchText)
+                                },
 
-            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-                //创建Menu
-                menuInflater.inflate(R.menu.menu_search, menu)
-
-                //配置搜索框
-                val menuItem = menu.findItem(R.id.action_search) //根据菜单项ID获取
-
-                //获取搜索框
-                val searchView = menuItem.actionView as SearchView
-
-                searchView.focusable = FOCUSABLE
-
-                //设置提示字符串
-                searchView.setQueryHint("ID、中文或英文名称")
-
-                searchView.imeOptions = EditorInfo.IME_ACTION_SEARCH
-
-                searchView.setIconifiedByDefault(true)
-
-                searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-
-                    override fun onQueryTextSubmit(query: String?): Boolean {
-                        refreshStationList(query!!)
-//                        searchView.clearFocus()
-                        return true
+                                )
+                        }
+                    ) {
                     }
-
-                    override fun onQueryTextChange(newText: String?): Boolean {
-//                        refreshStationList(newText!!)
-                        return true
-                    }
-
-                })
-
-                searchView.setOnCloseListener {
-                    refreshStationList("")
-                    false
                 }
-
             }
-
-
-            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-                return true
-            }
-
-        })
+        }
 
         refreshStationList("")
         initSwipeRefreshLayout()
 
         //添加点击添加站点事件
-        binding!!.addStationFab.setOnClickListener {
-            utils.haptic(binding!!.addStationFab)
+        binding.addStationFab.setOnClickListener {
+            utils.haptic(binding.addStationFab)
             addStation()
         }
 
@@ -136,7 +149,7 @@ class StationFragment : Fragment() {
                 if (isAdded) {
                     when (intent.action) {
                         utils.stationListScrollToTopActionName -> {
-                            binding!!.stationRecyclerView.scrollToPosition(0)
+                            binding.stationRecyclerView.scrollToPosition(0)
                         }
                     }
                 }
@@ -149,55 +162,55 @@ class StationFragment : Fragment() {
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(mBroadcastReceiver, intentFilter)
 
-        return binding!!.root
+        return binding.root
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        binding = null
-    }
-
+    private lateinit var adapter: StationAdapter
 
     /**
      * 刷新站点列表
      */
     private fun refreshStationList(key: String) {
 
-        //获取站点，加载到界面
-        val adapter = StationAdapter(
-            requireContext(),
-            requireActivity(),
-            lineDatabaseHelper,
-            key
-        )
+        if (!::adapter.isInitialized) {
 
-        val layoutManager = LinearLayoutManager(requireContext())
-        layoutManager.initialPrefetchItemCount = 10
-        binding!!.stationRecyclerView.setLayoutManager(layoutManager)
+            //获取站点，加载到界面
+            adapter = StationAdapter(
+                requireContext(),
+                requireActivity(),
+                lineDatabaseHelper,
+                key
+            )
 
-        binding!!.stationRecyclerView.setAdapter(adapter)
-        adapter.setOnItemClickListener(object : StationAdapter.OnItemClickListener {
-            override fun onItemClick(station: Station) {
+            val layoutManager = LinearLayoutManager(requireContext())
+            layoutManager.initialPrefetchItemCount = 10
+            binding.stationRecyclerView.setLayoutManager(layoutManager)
 
-                if (station.id == null || station.id!! <= 0) {
-                    return
+            binding.stationRecyclerView.setAdapter(adapter)
+            adapter.setOnItemClickListener(object : StationAdapter.OnItemClickListener {
+                override fun onItemClick(station: Station) {
+
+                    if (station.id == null || station.id!! <= 0) {
+                        return
+                    }
+
+                    val intent = Intent()
+                        .setAction(utils.tryListeningAnActionName)
+                        .putExtra("format", "<mscn${station.id}>|<msen${station.id}>")
+                    LocalBroadcastManager.getInstance(requireContext())
+                        .sendBroadcast(intent)
                 }
+            })
+        } else {
+            adapter.updateSearchKey(key)
+        }
 
-                val intent = Intent()
-                    .setAction(utils.tryListeningAnActionName)
-                    .putExtra("format", "<mscn${station.id}>|<msen${station.id}>")
-                LocalBroadcastManager.getInstance(requireContext())
-                    .sendBroadcast(intent)
-            }
-        })
-        @SuppressLint("NotifyDataSetChanged")
-        adapter.notifyDataSetChanged()
 
     }
 
     private fun addStation() {
         utils.showStationDialog(requireActivity(), "new", onAddDone = {
-            val adapter = binding!!.stationRecyclerView.adapter!!
+            val adapter = binding.stationRecyclerView.adapter!!
             adapter.notifyItemInserted(adapter.itemCount)
         })
     }
@@ -207,14 +220,14 @@ class StationFragment : Fragment() {
      * 初始化下拉刷新控件 SwipeRefreshLayout
      */
     private fun initSwipeRefreshLayout() {
-        binding!!.swipeRefreshLayout.setOnRefreshListener {
+        binding.swipeRefreshLayout.setOnRefreshListener {
             @SuppressLint("NotifyDataSetChanged")
-            binding!!.stationRecyclerView.adapter!!.notifyDataSetChanged()
+            binding.stationRecyclerView.adapter!!.notifyDataSetChanged()
             requireActivity().runOnUiThread {
-                binding!!.swipeRefreshLayout.isRefreshing = false
+                binding.swipeRefreshLayout.isRefreshing = false
             }
             utils.showMsg("刷新成功")
-            utils.haptic(binding!!.swipeRefreshLayout)
+            utils.haptic(binding.swipeRefreshLayout)
         }
     }
 

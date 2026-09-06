@@ -28,7 +28,8 @@ class LineAdapter(
     private val context: Context,
     private val activity: Activity,
     private val lineDatabaseHelper: LineDatabaseHelper,
-) :
+    private var key: String = "",
+    ) :
     RecyclerView.Adapter<ViewHolder>() {
 
     private lateinit var mClickListener: OnItemClickListener

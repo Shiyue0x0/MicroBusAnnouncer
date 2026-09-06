@@ -181,10 +181,7 @@ class MainFragment : Fragment() {
     private var tag = javaClass.simpleName
 
     private lateinit var utils: Utils
-
-    private var _binding: FragmentMainBinding? = null
-    val binding get() = _binding!!
-
+    private lateinit var binding: FragmentMainBinding
     private lateinit var prefs: SharedPreferences
 
     private val appRootPath =
@@ -339,9 +336,8 @@ class MainFragment : Fragment() {
     ): View {
 
 
-        if (_binding != null) return binding.root
 
-        _binding = FragmentMainBinding.inflate(inflater, container, false)
+        binding = FragmentMainBinding.inflate(inflater, container, false)
 
         utils = Utils(requireContext())
 
@@ -1259,17 +1255,17 @@ class MainFragment : Fragment() {
                 return@addOnCheckedChangeListener
             }
             if (isChecked) {
-//                aMapView.visibility = VISIBLE
-//                aMapView.onResume()
-                initMap()
+                aMapView.visibility = VISIBLE
+                aMapView.onResume()
+//                initMap()
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 1f
             } else {
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 0f
-//                aMapView.onPause()
-                aMapView.onDestroy()
-//                aMapView.visibility = INVISIBLE
+                aMapView.onPause()
+//                aMapView.onDestroy()
+                aMapView.visibility = INVISIBLE
             }
         }
 
@@ -4773,6 +4769,10 @@ class MainFragment : Fragment() {
                             setTargetGain()
                         }
 
+                        utils.backHomeName -> {
+                            tabSwitchListener?.switchToTab(TabPage.MAIN)
+                        }
+
                     }
                 }
             }
@@ -4785,6 +4785,7 @@ class MainFragment : Fragment() {
         intentFilter.addAction(utils.requestCityFromLocationActionName)
         intentFilter.addAction(utils.openLocationActionName)
         intentFilter.addAction(utils.setLoudnessBoostAmountName)
+        intentFilter.addAction(utils.backHomeName)
 
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(mBroadcastReceiver, intentFilter)

@@ -167,7 +167,6 @@ class MainActivity : AppCompatActivity(), TabSwitchListener {
                 modifier = Modifier.fillMaxSize(),
                 bottomBar = {
                     if (isShowBottomBar && utils.getIsShowBottomBar()) {
-                        // 使用Compose的NavigationBar作为底部导航
                         NavigationBar {
                             TabPage.entries.forEach { tab ->
                                 NavigationBarItem(
@@ -204,49 +203,49 @@ class MainActivity : AppCompatActivity(), TabSwitchListener {
                             }
                         }
                     }
-                }
-            ) { innerPadding ->
-                // 使用AndroidView包装ViewPager2
-                AndroidView(
-                    factory = { context ->
-                        // 创建ViewPager2
-                        viewPager = ViewPager2(context).apply {
-                            id = View.generateViewId()
-                            // 滑动切换
-                            isUserInputEnabled = true
-                            // 设置离屏页面数量为页面总数，确保所有Fragment都保持存活
-                            offscreenPageLimit = TabPage.entries.size - 1
-                        }
-
-                        // 初始化Adapter
-                        pagerAdapter = MainPagerAdapter(this@MainActivity)
-                        viewPager.adapter = pagerAdapter
-
-                        // 设置页面切换监听
-                        viewPager.registerOnPageChangeCallback(object :
-                            ViewPager2.OnPageChangeCallback() {
-                            override fun onPageSelected(position: Int) {
-                                super.onPageSelected(position)
-                                currentTabPosition = position
+                },
+                content = { innerPadding ->
+                    AndroidView(
+                        factory = { context ->
+                            // 创建ViewPager2
+                            viewPager = ViewPager2(context).apply {
+                                id = View.generateViewId()
+                                // 滑动切换
+                                isUserInputEnabled = true
+                                // 设置离屏页面数量为页面总数，确保所有Fragment都保持存活
+                                offscreenPageLimit = TabPage.entries.size - 1
                             }
-                        })
 
-                        viewPager
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(
-                            start = 0.dp,
-                            top = 0.dp,
-                            end = 0.dp,
-                            bottom = innerPadding.calculateBottomPadding()
-                        ),
-                    update = { view ->
-                        // 当主题变化或其他更新时，可以在这里处理
-                        // 例如更新Fragment的配置等
-                    }
-                )
-            }
+                            // 初始化Adapter
+                            pagerAdapter = MainPagerAdapter(this@MainActivity)
+                            viewPager.adapter = pagerAdapter
+
+                            // 设置页面切换监听
+                            viewPager.registerOnPageChangeCallback(object :
+                                ViewPager2.OnPageChangeCallback() {
+                                override fun onPageSelected(position: Int) {
+                                    super.onPageSelected(position)
+                                    currentTabPosition = position
+                                }
+                            })
+
+                            viewPager
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                start = 0.dp,
+                                top = 0.dp,
+                                end = 0.dp,
+                                bottom = innerPadding.calculateBottomPadding()
+                            ),
+                        update = { view ->
+                            // 当主题变化或其他更新时，可以在这里处理
+                            // 例如更新Fragment的配置等
+                        }
+                    )
+                }
+            )
         }
 
     }

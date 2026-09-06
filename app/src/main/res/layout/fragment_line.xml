@@ -1,27 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".ui.LineFragment">
+    android:layout_height="match_parent">
 
-    <!--  状态栏填充  -->
-    <LinearLayout
-        android:id="@+id/bar"
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/TopAppBar"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:orientation="horizontal"
+        android:layout_height="wrap_content"
         app:layout_constraintTop_toTopOf="parent" />
-
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        app:layout_constraintTop_toBottomOf="@+id/bar"
-        app:title="@string/nav_line" />
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefreshLayout"
@@ -31,13 +20,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-
-        app:layout_constraintTop_toBottomOf="@+id/toolbar">
-
-        <!--        <com.microbus.announcer.view.NestedScrollableHost-->
-        <!--            android:layout_width="match_parent"-->
-        <!--            android:layout_height="wrap_content"-->
-        <!--            app:sameDirectionWithParent="false">-->
+        app:layout_constraintTop_toBottomOf="@+id/TopAppBar">
 
         <com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
             android:id="@+id/lineRecyclerView"
@@ -50,8 +33,6 @@
             app:fastScrollThumbInactiveColor="@color/md_theme_primaryContainer"
             app:fastScrollTrackColor="@android:color/transparent"
             app:layoutManager="LinearLayoutManager" />
-
-        <!--        </com.microbus.announcer.view.NestedScrollableHost>-->
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 

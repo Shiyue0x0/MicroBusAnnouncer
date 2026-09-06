@@ -11,9 +11,15 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -28,13 +34,22 @@ import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogInputBinding
 import com.microbus.announcer.databinding.DialogLineInfoBinding
 import com.microbus.announcer.databinding.FragmentLineBinding
+import com.microbus.announcer.ui.compose.NavHelpBox
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.InputField
+import top.yukonga.miuix.kmp.basic.SearchBar
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Help
+import top.yukonga.miuix.kmp.icon.extended.Home
 
 
 class LineFragment : Fragment() {
 
     private var tag = javaClass.simpleName
 
-    private var binding: FragmentLineBinding? = null
+    private lateinit var binding: FragmentLineBinding
 
     private lateinit var stationDatabaseHelper: StationDatabaseHelper
 
@@ -61,25 +76,44 @@ class LineFragment : Fragment() {
         //获取Utils
         utils = Utils(requireContext())
 
-        //设置Toolbar
-        (requireActivity() as AppCompatActivity).setSupportActionBar(binding!!.toolbar)
-
-        //设置状态栏填充高度
-//        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
-//        binding!!.bar.layoutParams.height = resources.getDimensionPixelSize(resourceId)
-        ViewCompat.setOnApplyWindowInsetsListener(binding!!.main) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+        binding.TopAppBar.apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                    SmallTopAppBar(
+                        title = getString(R.string.nav_line),
+                        navigationIcon = {
+                            IconButton(onClick = {
+                                val intent = Intent()
+                                    .setAction(utils.backHomeName)
+                                LocalBroadcastManager.getInstance(context)
+                                    .sendBroadcast(intent)
+                            }) {
+                                Icon(MiuixIcons.Home, contentDescription = "返回主控")
+                            }
+                        },
+                        actions = {
+                            NavHelpBox(
+                                listOf(
+                                    "轻触路线名称：运行该路线",
+                                    "轻触起点/终点站：切换上下/行",
+                                    "长按路线：编辑路线",
+                                    "轻触站点：试听报站",
+                                    "*缓慢向左/右滑动查看完整途径站点",
+                                )
+                            )
+                        }
+                    )
+                }
+            }
         }
 
-        //binding!!.lineRecyclerView.itemAnimator = null
-        refreshLineList()
+        refreshLineList("")
         initSwipeRefreshLayout()
 
         //添加点击添加站点事件
-        binding!!.addLineFab.setOnClickListener {
-            utils.haptic(binding!!.addLineFab)
+        binding.addLineFab.setOnClickListener {
+            utils.haptic(binding.addLineFab)
             addLine()
         }
 
@@ -91,7 +125,7 @@ class LineFragment : Fragment() {
                 if (isAdded) {
                     when (intent.action) {
                         utils.lineListScrollToTopActionName -> {
-                            binding!!.lineRecyclerView.scrollToPosition(0)
+                            binding.lineRecyclerView.scrollToPosition(0)
                         }
                     }
                 }
@@ -104,22 +138,17 @@ class LineFragment : Fragment() {
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(mBroadcastReceiver, intentFilter)
 
-        return binding!!.root
+        return binding.root
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        binding = null
-    }
-
-    lateinit var adapter: LineAdapter
+    private lateinit var adapter: LineAdapter
 
     /**
      * 刷新路线列表
      */
-    private fun refreshLineList() {
+    private fun refreshLineList(searchText: String) {
 
-        binding!!.lineRecyclerView.setHasFixedSize(true)
+        binding.lineRecyclerView.setHasFixedSize(true)
         //获取所有路线，加载到界面
         adapter = LineAdapter(
             requireContext(),
@@ -143,9 +172,9 @@ class LineFragment : Fragment() {
             }
         })
 
-        binding!!.lineRecyclerView.setAdapter(adapter)
+        binding.lineRecyclerView.setAdapter(adapter)
 
-        binding!!.lineRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        binding.lineRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
 
@@ -247,7 +276,7 @@ class LineFragment : Fragment() {
                                     ?.setOnClickListener {
 
                                         utils.onSubmitLineDialog(alertBinding, "new", null) {
-                                            refreshLineList()
+                                            refreshLineList("")
                                             alertDialog.cancel()
                                         }
                                     }
@@ -264,13 +293,13 @@ class LineFragment : Fragment() {
      * 初始化下拉刷新控件 SwipeRefreshLayout
      */
     private fun initSwipeRefreshLayout() {
-        binding!!.swipeRefreshLayout.setOnRefreshListener {
-            refreshLineList()
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            refreshLineList("")
             @SuppressLint("NotifyDataSetChanged")
-            binding!!.lineRecyclerView.adapter!!.notifyDataSetChanged()
-            binding!!.swipeRefreshLayout.isRefreshing = false
+            binding.lineRecyclerView.adapter!!.notifyDataSetChanged()
+            binding.swipeRefreshLayout.isRefreshing = false
             utils.showMsg("刷新成功")
-            utils.haptic(binding!!.swipeRefreshLayout)
+            utils.haptic(binding.swipeRefreshLayout)
         }
     }
 
