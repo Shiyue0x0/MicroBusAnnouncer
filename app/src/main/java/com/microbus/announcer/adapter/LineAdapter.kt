@@ -29,6 +29,7 @@ class LineAdapter(
     private val activity: Activity,
     private val lineDatabaseHelper: LineDatabaseHelper,
     private var key: String = "",
+    private var show: Boolean = true,
     ) :
     RecyclerView.Adapter<ViewHolder>() {
 
@@ -193,7 +194,7 @@ class LineAdapter(
             holder.lineStationList.setHasFixedSize(true)
             holder.lineStationList.layoutManager = linearLayoutManager
             val stationOfLineAdapter =
-                StationOfLineAdapter(context, activity, stationList, stationList.size)
+                StationOfLineAdapter(context, stationList, stationList.size)
 
             holder.lineStationList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {

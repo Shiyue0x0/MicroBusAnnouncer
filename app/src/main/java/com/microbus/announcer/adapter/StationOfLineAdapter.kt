@@ -1,13 +1,13 @@
 package com.microbus.announcer.adapter
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
+import android.util.Log
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.LayoutInflater
@@ -26,10 +26,10 @@ import kotlin.math.pow
 
 internal class StationOfLineAdapter(
     private val context: Context,
-    private val activity: Activity,
     mStationList: ArrayList<Station>,
     mStationCount: Int,
-    mStationState: Int = -1     // onNext 0, onWillArrive 1, onArrive, 2
+    mStationState: Int = -1,    // onNext 0, onWillArrive 1, onArrive, 2,
+    var tag: String = ""
 ) :
     RecyclerView.Adapter<StationOfLineAdapter.StationOfLineViewHolder>() {
 
@@ -179,7 +179,18 @@ internal class StationOfLineAdapter(
     }
 
     override fun onBindViewHolder(holder: StationOfLineViewHolder, position: Int) {
+        onMyBindViewHolder(holder, position)
+    }
 
+    override fun onBindViewHolder(
+        holder: StationOfLineViewHolder,
+        position: Int,
+        payloads: List<Any>
+    ) {
+        onMyBindViewHolder(holder, position)
+    }
+
+    fun onMyBindViewHolder(holder: StationOfLineViewHolder, position: Int) {
 
         when (position) {
             0 -> holder.stationIndex.text = "始发"
@@ -307,7 +318,9 @@ internal class StationOfLineAdapter(
 
     }
 
+
     override fun getItemCount(): Int {
+        Log.d(tag, "L311 ${stationList.size}")
         return stationList.size
     }
 

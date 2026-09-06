@@ -52,15 +52,6 @@ import android.widget.TextView
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
@@ -70,7 +61,6 @@ import androidx.core.view.setPadding
 import androidx.core.widget.NestedScrollView
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
-import androidx.fragment.compose.content
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC
@@ -94,7 +84,6 @@ import com.amap.api.maps.AMapOptions
 import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.LocationSource
 import com.amap.api.maps.MapView
-import com.microbus.announcer.util.WavSilenceGenerator
 import com.amap.api.maps.UiSettings
 import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.Circle
@@ -129,7 +118,6 @@ import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
 import com.microbus.announcer.TabSwitchListener
 import com.microbus.announcer.Utils
-import com.microbus.announcer.activity.FragmentContainerActivity
 import com.microbus.announcer.adapter.LineOfSearchAdapter
 import com.microbus.announcer.adapter.StationOfLineAdapter
 import com.microbus.announcer.adapter.StationOfRunningInfoAdapter
@@ -143,9 +131,11 @@ import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogLineSwitchBinding
 import com.microbus.announcer.databinding.DialogLoadingBinding
 import com.microbus.announcer.databinding.DialogRunningInfoBinding
-import com.microbus.announcer.model.StationStatus
+import com.microbus.announcer.databinding.FragmentMainBinding
 import com.microbus.announcer.model.LineDirection
+import com.microbus.announcer.model.StationStatus
 import com.microbus.announcer.model.TabPage
+import com.microbus.announcer.util.WavSilenceGenerator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -158,13 +148,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
-import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.theme.ColorSchemeMode
-import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.theme.ThemeController
 import java.io.File
 import java.net.UnknownHostException
 import java.time.LocalDate
@@ -173,9 +156,10 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.Timer
 import java.util.TimerTask
+import kotlin.math.abs
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
-import com.microbus.announcer.databinding.FragmentMainBinding
+
 class MainFragment : Fragment() {
 
     private var tag = javaClass.simpleName
@@ -334,7 +318,6 @@ class MainFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-
 
 
         binding = FragmentMainBinding.inflate(inflater, container, false)
@@ -682,6 +665,7 @@ class MainFragment : Fragment() {
         adapter.stationCount = currentLineStationCount
         adapter.stationState = currentLineStationState
         adapter.mHandler.removeCallbacksAndMessages(null)
+        adapter.tag = "Main"
 
         @SuppressLint("NotifyDataSetChanged")
         adapter.notifyDataSetChanged()
@@ -1227,10 +1211,12 @@ class MainFragment : Fragment() {
                     locationMarker.alpha = 1f
                 binding.navStationCard.visibility = VISIBLE
                 binding.navSpeedCard.visibility = VISIBLE
+
+                val myLocationStyle = MyLocationStyle()
+                myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_MAP_ROTATE)
+                aMap.myLocationStyle = myLocationStyle
             } else {
                 locationClient.stopLocation()
-
-
 
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 0f
@@ -1242,6 +1228,9 @@ class MainFragment : Fragment() {
                     getString(R.string.main_speed_value)
                 binding.navStationCard.visibility = GONE
                 binding.navSpeedCard.visibility = GONE
+                val myLocationStyle = MyLocationStyle()
+                myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATE)
+                aMap.myLocationStyle = myLocationStyle
             }
 
 
@@ -1260,6 +1249,7 @@ class MainFragment : Fragment() {
 //                initMap()
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 1f
+
             } else {
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 0f
@@ -2378,7 +2368,8 @@ class MainFragment : Fragment() {
 //                            sensorHelper.getAzimuth().toFloat()
 //                        )
 //                    )
-                    if (this@MainFragment::locationMarker.isInitialized) {
+                    if (this@MainFragment::locationMarker.isInitialized && binding.locationBtn.isChecked
+                    ) {
                         locationMarker.rotateAngle = -sensorHelper.getAzimuth().toFloat()
                     }
                 }
@@ -2467,7 +2458,6 @@ class MainFragment : Fragment() {
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         val adapter = StationOfLineAdapter(
             requireContext(),
-            requireActivity(),
             ArrayList(),
             0
         )
@@ -3380,7 +3370,6 @@ class MainFragment : Fragment() {
     /**
      * 更新路线站点显示、小卡片和通知
      */
-    @SuppressLint("NotifyDataSetChanged")
     private fun refreshLineStationListAndNotice() {
 
         val currentStationStateText = when (currentLineStationState) {
@@ -3413,9 +3402,15 @@ class MainFragment : Fragment() {
             try {
                 val manager = binding.lineStationList.layoutManager as LinearLayoutManager
                 val adapter = binding.lineStationList.adapter as StationOfLineAdapter
+
+                val lastLineStationCount = adapter.stationCount
                 adapter.stationCount = currentLineStationCount
                 adapter.stationState = currentLineStationState
-                adapter.notifyDataSetChanged()
+
+                val positionStart = lastLineStationCount.coerceAtMost(currentLineStationCount)
+                val itemCount = abs(lastLineStationCount - currentLineStationCount) + 1
+
+                adapter.notifyItemRangeChanged(positionStart, itemCount, false)
 
                 val layout = LayoutInflater.from(requireContext())
                     .inflate(

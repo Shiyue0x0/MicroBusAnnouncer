@@ -33,7 +33,6 @@ class FragmentContainerActivity : AppCompatActivity() {
                 try {
                     val fragment = Class.forName(fragmentClass).newInstance() as Fragment
                     fragment.arguments = args
-
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.fragment_container, fragment)
                         .commit()
