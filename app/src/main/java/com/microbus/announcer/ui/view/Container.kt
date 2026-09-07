@@ -1,4 +1,4 @@
-package com.microbus.announcer.view
+package com.microbus.announcer.ui.view
 
 import android.annotation.SuppressLint
 import android.content.Context

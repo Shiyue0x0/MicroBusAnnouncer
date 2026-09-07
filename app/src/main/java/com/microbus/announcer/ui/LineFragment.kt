@@ -142,6 +142,7 @@ class LineFragment : Fragment() {
     }
 
     private lateinit var adapter: LineAdapter
+    private var hasFirstOnScrolled = false
 
     /**
      * 刷新路线列表
@@ -153,7 +154,8 @@ class LineFragment : Fragment() {
         adapter = LineAdapter(
             requireContext(),
             requireActivity(),
-            lineDatabaseHelper
+            lineDatabaseHelper,
+            showStationPoint = false
         )
 
         //点击路线切换到主控并运行
@@ -178,15 +180,17 @@ class LineFragment : Fragment() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
 
+                if(!hasFirstOnScrolled){
+                    hasFirstOnScrolled = true
+                    return
+                }
+
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                 val firstVisibleItem = layoutManager.findFirstVisibleItemPosition()
                 val lastVisibleItem = layoutManager.findLastVisibleItemPosition()
 
-//                Log.d("", "line now show ${firstVisibleItem}-${lastVisibleItem}")
-//                adapter.firstVisibleItem = firstVisibleItem
-//                adapter.lastVisibleItem = lastVisibleItem
                 adapter.updateItemShown(firstVisibleItem, lastVisibleItem)
-
+                Log.d("L190", "${firstVisibleItem} ${lastVisibleItem}")
             }
         })
 
@@ -303,23 +307,19 @@ class LineFragment : Fragment() {
         }
     }
 
-//    // 与用户交互时
-//    override fun onResume() {
-//        super.onResume()
-//        Log.d(tag, "onResume")
-//        adapter.updateAllItemShown(true)
-//    }
-//
-//    // 不再与用户交互时
-//    override fun onPause() {
-//        Log.d(tag, "onPause")
-//        adapter.updateAllItemShown(false)
-//        super.onPause()
-//    }
-
-    fun updateAllItemShown(value: Boolean) {
-        if (this::adapter.isInitialized)
-            adapter.updateAllItemShown(value)
+    // 与用户交互时
+    override fun onResume() {
+        super.onResume()
+        Log.d(tag, "onResume")
+        adapter.updateAllItemShown(true)
     }
+
+    // 不再与用户交互时
+    override fun onPause() {
+        Log.d(tag, "onPause")
+        adapter.updateAllItemShown(false)
+        super.onPause()
+    }
+
 
 }

@@ -29,8 +29,8 @@ class LineAdapter(
     private val activity: Activity,
     private val lineDatabaseHelper: LineDatabaseHelper,
     private var key: String = "",
-    private var show: Boolean = true,
-    ) :
+    private var showStationPoint: Boolean = true,
+) :
     RecyclerView.Adapter<ViewHolder>() {
 
     private lateinit var mClickListener: OnItemClickListener
@@ -191,7 +191,7 @@ class LineAdapter(
             val linearLayoutManager =
                 LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
 
-            holder.lineStationList.setHasFixedSize(true)
+//            holder.lineStationList.setHasFixedSize(true)
             holder.lineStationList.layoutManager = linearLayoutManager
             val stationOfLineAdapter =
                 StationOfLineAdapter(context, stationList, stationList.size)
@@ -209,6 +209,8 @@ class LineAdapter(
                     stationOfLineAdapter.lastVisibleItem = lastVisibleItem
                 }
             })
+
+            stationOfLineAdapter.showStationPoint = showStationPoint
 
 //            Log.d("", "stationOfLineAdapter ${position + 1} in ${firstVisibleItem}/${lastVisibleItem}")
 //            stationOfLineAdapter.isShown = position + 1 in firstVisibleItem..lastVisibleItem

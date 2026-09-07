@@ -14,6 +14,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.graphics.drawable.Icon
 import android.os.Build
@@ -60,6 +61,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 import com.microbus.announcer.activity.WebviewActivity
+import kotlin.compareTo
 
 
 class Utils(private val context: Context) {
@@ -1479,7 +1481,7 @@ class Utils(private val context: Context) {
         return Icon.createWithBitmap(rotatedBitmap)
     }
 
-    fun createTextIcon(context: Context, text: String, size: Int = 64): Icon {
+    fun createTextIcon(text: String, size: Int = 64): Icon {
         val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
 
@@ -1491,14 +1493,40 @@ class Utils(private val context: Context) {
             typeface = Typeface.DEFAULT_BOLD
         }
 
+        val paintText = getTextByWidth(text ,size * 0.6f,  size * 0.6f * 2)
+
         // 垂直居中
         val metrics = textPaint.fontMetrics
         val y = size / 2f - (metrics.ascent + metrics.descent) / 2f
-        canvas.drawText(text, size / 2f, y, textPaint)
-
+        canvas.drawText(paintText, size / 2f, y, textPaint)
         return Icon.createWithBitmap(bitmap)
     }
 
+    fun getTextByWidth(text: String, textSize: Float, maxWidth: Float): String {
+        val paint = Paint().apply {
+            this.textSize = textSize // 根据你的实际字号设置
+            isAntiAlias = true
+        }
+
+        var result = ""
+        for (char in text) {
+            val testText = result + char
+            if (paint.measureText(testText) <= maxWidth) {
+                result = testText
+            } else {
+                break
+            }
+        }
+        return result
+    }
+
+    fun isViewVisibleOnScreen(view: View): Boolean {
+        val rect = Rect()
+        // 获取 view 在屏幕中的可见区域
+        view.getLocalVisibleRect(rect)
+        // 如果 rect 不为空，说明有部分可见
+        return !rect.isEmpty
+    }
 
 }
 

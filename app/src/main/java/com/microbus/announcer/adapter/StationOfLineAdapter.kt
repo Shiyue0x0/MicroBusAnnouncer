@@ -20,8 +20,16 @@ import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.databinding.ItemStationOfLineBinding
+import com.microbus.announcer.model.StationStatus
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.pow
+import kotlin.time.Duration.Companion.milliseconds
+import androidx.core.view.isVisible
 
 
 internal class StationOfLineAdapter(
@@ -29,7 +37,8 @@ internal class StationOfLineAdapter(
     mStationList: ArrayList<Station>,
     mStationCount: Int,
     mStationState: Int = -1,    // onNext 0, onWillArrive 1, onArrive, 2,
-    var tag: String = ""
+    var tag: String = "",
+    var showStationPoint: Boolean = true,
 ) :
     RecyclerView.Adapter<StationOfLineAdapter.StationOfLineViewHolder>() {
 
@@ -84,7 +93,6 @@ internal class StationOfLineAdapter(
         val holder = StationOfLineViewHolder(binding, mClickListener)
 
         lineHeight = holder.stationIndex.lineHeight
-
 
         // todo 适配英文
 
@@ -159,6 +167,11 @@ internal class StationOfLineAdapter(
                     val frameDelay = frameDelayNanos.toFloat() / 10F.pow(9F) / (1F / fps)
                     frameCount = (frameCount + frameDelay) % Float.MAX_VALUE
 
+//                    Log.d(
+//                        "L170",
+//                        "${holder.stationIndex.text} ${holder.stationName.text}"
+//                    )
+
                 }
             }
             Choreographer.getInstance().postFrameCallback(frameCallback)
@@ -174,6 +187,7 @@ internal class StationOfLineAdapter(
 //        holder.stationName.setOnClickListener {
 //            mClickListener.onItemClick(it, holder.layoutPosition)
 //        }
+
 
         return holder
     }
@@ -198,11 +212,11 @@ internal class StationOfLineAdapter(
             stationCount -> {
                 when (stationState) {
                     // 正在前往
-                    0 -> holder.stationIndex.text = "→"
+                    StationStatus.ON_NEXT -> holder.stationIndex.text = "→"
                     // 即将到达
-                    1 -> holder.stationIndex.text = "↘"
+                    StationStatus.ON_WILL_ARRIVE -> holder.stationIndex.text = "↘"
                     // 到站
-                    2 -> holder.stationIndex.text = "↓"
+                    StationStatus.ON_ARRIVE -> holder.stationIndex.text = "↓"
                 }
             }
 
@@ -212,13 +226,19 @@ internal class StationOfLineAdapter(
             }
         }
 
-        val stationPointResId = when {
-            position < stationCount -> R.mipmap.line_gray           // 已过站（灰色）
-            position == stationCount -> R.mipmap.line_blue          // 当前站（蓝色）
-            position > stationCount -> R.mipmap.line_green           // 未到站（绿色）
-            else -> R.mipmap.line_gray                              // 默认（灰色）
+        if (showStationPoint) {
+            holder.stationPoint.visibility = View.VISIBLE
+            val stationPointResId = when {
+                position < stationCount -> R.mipmap.line_gray           // 已过站（灰色）
+                position == stationCount -> R.mipmap.line_blue          // 当前站（蓝色）
+                position > stationCount -> R.mipmap.line_green           // 未到站（绿色）
+                else -> R.mipmap.line_gray                              // 默认（灰色）
+            }
+            holder.stationPoint.setImageResource(stationPointResId)
+        } else {
+            holder.stationPoint.visibility = View.GONE
         }
-        holder.stationPoint.setImageResource(stationPointResId)
+
 
 
         when (position) {
@@ -316,11 +336,11 @@ internal class StationOfLineAdapter(
             false
         }
 
+
     }
 
 
     override fun getItemCount(): Int {
-        Log.d(tag, "L311 ${stationList.size}")
         return stationList.size
     }
 

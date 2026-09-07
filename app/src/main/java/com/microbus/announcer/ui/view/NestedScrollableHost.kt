@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.microbus.announcer.view
+package com.microbus.announcer.ui.view
 
 import android.content.Context
 import android.util.AttributeSet
@@ -31,6 +31,7 @@ import kotlin.math.absoluteValue
 import kotlin.math.sign
 import androidx.core.content.withStyledAttributes
 import androidx.core.view.size
+import androidx.recyclerview.widget.LinearLayoutManager
 
 
 /**
@@ -119,8 +120,8 @@ class NestedScrollableHost : FrameLayout {
         parentViewPager?.let { return it.orientation }
         parentRecyclerView?.let {
             val layoutManager = it.layoutManager
-            if (layoutManager is androidx.recyclerview.widget.LinearLayoutManager) {
-                return if (layoutManager.orientation == androidx.recyclerview.widget.LinearLayoutManager.HORIZONTAL) 0 else 1
+            if (layoutManager is LinearLayoutManager) {
+                return if (layoutManager.orientation == LinearLayoutManager.HORIZONTAL) 0 else 1
             }
             return 1
         }

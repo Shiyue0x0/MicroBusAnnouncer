@@ -2453,9 +2453,10 @@ class MainFragment : Fragment() {
 //        binding.lineStationCard.visibility = ViewGroup.GONE
 
         //初始化路线站点卡片
-        binding.lineStationList.setHasFixedSize(true)
+//        binding.lineStationList.setHasFixedSize(true)
         binding.lineStationList.layoutManager =
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+
         val adapter = StationOfLineAdapter(
             requireContext(),
             ArrayList(),
@@ -3412,9 +3413,10 @@ class MainFragment : Fragment() {
 
                 adapter.notifyItemRangeChanged(positionStart, itemCount, false)
 
+                @SuppressLint("InflateParams")
                 val layout = LayoutInflater.from(requireContext())
                     .inflate(
-                        R.layout.item_station_of_line, binding.root
+                        R.layout.item_station_of_line, null, false
                     )
                 val stationIndexView = layout.findViewById<TextView>(R.id.station_index)
                 val lineHeight = stationIndexView.lineHeight
@@ -3526,7 +3528,7 @@ class MainFragment : Fragment() {
 
                 notificationBuilder
                     .setRequestPromotedOngoing(true)
-                    .setSmallIcon(utils.createTextIcon(requireContext(), currentLine.name, 96))
+                    .setSmallIcon(utils.createTextIcon(currentLine.name, 96))
                     .setShortCriticalText(currentLineStationList.last().cnName)
                     .setStyle(progressStyle)
 

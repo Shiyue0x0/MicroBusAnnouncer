@@ -350,7 +350,7 @@ class SystemSettings : Fragment() {
     @Composable
     fun IsNavModeItem(value: Boolean, setValue: (Boolean) -> Unit) {
         BaseSettingItem(
-            "巡航模式",
+            "巡航信息栏",
             "在主控顶部显示巡航信息",
             painterResource(id = R.drawable.nav),
             {

@@ -1,4 +1,4 @@
-package com.microbus.announcer.view
+package com.microbus.announcer.ui.view
 
 import android.content.Context
 import android.graphics.Rect
