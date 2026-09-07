@@ -47,7 +47,7 @@
         </com.google.android.material.card.MaterialCardView>
 
 
-        <com.microbus.announcer.view.ScrollingTextView
+        <com.microbus.announcer.ui.view.ScrollingTextView
             android:id="@+id/lineStartingStation"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -66,7 +66,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <com.microbus.announcer.view.ScrollingTextView
+        <com.microbus.announcer.ui.view.ScrollingTextView
             android:id="@+id/lineTerminal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -84,7 +84,7 @@
             app:layout_constraintStart_toEndOf="@+id/line_name_card"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <com.microbus.announcer.view.NestedScrollableHost
+        <com.microbus.announcer.ui.view.NestedScrollableHost
             android:id="@+id/lineStationListHost"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -104,7 +104,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/line_name_card" />
 
-        </com.microbus.announcer.view.NestedScrollableHost>
+        </com.microbus.announcer.ui.view.NestedScrollableHost>
 
 
         <!--                <com.microbus.announcer.view.Container-->

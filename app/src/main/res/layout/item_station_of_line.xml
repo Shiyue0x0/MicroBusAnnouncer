@@ -32,7 +32,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <com.microbus.announcer.view.StationPoint
+        <com.microbus.announcer.ui.view.StationPoint
             android:id="@+id/stationPoint"
             android:layout_width="0dp"
             android:layout_height="wrap_content"

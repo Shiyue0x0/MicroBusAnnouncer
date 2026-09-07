@@ -12,7 +12,7 @@
     tools:context=".ui.MainFragment">
 
     <!--  地图  -->
-    <com.microbus.announcer.view.Container
+    <com.microbus.announcer.ui.view.Container
         android:id="@+id/mapContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -26,7 +26,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-    </com.microbus.announcer.view.Container>
+    </com.microbus.announcer.ui.view.Container>
 
 
     <!--  状态栏填充  -->
@@ -67,7 +67,7 @@
             android:orientation="horizontal">
 
             <!--            app:background="?attr/cardBackgroundColor"-->
-            <com.microbus.announcer.view.ESView
+            <com.microbus.announcer.ui.view.ESView
                 android:id="@+id/headerLeftNew"
                 android:layout_width="0dp"
                 android:layout_height="20sp"
@@ -82,7 +82,7 @@
                 android:textStyle="bold" />
 
 
-            <com.microbus.announcer.view.ESView
+            <com.microbus.announcer.ui.view.ESView
                 android:id="@+id/headerMiddleNew"
                 android:layout_width="wrap_content"
                 android:layout_height="20sp"
@@ -98,7 +98,7 @@
                 app:background="@color/md_theme_surface_tran"
                 app:cornerRadius="16dp" />
 
-            <com.microbus.announcer.view.ESView
+            <com.microbus.announcer.ui.view.ESView
                 android:id="@+id/headerRightNew"
                 android:layout_width="0dp"
                 android:layout_height="20sp"
@@ -154,7 +154,7 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <com.microbus.announcer.view.ScrollingTextView
+                <com.microbus.announcer.ui.view.ScrollingTextView
                     android:id="@+id/navStationSign"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -172,7 +172,7 @@
                     android:textStyle="bold"
                     app:background="@color/an_contain_bg" />
 
-                <com.microbus.announcer.view.ESView
+                <com.microbus.announcer.ui.view.ESView
                     android:id="@+id/navStationName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -205,7 +205,7 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <com.microbus.announcer.view.ScrollingTextView
+                        <com.microbus.announcer.ui.view.ScrollingTextView
                             android:id="@+id/navStationDistanceValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -220,7 +220,7 @@
                             app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintTop_toTopOf="parent" />
 
-                        <com.microbus.announcer.view.ScrollingTextView
+                        <com.microbus.announcer.ui.view.ScrollingTextView
                             android:id="@+id/navStationDistanceUnit"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -268,7 +268,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <com.microbus.announcer.view.ScrollingTextView
+                    <com.microbus.announcer.ui.view.ScrollingTextView
                         android:id="@+id/navStationSpeedValue"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -283,7 +283,7 @@
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
 
-                    <com.microbus.announcer.view.ScrollingTextView
+                    <com.microbus.announcer.ui.view.ScrollingTextView
                         android:id="@+id/navStationSpeedUnit"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -332,7 +332,7 @@
         app:strokeColor="@color/md_theme_surface_tran2"
         app:strokeWidth="2dp">
 
-        <com.microbus.announcer.view.NestedScrollableHost
+        <com.microbus.announcer.ui.view.NestedScrollableHost
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
@@ -346,7 +346,7 @@
                 android:fadingEdgeLength="20dp"
                 android:requiresFadingEdge="horizontal" />
 
-        </com.microbus.announcer.view.NestedScrollableHost>
+        </com.microbus.announcer.ui.view.NestedScrollableHost>
 
 
     </com.google.android.material.card.MaterialCardView>
@@ -399,7 +399,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/to" />
 
-                        <com.microbus.announcer.view.ScrollingTextView
+                        <com.microbus.announcer.ui.view.ScrollingTextView
                             android:id="@+id/terminalName"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -456,7 +456,7 @@
 
                                 android:text="@string/next" />
 
-                            <com.microbus.announcer.view.ScrollingTextView
+                            <com.microbus.announcer.ui.view.ScrollingTextView
                                 android:id="@+id/currentStationName"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
@@ -505,7 +505,7 @@
                                     android:textSize="12sp" />
                             </LinearLayout>
 
-                            <com.microbus.announcer.view.ScrollingTextView
+                            <com.microbus.announcer.ui.view.ScrollingTextView
                                 android:id="@+id/currentDistanceToCurrentStationValue"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
@@ -571,7 +571,7 @@
                 <!--                                android:textSize="12sp" />-->
                 <!--                        </LinearLayout>-->
 
-                <!--                        <com.microbus.announcer.view.ScrollingTextView-->
+                <!--                        <com.microbus.announcer.ui.view.ScrollingTextView-->
                 <!--                            android:id="@+id/currentDistanceToCurrentStationValue"-->
                 <!--                            android:layout_width="match_parent"-->
                 <!--                            android:layout_height="wrap_content"-->
@@ -632,7 +632,7 @@
                                 android:textSize="12sp" />
                         </LinearLayout>
 
-                        <com.microbus.announcer.view.ScrollingTextView
+                        <com.microbus.announcer.ui.view.ScrollingTextView
                             android:id="@+id/speedValue"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
