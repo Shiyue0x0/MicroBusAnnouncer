@@ -340,6 +340,8 @@ class ESView : View {
                         return
                     }
 
+//                    Log.d("L343", "${text}")
+
                     Choreographer.getInstance().postFrameCallback(this)
 
                     // 计算实际时间增量（秒）

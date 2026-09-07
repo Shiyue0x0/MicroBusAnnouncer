@@ -412,7 +412,14 @@ class MainFragment : Fragment() {
 
         announcementLangList = utils.getLangList()
 
-
+        if (prefs.getBoolean("enableLowPowerMode", false)) {
+            CoroutineScope(Dispatchers.IO).launch {
+                delay(1000.milliseconds)
+                withContext(Dispatchers.Main) {
+                    switchPowerSavingMode(true)
+                }
+            }
+        }
 
         return binding.root
     }
@@ -1105,42 +1112,9 @@ class MainFragment : Fragment() {
             }
         }
 
-        // 进入省电模式
+        // 进入/退出 省电模式
         binding.switchPowerSavingMode.setOnClickListener {
-            enableLowPowerMode = !enableLowPowerMode
-
-            if (enableLowPowerMode) {
-                binding.mapBtnGroup.uncheck(binding.mapBtn.id)
-                binding.lineStationCard.visibility = GONE
-                (binding.lineStationList.adapter as StationOfLineAdapter).isShown = false
-                enableEs = false
-
-                binding.headerLeftNew.stopAnimation()
-                binding.headerRightNew.stopAnimation()
-                binding.navStationName.stopAnimation()
-
-                binding.headerLeftNew.visibility = GONE
-                binding.headerRightNew.visibility = GONE
-                binding.navCard.visibility = GONE
-            }
-
-            if (!enableLowPowerMode) {
-                binding.mapBtnGroup.check(binding.mapBtn.id)
-                binding.lineStationCard.visibility = VISIBLE
-                (binding.lineStationList.adapter as StationOfLineAdapter).isShown = true
-                enableEs = true
-
-                binding.headerLeftNew.startAnimation()
-                binding.headerRightNew.startAnimation()
-                binding.navStationName.startAnimation()
-
-                if (utils.getIsOpenLeftEs()) {
-                    binding.headerLeftNew.visibility = VISIBLE
-                }
-                binding.headerRightNew.visibility = VISIBLE
-                binding.navCard.visibility = VISIBLE
-            }
-
+            switchPowerSavingMode(!enableLowPowerMode)
         }
 
         //单击运行信息
@@ -1229,7 +1203,7 @@ class MainFragment : Fragment() {
                 binding.navStationCard.visibility = GONE
                 binding.navSpeedCard.visibility = GONE
                 val myLocationStyle = MyLocationStyle()
-                myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATE)
+                myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_FOLLOW)
                 aMap.myLocationStyle = myLocationStyle
             }
 
@@ -5245,6 +5219,47 @@ class MainFragment : Fragment() {
         loadLine(newLine)
 
         utils.haptic(binding.headerMiddleNew)
+    }
+
+    fun switchPowerSavingMode(enable: Boolean) {
+        enableLowPowerMode = enable
+
+        if (enableLowPowerMode) {
+            binding.mapBtnGroup.uncheck(binding.mapBtn.id)
+            binding.lineStationCard.visibility = GONE
+            (binding.lineStationList.adapter as StationOfLineAdapter).isShown = false
+//                enableEs = false
+
+//                binding.headerLeftNew.stopAnimation()
+//                binding.headerRightNew.stopAnimation()
+            binding.navStationName.stopAnimation()
+
+//                binding.headerLeftNew.visibility = GONE
+//                binding.headerRightNew.visibility = GONE
+            binding.navCard.visibility = GONE
+        }
+
+        if (!enableLowPowerMode) {
+            binding.mapBtnGroup.check(binding.mapBtn.id)
+            binding.lineStationCard.visibility = VISIBLE
+            (binding.lineStationList.adapter as StationOfLineAdapter).isShown = true
+//                enableEs = true
+
+//                binding.headerLeftNew.startAnimation()
+//                binding.headerRightNew.startAnimation()
+            binding.navStationName.startAnimation()
+
+//                if (utils.getIsOpenLeftEs()) {
+//                    binding.headerLeftNew.visibility = VISIBLE
+//                }
+//                binding.headerRightNew.visibility = VISIBLE
+            binding.navCard.visibility = VISIBLE
+        }
+
+        prefs.edit {
+            putBoolean("enableLowPowerMode", enableLowPowerMode)
+        }
+
     }
 
 }

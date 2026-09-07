@@ -190,7 +190,7 @@ class LineFragment : Fragment() {
                 val lastVisibleItem = layoutManager.findLastVisibleItemPosition()
 
                 adapter.updateItemShown(firstVisibleItem, lastVisibleItem)
-                Log.d("L190", "${firstVisibleItem} ${lastVisibleItem}")
+//                Log.d("L190", "${firstVisibleItem} ${lastVisibleItem}")
             }
         })
 
