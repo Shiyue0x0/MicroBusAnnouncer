@@ -199,7 +199,6 @@ class LineSwitcherActivity : ComponentActivity() {
                     mutableStateOf(utils.getCity())
                 }
 
-                // 当搜索文本变化时自动搜索
                 fun performSearch(key: String, localLineTypeSelectedIndex: Int) {
                     isSearching = true
                     when (searchLineType) {
@@ -253,21 +252,15 @@ class LineSwitcherActivity : ComponentActivity() {
                     onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
                 }
 
+                LaunchedEffect(pagerState.currentPage) {
+                    searchLineType = pagerState.currentPage
+                }
 
-                // 初始加载、关键字变化、本地站点变化时搜索
-                LaunchedEffect(searchText, localLineTypeSelectedIndex) {
+                // 初始加载、关键字变化、本地站点类型、本地/在线路线页面、变化时搜索
+                LaunchedEffect(searchText, localLineTypeSelectedIndex, pagerState.currentPage) {
+//                    Log.d(tag, "L258 $searchText")
                     performSearch(searchText, localLineTypeSelectedIndex)
                 }
-
-                // 本地/在线路线页切换时搜索
-                LaunchedEffect(pagerState) {
-                    snapshotFlow { pagerState.currentPage }
-                        .collect { _ ->
-                            performSearch(searchText, localLineTypeSelectedIndex)
-                            searchLineType = pagerState.currentPage
-                        }
-                }
-
 
                 MySearchBar(
                     searchText = searchText,
