@@ -117,7 +117,6 @@ import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
 import com.microbus.announcer.TabSwitchListener
 import com.microbus.announcer.Utils
-import com.microbus.announcer.adapter.LineOfSearchAdapter
 import com.microbus.announcer.adapter.StationOfLineAdapter
 import com.microbus.announcer.adapter.StationOfRunningInfoAdapter
 import com.microbus.announcer.bean.EsItem
@@ -127,7 +126,6 @@ import com.microbus.announcer.bean.Station
 import com.microbus.announcer.bean.TrajectoryPoint
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
-import com.microbus.announcer.databinding.DialogLineSwitchBinding
 import com.microbus.announcer.databinding.DialogRunningInfoBinding
 import com.microbus.announcer.databinding.FragmentMainBinding
 import com.microbus.announcer.model.LineDirection
@@ -337,17 +335,18 @@ class MainFragment : Fragment() {
 
                     utils.LOAD_CLOUD_LINE -> {
                         // todo
-                        val line = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            data.getSerializableExtra("line", Line::class.java)
-                        } else {
-                            data.getSerializableExtra("line") as? Line
-                        }
+                        @Suppress("DEPRECATION") val line =
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                data.getSerializableExtra("line", Line::class.java)
+                            } else {
+                                data.getSerializableExtra("line") as? Line
+                            }
 
                         if (line == null) {
                             return@registerForActivityResult
                         }
 
-                        @Suppress("UNCHECKED_CAST")
+                        @Suppress("UNCHECKED_CAST", "DEPRECATION")
                         val cloudStationList =
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                 data.getSerializableExtra(
@@ -3885,150 +3884,6 @@ class MainFragment : Fragment() {
         }
     }
 
-    /**
-     * 按正则表达式匹配线路列表，并弹出路线选择Dialog
-     */
-    private fun getMatchedLines(
-        lineList: List<Line>,
-        reg: Regex,
-    ): ArrayList<Line> {
-
-        val matchLineList = ArrayList<Line>()
-
-        lineList.forEach { line ->
-            if (reg.matches(line.name)) {
-                matchLineList.add(line)
-            }
-        }
-
-        val numStartReg = "^(\\d+.*)$".toRegex()
-        val numReg = "\\d+".toRegex()
-        val comparator = Comparator { line1: Line, line2: Line ->
-            if (numStartReg.matches(line1.name) && numStartReg.matches(line2.name))
-                numReg.find(line1.name)!!.value.toInt() - numReg.find(line2.name)!!.value.toInt()
-            else
-                Int.MAX_VALUE
-        }
-
-        val sortedMatchLineList = ArrayList<Line>()
-        sortedMatchLineList.addAll(matchLineList.sortedWith(comparator))
-        return sortedMatchLineList
-
-    }
-
-    private fun showLinesChoosesDialog(
-        sortedMatchLineList: ArrayList<Line>,
-        type: Int
-    ) {
-
-        val title = when (type) {
-            0 -> resources.getString(R.string.line_normal_bus)
-            1 -> resources.getString(R.string.line_comm_bus)
-            2 -> resources.getString(R.string.line_metro)
-            3 -> resources.getString(R.string.line_train)
-            4 -> resources.getString(R.string.line_other)
-            5 -> resources.getString(R.string.line_all)
-            else -> ""
-        }
-
-        val lineInfoList =
-            arrayOfNulls<String>(sortedMatchLineList.size)
-
-        for (i in sortedMatchLineList.indices) {
-            val lineStationIndexListStr =
-                sortedMatchLineList[i].upLineStation.split(' ')
-
-            val lineStartingStation =
-                stationDatabaseHelper.queryById(
-                    lineStationIndexListStr.first().toInt()
-                )
-            val lineTerminal =
-                stationDatabaseHelper.queryById(
-                    lineStationIndexListStr.last().toInt()
-                )
-
-            val lineStartingStationCnName =
-                if (lineStartingStation.isNotEmpty()) lineStartingStation.first().cnName
-                else "-"
-
-            val lineTerminalCnName =
-                if (lineTerminal.isNotEmpty()) lineTerminal.first().cnName
-                else "-"
-
-            lineInfoList[i] =
-                "${sortedMatchLineList[i].name}  $lineStartingStationCnName - $lineTerminalCnName"
-        }
-
-        MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-            .setTitle(title)
-            .setItems(lineInfoList) { _, which ->
-                if (lineInfoList[which] != "") {
-                    setLine(sortedMatchLineList[which])
-                    utils.haptic(binding.headerMiddleNew)
-                }
-            }.create()
-            .show()
-    }
-
-    private fun searchLine(
-        key: String,
-        dialogBinding: DialogLineSwitchBinding,
-        alertDialog: AlertDialog
-    ) {
-
-
-        val comparator = utils.getDefaultLineComparator()
-        val res = ArrayList(lineDatabaseHelper.queryByKey(key).sortedWith(comparator))
-
-//        val lineNameList = res.map { it.name }
-        val lineInfoList = ArrayList(res.map {
-            val lineStationIndexListStr =
-                it.upLineStation.split(' ')
-
-            val lineStartingStation =
-                stationDatabaseHelper.queryById(
-                    lineStationIndexListStr.first().toInt()
-                )
-            val lineTerminal =
-                stationDatabaseHelper.queryById(
-                    lineStationIndexListStr.last().toInt()
-                )
-
-            val lineStartingStationCnName =
-                if (lineStartingStation.isNotEmpty()) lineStartingStation.first().cnName
-                else "-"
-
-            val lineTerminalCnName =
-                if (lineTerminal.isNotEmpty()) lineTerminal.first().cnName
-                else "-"
-
-            return@map "${it.name}  $lineStartingStationCnName - $lineTerminalCnName"
-
-        })
-
-        lineInfoList.add("在线搜索${utils.getCity()} ${dialogBinding.lineNameInput.text} 路/线")
-        lineInfoList.add("设为临时路线 ${dialogBinding.lineNameInput.text} 路/线")
-
-
-//        val adapter =
-//            ArrayAdapter(
-//                requireActivity(),
-//                android.R.layout.simple_list_item_1,
-//                lineInfoList
-//            )
-
-        //new
-        val newAdapter = LineOfSearchAdapter(requireContext(), res)
-        newAdapter.setOnItemClickListener(object : LineOfSearchAdapter.OnItemClickListener {
-            override fun onItemClick(line: Line) {
-                setLine(line)
-                utils.haptic(dialogBinding.root)
-                alertDialog.cancel()
-            }
-        })
-        dialogBinding.lineListNew.adapter = newAdapter
-    }
-
 
     /**
      * 更改地图模式
@@ -4334,66 +4189,6 @@ class MainFragment : Fragment() {
 
         //刷新地图标点和轨迹
         refreshMarkerAndTrack()
-    }
-
-    fun findOnlineLine(
-        res: BusLineResult,
-        alertDialog: AlertDialog? = null
-    ) {
-        if (res.busLines.isNotEmpty()) {
-
-            // 编号相同的路线合并
-            val lineNameList = ArrayList<String>()
-            for (busLine in res.busLines) {
-                val lineNumberName = busLine.busLineName.substringBefore("(")
-                val sameLineName =
-                    lineNameList.find { it.substringBefore("(") == lineNumberName }
-                if (sameLineName == null) {
-                    lineNameList.add(busLine.busLineName)
-                }
-            }
-
-            if (lineNameList.size == 1) {
-                setOnlineLine(res, alertDialog, lineNameList.first().substringBefore("("))
-            } else {
-                MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                    .setTitle("选择要运行的路线")
-                    .setItems(lineNameList.toTypedArray()) { _, which ->
-                        setOnlineLine(res, alertDialog, lineNameList[which].substringBefore("("))
-                    }
-                    .show()
-            }
-
-
-        }
-    }
-
-    fun setOnlineLine(
-        res: BusLineResult,
-        alertDialog: AlertDialog? = null,
-        lineNumberName: String
-    ) {
-
-        cloudStationList.clear()
-
-        val busLines = res.busLines.filter { it.busLineName.substringBefore("(") == lineNumberName }
-        val beginIndex = res.busLines.indexOf(busLines.first())
-        val endIndex = res.busLines.indexOf(busLines.last())
-
-        val line = getOnlineLine(res, beginIndex, endIndex)
-        val sharedPreferences: SharedPreferences =
-            requireContext().getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
-
-        sharedPreferences.edit(commit = true) {
-            putString("lineName", currentLine.name)
-            putString("onlineLineUpId", res.busLines[beginIndex].busLineId)
-            putString("onlineLineDownId", res.busLines[endIndex].busLineId)
-        }
-
-        setLine(line)
-        utils.haptic(binding.headerMiddleNew)
-        alertDialog?.cancel()
-
     }
 
     fun getOnlineLine(

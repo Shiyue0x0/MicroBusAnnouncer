@@ -117,7 +117,7 @@
         <activity
             android:name=".ui.LineSwitcherActivity"
             android:exported="false"
-            android:label="@string/title_activity_line_switcher"
+            android:label="LineSwitcherActivity"
             android:theme="@style/Theme.MicroBusAnnouncer"
             android:windowSoftInputMode="adjustResize" />
     </application>

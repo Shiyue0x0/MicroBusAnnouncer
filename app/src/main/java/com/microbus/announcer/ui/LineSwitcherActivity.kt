@@ -59,8 +59,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import my.nanihadesuka.compose.LazyColumnScrollbar
-import my.nanihadesuka.compose.ScrollbarSettings
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults

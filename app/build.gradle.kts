@@ -84,7 +84,6 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.legacy.support.v4)
-    implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.preference)
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.swiperefreshlayout)
@@ -113,7 +112,6 @@ dependencies {
     implementation(libs.material)
     implementation(files("libs/AMap3DMap_11.2.100_AMapSearch_9.8.1_AMapLocation_11.2.100_20260805.jar"))
     implementation(libs.appleliquidglassforandroid)
-    implementation(libs.lazycolumnscrollbar)
 
     // miuix
     implementation(libs.miuix.ui.android)

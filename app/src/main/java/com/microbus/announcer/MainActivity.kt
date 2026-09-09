@@ -183,13 +183,14 @@ class MainActivity : AppCompatActivity(), TabSwitchListener {
                                         } else {
                                             // 点击当前项滚动到顶部
                                             val action = when (tab) {
-                                                TabPage.LINE -> utils.lineListScrollToTopActionName
-                                                TabPage.STATION -> utils.stationListScrollToTopActionName
+                                                TabPage.LINE -> ScrollEventBus.lineListScrollToTopActionName
+                                                TabPage.STATION -> ScrollEventBus.stationListScrollToTopActionName
                                                 else -> null
                                             }
                                             action?.let {
-                                                LocalBroadcastManager.getInstance(this@MainActivity)
-                                                    .sendBroadcast(Intent().setAction(it))
+                                                lifecycleScope.launch {
+                                                    ScrollEventBus.postScrollEvent(it)
+                                                }
                                             }
                                         }
                                         utils.haptic(view)

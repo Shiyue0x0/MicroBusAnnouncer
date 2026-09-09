@@ -19,9 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.microbus.announcer.R
+import com.microbus.announcer.ScrollEventBus
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.StationAdapter
 import com.microbus.announcer.bean.Station
@@ -29,6 +33,8 @@ import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.FragmentStationBinding
 import com.microbus.announcer.ui.compose.NavHelpBox
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InputField
@@ -90,7 +96,7 @@ class StationFragment : Fragment() {
 
                     SearchBar(
                         expanded = false,
-                        onExpandedChange = {  },
+                        onExpandedChange = { },
                         inputField = {
                             InputField(
                                 query = searchText,
@@ -126,26 +132,30 @@ class StationFragment : Fragment() {
         }
 
 
-        val mBroadcastReceiver = object : BroadcastReceiver() {
-            override fun onReceive(
-                context: Context,
-                intent: Intent
-            ) {
-                if (isAdded) {
-                    when (intent.action) {
-                        utils.stationListScrollToTopActionName -> {
-                            binding.stationRecyclerView.scrollToPosition(0)
-                        }
-                    }
-                }
-            }
-        }
+//        val mBroadcastReceiver = object : BroadcastReceiver() {
+//            override fun onReceive(
+//                context: Context,
+//                intent: Intent
+//            ) {
+//                if (isAdded) {
+//                    when (intent.action) {
+//                        utils.stationListScrollToTopActionName -> {
+//                            binding.stationRecyclerView.scrollToPosition(0)
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        val intentFilter = IntentFilter()
+//        intentFilter.addAction(utils.stationListScrollToTopActionName)
+//
+//        LocalBroadcastManager.getInstance(requireContext())
+//            .registerReceiver(mBroadcastReceiver, intentFilter)
 
-        val intentFilter = IntentFilter()
-        intentFilter.addAction(utils.stationListScrollToTopActionName)
 
-        LocalBroadcastManager.getInstance(requireContext())
-            .registerReceiver(mBroadcastReceiver, intentFilter)
+        startCollectingScrollEvents()
+
 
         return binding.root
     }
@@ -216,5 +226,16 @@ class StationFragment : Fragment() {
         }
     }
 
+    private var scrollEventJob: Job? = null
+    private fun startCollectingScrollEvents() {
+        scrollEventJob = viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ScrollEventBus.subscribeToAction(ScrollEventBus.stationListScrollToTopActionName)
+                    .collect { _ ->
+                        binding.stationRecyclerView.scrollToPosition(0)
+                    }
+            }
+        }
+    }
 
 }

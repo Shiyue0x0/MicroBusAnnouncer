@@ -129,6 +129,5 @@
     <string name="now_search">正在搜索 %1$s 路线%2$s</string>
     <string name="title_activity_low_power_main_fragment">LowPowerMainFragment</string>
     <string name="isRingRoute">是否为环线</string>
-    <string name="title_activity_line_switcher">LineSwitcherActivity</string>
 
 </resources>

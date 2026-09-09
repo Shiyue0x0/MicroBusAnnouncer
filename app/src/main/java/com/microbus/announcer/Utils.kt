@@ -84,9 +84,6 @@ class Utils(private val context: Context) {
 
     val openLocationActionName = "${baseActionName}.open_location"
 
-    val lineListScrollToTopActionName = "${baseActionName}.line_list_scroll_to_top"
-    val stationListScrollToTopActionName = "${baseActionName}.station_list_scroll_to_top"
-
     val setLoudnessBoostAmountName = "${baseActionName}.set_loudness_boost_amount"
 
     val backHomeName = "${baseActionName}.back_home"

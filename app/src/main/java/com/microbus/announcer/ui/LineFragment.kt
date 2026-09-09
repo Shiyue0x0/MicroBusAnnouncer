@@ -17,11 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
+import com.microbus.announcer.ScrollEventBus
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.LineAdapter
 import com.microbus.announcer.bean.Line
@@ -31,6 +35,8 @@ import com.microbus.announcer.databinding.DialogInputBinding
 import com.microbus.announcer.databinding.DialogLineInfoBinding
 import com.microbus.announcer.databinding.FragmentLineBinding
 import com.microbus.announcer.ui.compose.NavHelpBox
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
@@ -110,26 +116,7 @@ class LineFragment : Fragment() {
             addLine()
         }
 
-        val mBroadcastReceiver = object : BroadcastReceiver() {
-            override fun onReceive(
-                context: Context,
-                intent: Intent
-            ) {
-                if (isAdded) {
-                    when (intent.action) {
-                        utils.lineListScrollToTopActionName -> {
-                            binding.lineRecyclerView.scrollToPosition(0)
-                        }
-                    }
-                }
-            }
-        }
-
-        val intentFilter = IntentFilter()
-        intentFilter.addAction(utils.lineListScrollToTopActionName)
-
-        LocalBroadcastManager.getInstance(requireContext())
-            .registerReceiver(mBroadcastReceiver, intentFilter)
+        startCollectingScrollEvents()
 
         return binding.root
     }
@@ -173,7 +160,7 @@ class LineFragment : Fragment() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
 
-                if(!hasFirstOnScrolled){
+                if (!hasFirstOnScrolled) {
                     hasFirstOnScrolled = true
                     return
                 }
@@ -314,5 +301,16 @@ class LineFragment : Fragment() {
         super.onPause()
     }
 
+    private var scrollEventJob: Job? = null
+    private fun startCollectingScrollEvents() {
+        scrollEventJob = viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ScrollEventBus.subscribeToAction(ScrollEventBus.lineListScrollToTopActionName)
+                    .collect { _ ->
+                        binding.lineRecyclerView.scrollToPosition(0)
+                    }
+            }
+        }
+    }
 
 }

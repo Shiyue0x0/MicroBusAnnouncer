@@ -31,7 +31,7 @@ class FragmentContainerActivity : AppCompatActivity() {
 
             if (fragmentClass != null) {
                 try {
-                    val fragment = Class.forName(fragmentClass).newInstance() as Fragment
+                    val fragment = Class.forName(fragmentClass).getDeclaredConstructor().newInstance() as Fragment
                     fragment.arguments = args
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.fragment_container, fragment)
