@@ -88,6 +88,8 @@ class Utils(private val context: Context) {
 
     val backHomeName = "${baseActionName}.back_home"
 
+    val pauseAnnounceName = "${baseActionName}.pause_announce"
+
     val LOAD_LOCAL_LINE = 0
     val LOAD_LINE_ALL = 1
     val LOAD_CLOUD_LINE = 2

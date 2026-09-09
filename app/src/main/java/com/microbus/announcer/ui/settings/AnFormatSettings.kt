@@ -84,28 +84,9 @@ class AnFormatSettings : Fragment() {
             composeView.layoutParams = layoutParams
         }
 
-        initLocalBroadcast()
-
         return composeView
     }
 
-    fun initLocalBroadcast() {
-
-        val mBroadcastReceiver = object : BroadcastReceiver() {
-            override fun onReceive(
-                context: Context,
-                intent: Intent
-            ) {
-            }
-        }
-
-        val intentFilter = IntentFilter()
-        intentFilter.addAction(utils.tryListeningAnActionName)
-
-        LocalBroadcastManager.getInstance(requireContext())
-            .registerReceiver(mBroadcastReceiver, intentFilter)
-
-    }
 
     @Composable
     @Preview
@@ -665,8 +646,6 @@ class AnFormatSettings : Fragment() {
                                 } else {
                                     val intent = Intent()
                                         .setAction(utils.tryListeningAnActionName)
-                                        .putExtra("stateStr", stateStr)
-                                        .putExtra("typeStr", typeStr)
                                         .putExtra("format", newValue)
                                     LocalBroadcastManager.getInstance(requireContext())
                                         .sendBroadcast(intent)
@@ -710,10 +689,7 @@ class AnFormatSettings : Fragment() {
                             // 中断播报
                             dialog.setOnDismissListener {
                                 val intent = Intent()
-                                    .setAction(utils.tryListeningAnActionName)
-                                    .putExtra("stateStr", "")
-                                    .putExtra("typeStr", "")
-                                    .putExtra("format", " ")
+                                    .setAction(utils.pauseAnnounceName)
                                 LocalBroadcastManager.getInstance(requireContext())
                                     .sendBroadcast(intent)
                             }

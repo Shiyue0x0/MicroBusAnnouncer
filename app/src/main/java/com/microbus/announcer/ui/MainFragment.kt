@@ -1306,7 +1306,6 @@ class MainFragment : Fragment() {
             //关闭报站
             pauseAnnounce()
 
-
             // 切换到起点站
             if (currentLineStationCount != 0) {
                 setStationAndState(0, StationStatus.ON_NEXT)
@@ -4309,17 +4308,18 @@ class MainFragment : Fragment() {
                 if (isAdded) {
                     when (intent.action) {
                         utils.tryListeningAnActionName -> {
-                            val stateStr = intent.getStringExtra("stateStr")
-                            val typeStr = intent.getStringExtra("typeStr")
                             val format = intent.getStringExtra("format")
-                            if (currentLine.name != "") {
-                                if (!stateStr.isNullOrBlank() && !typeStr.isNullOrBlank())
-                                    utils.showMsg("正在试听${stateStr}${typeStr}播报")
-                                announce(format = format ?: "")
-                            } else {
-                                if (stateStr != "")
-                                    utils.showMsg("还没有选择路线，请前往“主控”选择")
+
+                            if (currentLine.name == "") {
+                                utils.showMsg("还没有选择路线，请前往“主控”选择")
+                                return
                             }
+
+                            if (format == null || format == "") {
+                                return
+                            }
+
+                            announce(format = format)
                         }
 
                         utils.switchLineActionName -> {
@@ -4360,6 +4360,10 @@ class MainFragment : Fragment() {
                             tabSwitchListener?.switchToTab(TabPage.MAIN)
                         }
 
+                        utils.pauseAnnounceName -> {
+                            pauseAnnounce()
+                        }
+
                     }
                 }
             }
@@ -4373,6 +4377,7 @@ class MainFragment : Fragment() {
         intentFilter.addAction(utils.openLocationActionName)
         intentFilter.addAction(utils.setLoudnessBoostAmountName)
         intentFilter.addAction(utils.backHomeName)
+        intentFilter.addAction(utils.pauseAnnounceName)
 
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(mBroadcastReceiver, intentFilter)
