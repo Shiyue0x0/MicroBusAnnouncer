@@ -91,6 +91,11 @@ class Utils(private val context: Context) {
 
     val backHomeName = "${baseActionName}.back_home"
 
+    val LOAD_LOCAL_LINE = 0
+    val LOAD_LINE_ALL = 1
+    val LOAD_CLOUD_LINE = 2
+    val SET_TEMPORARY_LINE_NAME = 3
+
     lateinit var toast: Toast
 
     /**
@@ -534,7 +539,7 @@ class Utils(private val context: Context) {
         onDelDone: () -> Unit = {}
     ) {
 
-        val stationDatabaseHelper = StationDatabaseHelper(context)
+        val stationDatabaseHelper = StationDatabaseHelper.getInstance(context)
 
         val binding =
             DialogStationInfoBinding.inflate(LayoutInflater.from(context))
@@ -767,8 +772,8 @@ class Utils(private val context: Context) {
             }
         }
 
-        val stationDatabaseHelper = StationDatabaseHelper(context)
-        val lineDatabaseHelper = LineDatabaseHelper(context)
+        val stationDatabaseHelper = StationDatabaseHelper.getInstance(context)
+        val lineDatabaseHelper = LineDatabaseHelper.getInstance(context)
 
 
         //查找是否输入了不存在的站点
@@ -1323,7 +1328,7 @@ class Utils(private val context: Context) {
 
         var enName = cnName
         if (lang == "en") {
-            val stationDatabaseHelper = StationDatabaseHelper(context)
+            val stationDatabaseHelper = StationDatabaseHelper.getInstance(context)
             val queryStationList = stationDatabaseHelper.queryByCnName(cnName)
             if (queryStationList.isNotEmpty()) {
                 enName = queryStationList.first().enName
@@ -1493,7 +1498,7 @@ class Utils(private val context: Context) {
             typeface = Typeface.DEFAULT_BOLD
         }
 
-        val paintText = getTextByWidth(text ,size * 0.6f,  size * 0.6f * 2)
+        val paintText = getTextByWidth(text, size * 0.6f, size * 0.6f * 2)
 
         // 垂直居中
         val metrics = textPaint.fontMetrics

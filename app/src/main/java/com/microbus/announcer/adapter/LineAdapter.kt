@@ -34,7 +34,7 @@ class LineAdapter(
     RecyclerView.Adapter<ViewHolder>() {
 
     private lateinit var mClickListener: OnItemClickListener
-    private var stationDatabaseHelper = StationDatabaseHelper(context)
+    private var stationDatabaseHelper = StationDatabaseHelper.getInstance(context)
 
 //    private var stationOfLineAdapterList = ArrayList<StationOfLineAdapter>()
 
@@ -136,7 +136,7 @@ class LineAdapter(
         // LineViewHolder
         if (position == 0) {
             val holder = holder as LineHeaderViewHolder
-            holder.title.text = "本地路线 ${allLineList.size}条"
+            holder.title.text = "本地路线共 ${allLineList.size} 条"
         }
         // ItemLineHeaderHolder
         else {

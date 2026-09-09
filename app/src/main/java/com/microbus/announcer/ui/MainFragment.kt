@@ -1,6 +1,7 @@
 package com.microbus.announcer.ui
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -33,7 +34,6 @@ import android.os.Looper
 import android.os.PowerManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import android.text.InputType
 import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -49,17 +49,16 @@ import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.setPadding
 import androidx.core.widget.NestedScrollView
-import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -129,7 +128,6 @@ import com.microbus.announcer.bean.TrajectoryPoint
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogLineSwitchBinding
-import com.microbus.announcer.databinding.DialogLoadingBinding
 import com.microbus.announcer.databinding.DialogRunningInfoBinding
 import com.microbus.announcer.databinding.FragmentMainBinding
 import com.microbus.announcer.model.LineDirection
@@ -187,7 +185,7 @@ class MainFragment : Fragment() {
     private lateinit var aMapView: MapView
     private lateinit var aMap: AMap
 
-    /**0灰色已通过；1蓝色当前站点；2绿色前方站点*/
+    /**0 灰色：已通过；1 蓝色：当前站点；2 绿色：前方站点*/
     private val multiPointOverlayList = ArrayList<MultiPointOverlay>()
 
     private lateinit var aMapUiSettings: UiSettings
@@ -274,7 +272,7 @@ class MainFragment : Fragment() {
 
     lateinit var sensorHelper: SensorHelper
 
-    private val cloudStationList = ArrayList<Station>()
+    private var cloudStationList = ArrayList<Station>()
 
     val lastStationHandler = Handler(mLooper)
     val nextStationHandler = Handler(mLooper)
@@ -315,6 +313,79 @@ class MainFragment : Fragment() {
 
     private var audioSessionId: Int? = null
 
+    private val startLineSwitcherForResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+
+                val data: Intent = result.data ?: return@registerForActivityResult
+
+                val action = data.getIntExtra("action", -1)
+                when (action) {
+
+                    utils.LOAD_LOCAL_LINE -> {
+                        val lineId = data.getIntExtra("lineId", -1)
+                        if (lineId == -1) {
+                            return@registerForActivityResult
+                        }
+                        setLine(lineDatabaseHelper.queryById(lineId).first())
+                        utils.haptic(binding.headerMiddleNew)
+                    }
+
+                    utils.LOAD_LINE_ALL -> {
+                        loadLineAll(true)
+                    }
+
+                    utils.LOAD_CLOUD_LINE -> {
+                        // todo
+                        val line = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            data.getSerializableExtra("line", Line::class.java)
+                        } else {
+                            data.getSerializableExtra("line") as? Line
+                        }
+
+                        if (line == null) {
+                            return@registerForActivityResult
+                        }
+
+                        @Suppress("UNCHECKED_CAST")
+                        val cloudStationList =
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                data.getSerializableExtra(
+                                    "cloudStationList",
+                                    ArrayList::class.java
+                                ) as? ArrayList<Station>
+                            } else {
+                                data.getSerializableExtra("line") as? ArrayList<Station>
+                            }
+
+                        if (cloudStationList == null) {
+                            return@registerForActivityResult
+                        }
+
+                        this.cloudStationList = cloudStationList
+
+                        setLine(line)
+                        utils.haptic(binding.headerMiddleNew)
+
+                    }
+
+                    utils.SET_TEMPORARY_LINE_NAME -> {
+                        val lineName =
+                            data.getStringExtra("lineName") ?: return@registerForActivityResult
+                        currentLine.name = lineName
+                        binding.headerMiddleNew.showText(currentLine.name)
+                        binding.headerMiddleNew.requestLayout()
+                    }
+
+
+                }
+
+
+            } else {
+                // 用户取消或其他情况
+            }
+        }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -328,8 +399,8 @@ class MainFragment : Fragment() {
 
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
 
-        lineDatabaseHelper = LineDatabaseHelper(context)
-        stationDatabaseHelper = StationDatabaseHelper(context)
+        lineDatabaseHelper = LineDatabaseHelper.getInstance(requireContext())
+        stationDatabaseHelper = StationDatabaseHelper.getInstance(requireContext())
 
         currentDistanceToCurrentStation =
             utils.getStationRangeByLineType(currentLine.type, "In").toDouble() + 1
@@ -432,16 +503,21 @@ class MainFragment : Fragment() {
     /* 与用户交互时 */
     override fun onResume() {
         super.onResume()
+        Log.d(tag, "onResume")
 
         isVisible = true
 
-        Log.d(tag, "onResume")
-
-        if (userMapOpen)
+        if (userMapOpen) {
+            // 取消之前的延迟任务
+            mapPauseRunnable?.let {
+                binding.root.removeCallbacks(it)
+            }
             binding.mapBtnGroup.check(binding.mapBtn.id)
+        }
 
-        if (userLocationOpen)
+        if (userLocationOpen) {
             binding.locationBtnGroup.check(binding.locationBtn.id)
+        }
 
         (binding.lineStationList.adapter as StationOfLineAdapter).isShown = true
 
@@ -450,7 +526,12 @@ class MainFragment : Fragment() {
         binding.headerRightNew.startAnimation()
         binding.navStationName.startAnimation()
 
+        aMapView.onResume()
+
     }
+
+    private var mapPauseRunnable: Runnable? = null
+
 
     /* 不再与用户交互时 */
     override fun onPause() {
@@ -459,7 +540,20 @@ class MainFragment : Fragment() {
         userMapOpen = binding.mapBtn.isChecked
         userLocationOpen = binding.locationBtn.isChecked
 
-        binding.mapBtnGroup.uncheck(binding.mapBtn.id)
+        // 取消之前的延迟任务
+        mapPauseRunnable?.let {
+            binding.root.removeCallbacks(it)
+        }
+
+        // 创建新的延迟任务
+        mapPauseRunnable = Runnable {
+            if (isAdded && !isDetached) {
+                Log.d(tag, "L549")
+                binding.mapBtnGroup.uncheck(binding.mapBtn.id)
+            }
+        }
+
+        binding.root.postDelayed(mapPauseRunnable, 1000)
         binding.locationBtnGroup.uncheck(binding.locationBtn.id)
 
         (binding.lineStationList.adapter as StationOfLineAdapter).isShown = false
@@ -479,12 +573,14 @@ class MainFragment : Fragment() {
         binding.headerRightNew.stopAnimation()
         binding.navStationName.stopAnimation()
 
+
         super.onPause()
 
     }
 
 
     override fun onStop() {
+        Log.d(tag, "onStop")
         binding.locationBtnGroup.uncheck(binding.locationBtn.id)
         super.onStop()
     }
@@ -499,6 +595,11 @@ class MainFragment : Fragment() {
         if (context is TabSwitchListener) {
             tabSwitchListener = context
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        aMapView.onDestroy()
     }
 
     val client = OkHttpClient()
@@ -836,253 +937,12 @@ class MainFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            val dialogBinding = DialogLineSwitchBinding.inflate(LayoutInflater.from(context))
-
-            val alertDialog =
-                MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                    .setView(dialogBinding.root)
-//                    .setTitle(resources.getString(R.string.switch_line))
-                    .setNeutralButton(resources.getString(R.string.setAsLineName)) { _, _ ->
-                        currentLine.name = dialogBinding.lineNameInput.text.toString()
-                        binding.headerMiddleNew.showText(currentLine.name)
-                        binding.headerMiddleNew.requestLayout()
-                    }
-                    .setPositiveButton(
-                        resources.getString(R.string.out_line_running)
-                    ) { _, _ ->
-                        val line = Line(name = getString(R.string.main_line_0))
-                        originLine = line
-                        initLineInterval()
-                        currentLineStationState = StationStatus.ON_NEXT
-                        binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-                        loadLine(line)
-                        utils.haptic(binding.headerMiddleNew)
-                        notificationManager.cancelAll()
-                    }
-                    .setNegativeButton(
-                        getString(R.string.search_by_category)
-                    ) { _, _ ->
-                        var lineTypeList: Array<String?>
-                        val stationList = stationDatabaseHelper.queryAll()
-                        val lineList = lineDatabaseHelper.queryAll()
-                        if (stationList.size < 2) {
-                            lineTypeList = arrayOfNulls(1)
-                            lineTypeList[0] = getString(R.string.station_not_enough_tip)
-                        } else {
-                            lineTypeList = arrayOfNulls(6)
-                            lineTypeList[0] = resources.getString(R.string.line_normal_bus)
-                            lineTypeList[1] = resources.getString(R.string.line_comm_bus)
-                            lineTypeList[2] = resources.getString(R.string.line_metro)
-                            lineTypeList[3] = resources.getString(R.string.line_train)
-                            lineTypeList[4] = resources.getString(R.string.line_other)
-                            lineTypeList[5] = resources.getString(R.string.line_all)
-                        }
-
-                        val matchLists = ArrayList<ArrayList<Line>>()
-                        matchLists.add(
-                            getMatchedLines(
-                                lineList,
-                                "^(\\d|[Kk]).*$".toRegex(),
-                            )
-                        )
-                        matchLists.add(
-                            getMatchedLines(
-                                lineList,
-                                "^[Uu]\\d{3}$".toRegex()
-                            )
-                        )
-                        matchLists.add(
-                            getMatchedLines(
-                                lineList,
-                                "^[Nn][Nn][Uu].+$".toRegex()
-                            )
-                        )
-                        matchLists.add(
-                            getMatchedLines(
-                                lineList,
-                                "^[DdGgTtZz].+$".toRegex()
-                            )
-                        )
-
-                        MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                            .setTitle(resources.getString(R.string.switch_line))
-                            .setItems(lineTypeList) { _, which ->
-                                when (which) {
-
-                                    // 普通公交（数字或K开头）
-                                    0 -> {
-                                        showLinesChoosesDialog(matchLists[which], which)
-                                    }
-
-                                    // 社区公交（U开头，且后跟3位数字）
-                                    1 -> {
-                                        showLinesChoosesDialog(matchLists[which], which)
-                                    }
-
-                                    // 轨道交通（NNU开头）
-                                    2 -> {
-                                        showLinesChoosesDialog(matchLists[which], which)
-                                    }
-
-                                    // 火车车次（D|G|T|Z开头）
-                                    3 -> {
-                                        showLinesChoosesDialog(matchLists[which], which)
-                                    }
-
-                                    //其他路线（均不属于以上类型）
-                                    4 -> {
-                                        // 不属于其他的路线
-                                        var matchSet = hashSetOf<Line>()
-
-                                        for (lines in matchLists) {
-                                            matchSet =
-                                                matchSet.union(lines.toSet()) as HashSet<Line>
-                                        }
-
-                                        val allLineSet = lineDatabaseHelper.queryAll().toSet()
-
-                                        val otherLineList = ArrayList<Line>()
-                                        otherLineList.addAll(allLineSet.subtract(matchSet))
-
-                                        val lineInfoList =
-                                            arrayOfNulls<String>(otherLineList.size)
-
-                                        for (i in otherLineList.indices) {
-                                            val lineStationIndexListStr =
-                                                otherLineList[i].upLineStation.split(' ')
-
-                                            val lineStartingStation =
-                                                stationDatabaseHelper.queryById(
-                                                    lineStationIndexListStr.first().toInt()
-                                                )
-                                            val lineTerminal =
-                                                stationDatabaseHelper.queryById(
-                                                    lineStationIndexListStr.last().toInt()
-                                                )
-
-                                            val lineStartingStationCnName =
-                                                if (lineStartingStation.isNotEmpty()) lineStartingStation.first().cnName
-                                                else "-"
-
-                                            val lineTerminalCnName =
-                                                if (lineTerminal.isNotEmpty()) lineTerminal.first().cnName
-                                                else "-"
-
-                                            val lineStartingStationEnName =
-                                                if (lineStartingStation.isNotEmpty()) lineStartingStation.first().enName
-                                                else "-"
-
-                                            val lineTerminalEnName =
-                                                if (lineTerminal.isNotEmpty()) lineTerminal.first().enName
-                                                else "-"
-
-                                            lineInfoList[i] =
-                                                if (utils.getUILang() == "zh")
-                                                    "${otherLineList[i].name}  $lineStartingStationCnName - $lineTerminalCnName"
-                                                else
-                                                    "${otherLineList[i].name}  $lineStartingStationEnName - $lineTerminalEnName"
-                                        }
-
-
-
-                                        MaterialAlertDialogBuilder(
-                                            requireContext(),
-                                            R.style.CustomAlertDialogStyle
-                                        )
-                                            .setTitle(resources.getString(R.string.line_other))
-                                            .setItems(lineInfoList) { _, which ->
-                                                if (lineInfoList[which] != "") {
-                                                    originLine = otherLineList[which]
-                                                    initLineInterval()
-                                                    currentLineStationState = StationStatus.ON_NEXT
-                                                    binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-                                                    loadLine(otherLineList[which])
-                                                    utils.haptic(binding.headerMiddleNew)
-                                                }
-                                            }.create()
-                                            .show()
-
-                                    }
-
-                                    // 全站点路线
-                                    5 -> {
-                                        loadLineAll(true)
-                                    }
-                                }
-                            }
-                            .create()
-                            .show()
-
-                        utils.haptic(binding.headerMiddleNew)
-                    }
-                    .show()
-
-            dialogBinding.lineNameInput.setRawInputType(InputType.TYPE_CLASS_NUMBER)
-            dialogBinding.lineNameInput.requestFocus()
-            WindowCompat.getInsetsController(requireActivity().window, dialogBinding.lineNameInput)
-                .show(WindowInsetsCompat.Type.ime())
-
-            searchLine("", dialogBinding, alertDialog)
-
-            dialogBinding.lineNameInput.addTextChangedListener { text ->
-                searchLine(text.toString(), dialogBinding, alertDialog)
-            }
-
-            dialogBinding.onlineSearch.setOnClickListener {
-
-                if (dialogBinding.lineNameInput.text.toString() == "") {
-                    utils.showMsg("请输入要搜索的内容")
-                    return@setOnClickListener
-                }
-
-                val loadingDialogBinding =
-                    DialogLoadingBinding.inflate(LayoutInflater.from(context))
-                loadingDialogBinding.title.text = getString(
-                    R.string.now_search,
-                    utils.getCity(),
-                    dialogBinding.lineNameInput.text
-                )
-
-                val loadingDialog = MaterialAlertDialogBuilder(
-                    requireContext(),
-                    R.style.CustomAlertDialogStyle
-                )
-                    .setView(loadingDialogBinding.root)
-                    .show()
-
-
-                val busLineQuery = BusLineQuery(
-                    dialogBinding.lineNameInput.text.toString(),
-                    BusLineQuery.SearchType.BY_LINE_NAME,
-                    utils.getCity()
-                )
-                busLineQuery.pageNumber = 0
-                busLineQuery.extensions = "all"
-                busLineQuery.pageSize = 999999
-                val busLineSearch = BusLineSearch(requireContext(), busLineQuery)
-                busLineSearch.setOnBusLineSearchListener { res, rCode ->
-                    loadingDialog.dismiss()
-                    if (rCode != 1000) {
-                        utils.showMsg("搜索失败，请检查网络连接")
-                        return@setOnBusLineSearchListener
-                    }
-                    if (res.busLines.isEmpty()) {
-                        utils.showMsg("暂时查找不到${utils.getCity()}${dialogBinding.lineNameInput.text}路线")
-                        return@setOnBusLineSearchListener
-                    }
-                    findOnlineLine(res, alertDialog)
-                }
-                busLineSearch.searchBusLineAsyn()
-            }
-
-            dialogBinding.switchToLineAll.setOnClickListener {
-                loadLineAll(true)
-                alertDialog.cancel()
-            }
-
+            val intent = Intent(requireContext(), LineSwitcherActivity::class.java)
+            // 可以传递参数给目标 Activity
+            intent.putExtra("currentLineId", currentLine.id)
+            startLineSwitcherForResult.launch(intent)
 
             return@setOnClickListener
-
         }
 
         //单击地图定位按钮，地图移动到当前位置
@@ -2033,11 +1893,7 @@ class MainFragment : Fragment() {
                     val length = planLine.upLineStation.length
                     planLine.upLineStation = planLine.upLineStation.substring(0, length - 1)
                     planLine.downLineStation = planLine.downLineStation.substring(0, length - 1)
-                    originLine = planLine
-                    initLineInterval()
-                    currentLineStationState = StationStatus.ON_NEXT
-                    binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-                    loadLine(planLine)
+                    setLine(planLine)
                 } else {
                     utils.showMsg(resources.getString(R.string.plan_line_too_short_tip))
                 }
@@ -2455,7 +2311,7 @@ class MainFragment : Fragment() {
 
 //        adapter.isScroll = true
 
-        //单击设为 区间起点/终点 或 当前站点
+        //单击设为 区间线起点/终点 或 当前站点
         adapter.setOnItemClickListener(object : StationOfLineAdapter.OnItemClickListener {
             override fun onItemClick(view: View?, position: Int) {
                 if (isOperationLock) {
@@ -2565,7 +2421,7 @@ class MainFragment : Fragment() {
 
 
         val lastLineDirection = sharedPreferences.getInt("lastLineDirection", LineDirection.ON_UP)
-        Log.d("L2568", "${lastLineDirection}")
+//        Log.d("L2568", "${lastLineDirection}")
         currentLineDirection = lastLineDirection
 
         if (currentLineDirection == LineDirection.ON_UP) {
@@ -2634,11 +2490,7 @@ class MainFragment : Fragment() {
 
                                 requireActivity().runOnUiThread {
                                     if (!hasLoad && onlineLine.upLineStation != "" && onlineLine.downLineStation != "") {
-                                        originLine = onlineLine
-                                        initLineInterval()
-                                        currentLineStationState = StationStatus.ON_NEXT
-//                                        binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-                                        loadLine(onlineLine)
+                                        setLine(onlineLine, false)
                                         utils.haptic(binding.headerMiddleNew)
                                         hasLoad = true
                                     }
@@ -2654,11 +2506,7 @@ class MainFragment : Fragment() {
 
         // 本地路线
 //            utils.showMsg(localLineList.first().name)
-        originLine = localLineList.first()
-        initLineInterval()
-        currentLineStationState = StationStatus.ON_NEXT
-//        binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-        loadLine(originLine)
+        setLine(localLineList.first(), false)
         utils.haptic(binding.headerMiddleNew)
 
     }
@@ -3499,11 +3347,15 @@ class MainFragment : Fragment() {
                     setProgress(currentLineStationCount)
                 }
 
+                var shortCriticalText = ""
+                if (currentLineStationList.isNotEmpty()) {
+                    shortCriticalText = currentLineStationList.last().cnName
+                }
 
                 notificationBuilder
                     .setRequestPromotedOngoing(true)
                     .setSmallIcon(utils.createTextIcon(currentLine.name, 96))
-                    .setShortCriticalText(currentLineStationList.last().cnName)
+                    .setShortCriticalText(shortCriticalText)
                     .setStyle(progressStyle)
 
             }
@@ -4111,11 +3963,7 @@ class MainFragment : Fragment() {
             .setTitle(title)
             .setItems(lineInfoList) { _, which ->
                 if (lineInfoList[which] != "") {
-                    originLine = sortedMatchLineList[which]
-                    initLineInterval()
-                    currentLineStationState = StationStatus.ON_NEXT
-                    binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-                    loadLine(sortedMatchLineList[which])
+                    setLine(sortedMatchLineList[which])
                     utils.haptic(binding.headerMiddleNew)
                 }
             }.create()
@@ -4130,7 +3978,6 @@ class MainFragment : Fragment() {
 
 
         val comparator = utils.getDefaultLineComparator()
-
         val res = ArrayList(lineDatabaseHelper.queryByKey(key).sortedWith(comparator))
 
 //        val lineNameList = res.map { it.name }
@@ -4174,12 +4021,7 @@ class MainFragment : Fragment() {
         val newAdapter = LineOfSearchAdapter(requireContext(), res)
         newAdapter.setOnItemClickListener(object : LineOfSearchAdapter.OnItemClickListener {
             override fun onItemClick(line: Line) {
-                originLine = line
-                initLineInterval()
-                currentLineStationState = StationStatus.ON_NEXT
-                binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-                binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-                loadLine(line)
+                setLine(line)
                 utils.haptic(dialogBinding.root)
                 alertDialog.cancel()
             }
@@ -4472,12 +4314,7 @@ class MainFragment : Fragment() {
             allStationLine.downLineStation =
                 allStationLine.upLineStation
 
-            originLine = allStationLine
-            initLineInterval()
-            currentLineStationState = StationStatus.ON_ARRIVE
-            binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-            loadLine(allStationLine)
-
+            setLine(allStationLine)
         } else {
             utils.showMsg(getString(R.string.station_not_enough_tip))
         }
@@ -4504,18 +4341,6 @@ class MainFragment : Fragment() {
         alertDialog: AlertDialog? = null
     ) {
         if (res.busLines.isNotEmpty()) {
-
-            // 搜索结果Dialog
-//            val lineNameList = Array(
-//                size = res.busLines.size / 2,
-//                init = { "" }
-//            )
-//            for (i in res.busLines.indices) {
-//                val busLine = res.busLines[i]
-//                Log.d(tag, "$busLine ${busLine.busLineName}")
-//                if (i % 2 == 1)
-//                    lineNameList[i / 2] = res.busLines[i].busLineName
-//            }
 
             // 编号相同的路线合并
             val lineNameList = ArrayList<String>()
@@ -4558,21 +4383,17 @@ class MainFragment : Fragment() {
         val line = getOnlineLine(res, beginIndex, endIndex)
         val sharedPreferences: SharedPreferences =
             requireContext().getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
+
         sharedPreferences.edit(commit = true) {
             putString("lineName", currentLine.name)
             putString("onlineLineUpId", res.busLines[beginIndex].busLineId)
             putString("onlineLineDownId", res.busLines[endIndex].busLineId)
         }
 
-//        CoroutineScope(Dispatchers.Main).launch {
-        originLine = line
-        initLineInterval()
-        currentLineStationState = StationStatus.ON_NEXT
-        binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-        loadLine(line)
+        setLine(line)
         utils.haptic(binding.headerMiddleNew)
         alertDialog?.cancel()
-//        }
+
     }
 
     fun getOnlineLine(
@@ -4771,10 +4592,7 @@ class MainFragment : Fragment() {
         tabSwitchListener?.switchToTab(TabPage.MAIN)
 
         val line = lineDatabaseHelper.queryById(id).first()
-        originLine = line
-        initLineInterval()
-        binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
-        loadLine(line)
+        setLine(line)
 
         utils.showMsg("正在运行路线：${line.name}", true)
 
@@ -5260,6 +5078,22 @@ class MainFragment : Fragment() {
             putBoolean("enableLowPowerMode", enableLowPowerMode)
         }
 
+        val actionName = if (enableLowPowerMode)
+            "进入"
+        else
+            "退出"
+        utils.showMsg("已${actionName}省电模式", true)
+
+    }
+
+    fun setLine(line: Line, lineDirectionToUp: Boolean = true) {
+        originLine = line
+        initLineInterval()
+        currentLineStationState = StationStatus.ON_NEXT
+        if (lineDirectionToUp) {
+            binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
+        }
+        loadLine(line)
     }
 
 }

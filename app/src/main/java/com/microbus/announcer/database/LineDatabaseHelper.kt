@@ -8,13 +8,26 @@ import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import com.microbus.announcer.bean.Line
 
-class LineDatabaseHelper(
+class LineDatabaseHelper private constructor(
     context: Context?,
     dbName: String = context?.getExternalFilesDir("")?.path + "/database/line.db"
 ) :
     DatabaseHelper(context, dbName, 2) {
 
     private val tableName = "line"
+
+    companion object {
+        @Volatile
+        private var INSTANCE: LineDatabaseHelper? = null
+
+        fun getInstance(context: Context): LineDatabaseHelper {
+            return INSTANCE ?: synchronized(this) {
+                val instance = LineDatabaseHelper(context.applicationContext)
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
 
     override fun onCreate(db: SQLiteDatabase?) {
 
@@ -26,8 +39,6 @@ class LineDatabaseHelper(
                 "type VARCHAR DEFAULT 'B'," +
                 "isRingRoute BOOLEAN DEFAULT 0);"
         db!!.execSQL(sql)
-
-
 
         Log.d(tag, "已创建表 $tableName")
     }
@@ -61,8 +72,8 @@ class LineDatabaseHelper(
     }
 
     fun delById(id: Int) {
-        val sql = "delete from $tableName where id = $id"
-        writableDatabase.execSQL(sql)
+        val db = writableDatabase
+        db.delete(tableName, "id=?", arrayOf(id.toString()))
     }
 
     fun queryByName(name: String): List<Line> {
@@ -132,21 +143,16 @@ class LineDatabaseHelper(
     }
 
     fun updateById(id: Int, line: Line) {
-
-        var sql =
-            "ALTER TABLE $tableName ADD COLUMN type VARCHAR DEFAULT 'B';"
-        try {
-            writableDatabase.execSQL(sql)
-        } catch (e: SQLException) {
-            // 列已存在时的处理
-            e.printStackTrace()
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("name", line.name)
+            put("upLineStation", line.upLineStation)
+            put("downLineStation", line.downLineStation)
+            put("isUpAndDownInvert", if (line.isUpAndDownInvert) 1 else 0)
+            put("type", line.type)
+            put("isRingRoute", if (line.isRingRoute) 1 else 0)
         }
-
-        sql =
-            "update $tableName set name = '${line.name}', upLineStation = '${line.upLineStation}', " +
-                    "downLineStation = '${line.downLineStation}', isUpAndDownInvert = '${line.isUpAndDownInvert}', type = '${line.type}', isRingRoute  = '${if (line.isRingRoute) 1 else 0}' " +
-                    "where id = $id;"
-        writableDatabase.execSQL(sql)
+        db.update(tableName, values, "id=?", arrayOf(id.toString()))
     }
 
     fun queryByKey(key: String): List<Line> {
@@ -157,6 +163,25 @@ class LineDatabaseHelper(
                 null,
                 "name like ?",
                 arrayOf("%${key}%"),
+                null,
+                null,
+                null,
+                null
+            )
+        // 循环取出游标指向的每条记录
+        val list = getLinesFromCursor(cursor)
+        cursor.close()
+        return list
+    }
+
+    fun queryByKeyAndType(key: String, type: String): List<Line> {
+        // 执行记录查询动作，该语句返回结果集的游标
+        val cursor: Cursor =
+            readableDatabase.query(
+                tableName,
+                null,
+                "name like ? and type = ?",
+                arrayOf("%${key}%", type),
                 null,
                 null,
                 null,

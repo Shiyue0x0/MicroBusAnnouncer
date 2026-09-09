@@ -30,7 +30,7 @@ internal class StationAdapter(
 
     val headerView = 1
 
-    val stationDatabaseHelper = StationDatabaseHelper(context)
+    val stationDatabaseHelper = StationDatabaseHelper.getInstance(context)
 
     val utils = Utils(context)
     val comparator = utils.getDefaultLineComparator()
@@ -111,7 +111,7 @@ internal class StationAdapter(
         // LineViewHolder
         if (position == 0) {
             val holder = holder as StationHeaderViewHolder
-            holder.title.text = "查找到站点 ${stationDatabaseHelper.getCountByKey(key)}个"
+            holder.title.text = "查找到站点 ${stationDatabaseHelper.getCountByKey(key)} 个"
         }
         // ItemLineHeaderHolder
         else {

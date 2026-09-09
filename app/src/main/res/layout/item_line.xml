@@ -26,7 +26,7 @@
             android:id="@+id/line_name_card"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:background="@color/md_theme_surface"
+            app:cardBackgroundColor="@color/secondary"
             app:cornerRadius="8dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -40,7 +40,6 @@
                 android:gravity="center"
                 android:padding="6dp"
                 android:text="@string/main_line_0"
-                android:textColor="?attr/colorPrimary"
                 android:textSize="@dimen/largeFontSize"
                 android:textStyle="bold" />
 
@@ -58,7 +57,6 @@
             android:paddingEnd="4dp"
             android:singleLine="true"
             android:text="@string/main_staring_station_name"
-            android:textColor="?attr/colorPrimary"
             android:textSize="@dimen/largeFontSize"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="@+id/line_name_card"
@@ -77,7 +75,6 @@
             android:paddingEnd="4dp"
             android:singleLine="true"
             android:text="@string/main_terminal_name"
-            android:textColor="?attr/colorPrimary"
             android:textSize="@dimen/largeFontSize"
             app:layout_constraintBottom_toBottomOf="@+id/line_name_card"
             app:layout_constraintEnd_toEndOf="parent"

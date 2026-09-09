@@ -1,5 +1,6 @@
 package com.microbus.announcer.activity
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
@@ -32,6 +33,7 @@ class WebviewActivity : AppCompatActivity() {
 
         setContentView(binding.root)
 
+        @SuppressLint("SetJavaScriptEnabled")
         binding.webview.settings.javaScriptEnabled = true
         binding.webview.settings.domStorageEnabled = true
         binding.webview.settings.defaultTextEncodingName = "utf-8"

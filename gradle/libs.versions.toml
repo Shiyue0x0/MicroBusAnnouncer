@@ -15,6 +15,7 @@ appcompat = "1.8.0"
 kotlinxSerializationJson = "1.11.0"
 activity = "1.13.0"
 constraintlayout = "2.2.2"
+lazycolumnscrollbar = "2.2.0"
 lifecycleRuntimeCompose = "2.11.0"
 materialVersion = "1.14.0"
 media3Exoplayer = "1.11.0"
@@ -57,6 +58,7 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+lazycolumnscrollbar = { module = "com.github.nanihadesuka:LazyColumnScrollbar", version.ref = "lazycolumnscrollbar" }
 material = { module = "com.google.android.material:material", version.ref = "materialVersion" }
 miuix-icons = { module = "top.yukonga.miuix.kmp:miuix-icons", version.ref = "miuixUiAndroid" }
 miuix-preference = { module = "top.yukonga.miuix.kmp:miuix-preference", version.ref = "miuixUiAndroid" }

@@ -38,7 +38,9 @@
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="AllFilesAccessPolicy,ScopedStorage" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE"
+        tools:ignore="ForegroundServicesPolicy" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission
         android:name="android.permission.POST_NOTIFICATIONS"
@@ -99,7 +101,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".activity.FragmentContainerActivity"
             android:exported="true"
@@ -108,10 +109,17 @@
 
         <!-- @string/amapKey是高德地图的key -->
         <service android:name="com.amap.api.location.APSService" />
+
         <meta-data
             android:name="com.amap.api.v2.apikey"
             android:value="@string/amapKey_android" />
 
+        <activity
+            android:name=".ui.LineSwitcherActivity"
+            android:exported="false"
+            android:label="@string/title_activity_line_switcher"
+            android:theme="@style/Theme.MicroBusAnnouncer"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

@@ -1,6 +1,8 @@
 package com.microbus.announcer.bean
 
-class Line(
+import java.io.Serializable
+
+data class Line(
     var id: Int? = null,
     var name: String = "",
     var upLineStation: String = "",
@@ -8,4 +10,4 @@ class Line(
     var isUpAndDownInvert: Boolean = true,
     var type: String = "B",
     var isRingRoute: Boolean = false,
-)
+) : Serializable

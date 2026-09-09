@@ -19,7 +19,6 @@
         android:gravity="center"
         android:padding="16dp"
         android:text=""
-        android:textColor="@color/md_theme_primary"
         android:textSize="16sp" />
 
 

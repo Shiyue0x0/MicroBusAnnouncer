@@ -14,7 +14,7 @@
     <string name="main_to_station_name">-</string>
     <string name="next">下一站</string>
     <string name="will_arrive">即将到站</string>
-    <string name="arrive">到达</string>
+    <string name="arrive">到站</string>
     <string name="main_next_station_name">-</string>
     <string name="main_distance_title">距离</string>
     <string name="main_distance_unit">(m)</string>
@@ -51,10 +51,11 @@
     <string name="request_manage_files_access_permission_text">应用需要该权限来读取报站语音资源</string>
     <string name="request_manage_files_access_permission_to_grant">前往授予</string>
 
-    <string name="line_normal_bus">普通公交</string>
-    <string name="line_comm_bus">社区公交</string>
-    <string name="line_metro">轨道交通</string>
-    <string name="line_train">火车车次</string>
+    <string name="total_line">全部路线</string>
+    <string name="line_normal_bus">公交路线 (B)</string>
+    <string name="line_comm_bus">社区路线 (C)</string>
+    <string name="line_metro">地铁路线 (U)</string>
+    <string name="line_train">火车路线 (T)</string>
     <string name="line_other">其他路线</string>
     <string name="line_all">全站路线</string>
 
@@ -86,6 +87,7 @@
     <string name="station_index_value">00</string>
     <string name="station_name">站点</string>
     <string name="search">搜索</string>
+    <string name="set_temporary_line_name">设置临时路线名称</string>
 
     <string name="press_again_exit_app">再按一次退出应用</string>
 
@@ -127,5 +129,6 @@
     <string name="now_search">正在搜索 %1$s 路线%2$s</string>
     <string name="title_activity_low_power_main_fragment">LowPowerMainFragment</string>
     <string name="isRingRoute">是否为环线</string>
+    <string name="title_activity_line_switcher">LineSwitcherActivity</string>
 
 </resources>

@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.kotlinCompose)
+    id("kotlin-parcelize")
 }
 
 android {
@@ -112,12 +113,12 @@ dependencies {
     implementation(libs.material)
     implementation(files("libs/AMap3DMap_11.2.100_AMapSearch_9.8.1_AMapLocation_11.2.100_20260805.jar"))
     implementation(libs.appleliquidglassforandroid)
+    implementation(libs.lazycolumnscrollbar)
 
     // miuix
     implementation(libs.miuix.ui.android)
     implementation(libs.miuix.preference)
     implementation(libs.miuix.icons)
-
 
     //exoplayer
     implementation(libs.androidx.media3.exoplayer)

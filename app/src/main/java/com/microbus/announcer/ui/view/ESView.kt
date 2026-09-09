@@ -13,7 +13,6 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.util.AttributeSet
-import android.util.Log
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.View
@@ -69,19 +68,19 @@ class ESView : View {
     }
 
     fun loadAttrs(attrs: AttributeSet) {
-        context.withStyledAttributes(attrs, R.styleable.HeaderTextView) {
-            text = getString(R.styleable.HeaderTextView_android_text)!!
-            textSize = getDimension(R.styleable.HeaderTextView_android_textSize, 0F)
-            maxWidth = getDimension(R.styleable.HeaderTextView_android_maxWidth, Float.MAX_VALUE)
-            textColor = getColor(R.styleable.HeaderTextView_android_textColor, 0xffffff)
-            textStyle = getInt(R.styleable.HeaderTextView_android_textStyle, 0)
-            background = getColor(R.styleable.HeaderTextView_background, 0)
-            paddingStart = getDimension(R.styleable.HeaderTextView_android_paddingStart, 0F)
-            paddingTop = getDimension(R.styleable.HeaderTextView_android_paddingTop, 0F)
-            paddingEnd = getDimension(R.styleable.HeaderTextView_android_paddingEnd, 0F)
-            paddingBottom = getDimension(R.styleable.HeaderTextView_android_paddingBottom, 0F)
-            cornerRadius = getDimension(R.styleable.HeaderTextView_cornerRadius, 0F)
-            fontFamily = getString(R.styleable.HeaderTextView_android_fontFamily)
+        context.withStyledAttributes(attrs, R.styleable.ESView) {
+            text = getString(R.styleable.ESView_android_text)!!
+            textSize = getDimension(R.styleable.ESView_android_textSize, 0F)
+            maxWidth = getDimension(R.styleable.ESView_android_maxWidth, Float.MAX_VALUE)
+            textColor = getColor(R.styleable.ESView_android_textColor, 0xffffff)
+            textStyle = getInt(R.styleable.ESView_android_textStyle, 0)
+            background = getColor(R.styleable.ESView_background, 0)
+            paddingStart = getDimension(R.styleable.ESView_android_paddingStart, 0F)
+            paddingTop = getDimension(R.styleable.ESView_android_paddingTop, 0F)
+            paddingEnd = getDimension(R.styleable.ESView_android_paddingEnd, 0F)
+            paddingBottom = getDimension(R.styleable.ESView_android_paddingBottom, 0F)
+            cornerRadius = getDimension(R.styleable.ESView_cornerRadius, 0F)
+            fontFamily = getString(R.styleable.ESView_android_fontFamily)
         }
     }
 

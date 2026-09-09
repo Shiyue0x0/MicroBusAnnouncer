@@ -7,13 +7,26 @@ import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import com.microbus.announcer.bean.Station
 
-class StationDatabaseHelper(
+class StationDatabaseHelper private constructor(
     context: Context?,
     dbName: String = context?.getExternalFilesDir("")?.path + "/database/station.db"
 ) :
     DatabaseHelper(context, dbName) {
 
     private val tableName = "station"
+
+    companion object {
+        @Volatile
+        private var INSTANCE: StationDatabaseHelper? = null
+
+        fun getInstance(context: Context): StationDatabaseHelper {
+            return INSTANCE ?: synchronized(this) {
+                val instance = StationDatabaseHelper(context.applicationContext)
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
 
     override fun onCreate(db: SQLiteDatabase?) {
         val sql = "CREATE TABLE IF NOT EXISTS $tableName" + " (" +
@@ -44,9 +57,10 @@ class StationDatabaseHelper(
         return result
     }
 
+
     fun delById(id: Int) {
-        val sql = "delete from $tableName where id = $id"
-        writableDatabase.execSQL(sql)
+        val db = writableDatabase
+        db.delete(tableName, "id=?", arrayOf(id.toString()))
     }
 
     fun queryById(id: Int): List<Station> {
@@ -62,18 +76,6 @@ class StationDatabaseHelper(
                 null,
                 null
             )
-        // 循环取出游标指向的每条记录
-//        while (cursor.moveToNext()) {
-//            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
-//            station.id = cursor.getInt(0)
-//            station.cnName = cursor.getString(1)
-//            station.enName = cursor.getString(2)
-//            station.longitude = cursor.getDouble(3)
-//            station.latitude = cursor.getDouble(4)
-//            if (!cursor.isNull(5))
-//                station.type = cursor.getString(5)
-//            list.add(station)
-//        }
         val list = getStationsFromCursor(cursor)
         cursor.close()
         return list
@@ -185,11 +187,15 @@ class StationDatabaseHelper(
     }
 
     fun updateById(id: Int, station: Station) {
-        val sql =
-            "update $tableName set cnName = '${station.cnName}', enName = '${station.enName}', " +
-                    "longitude = ${station.longitude}, latitude = ${station.latitude}, type = '${station.type}'" +
-                    "where id = $id;"
-        writableDatabase.execSQL(sql)
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("cnName", station.cnName)
+            put("enName", station.enName)
+            put("longitude", station.longitude)
+            put("latitude", station.latitude)
+            put("type", station.type)
+        }
+        db.update(tableName, values, "id=?", arrayOf(id.toString()))
     }
 
     fun getCount(): Long {
@@ -204,8 +210,6 @@ class StationDatabaseHelper(
             cursor.close()
         } catch (e: Exception) {
             e.printStackTrace()
-        } finally {
-            db.close()
         }
 
         return count
@@ -231,8 +235,6 @@ class StationDatabaseHelper(
             cursor.close()
         } catch (e: Exception) {
             e.printStackTrace()
-        } finally {
-            db.close()
         }
 
         return count

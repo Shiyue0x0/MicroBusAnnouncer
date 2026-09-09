@@ -15,7 +15,7 @@ class LineOfSearchAdapter(private var context: Context, private val lineList: Ar
 
     private lateinit var mClickListener: OnItemClickListener
 
-    private var stationDatabaseHelper = StationDatabaseHelper(context)
+    private var stationDatabaseHelper = StationDatabaseHelper.getInstance(context)
 
 
     class ViewHolder(

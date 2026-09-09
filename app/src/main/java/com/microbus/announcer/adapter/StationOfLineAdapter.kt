@@ -7,7 +7,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
-import android.util.Log
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.LayoutInflater
@@ -21,15 +20,8 @@ import com.microbus.announcer.Utils
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.databinding.ItemStationOfLineBinding
 import com.microbus.announcer.model.StationStatus
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.pow
-import kotlin.time.Duration.Companion.milliseconds
-import androidx.core.view.isVisible
 
 
 internal class StationOfLineAdapter(
@@ -147,17 +139,11 @@ internal class StationOfLineAdapter(
                         windowManager.defaultDisplay.refreshRate
                     }
 
-//                    scrollY += ceil((pixelMovePerSecond.toFloat() / fps).toDouble()).toInt()
                     scrollY += (pixelMovePerSecond.toFloat() / fps)
-//                    scrollY = -delayPixel + (pixelMovePerSecond.toFloat() / fps) * frameCount
-
-//                    Log.d("offset add", "${ceil((pixelMovePerSecond.toFloat() / fps).toDouble()).toInt()}")
 
                     val maxScrollY =
                         holder.stationNameNestedScrollView.getChildAt(0).height - holder.stationNameNestedScrollView.height
-
                     if (scrollY > maxScrollY + delayPixel) {
-//                        Log.d("Station", "$lineName ${holder.layoutPosition} ${holder.stationName.text}")
                         scrollY = -delayPixel
                         frameCount = 0F
                     }
@@ -231,8 +217,8 @@ internal class StationOfLineAdapter(
             val stationPointResId = when {
                 position < stationCount -> R.mipmap.line_gray           // 已过站（灰色）
                 position == stationCount -> R.mipmap.line_blue          // 当前站（蓝色）
-                position > stationCount -> R.mipmap.line_green           // 未到站（绿色）
-                else -> R.mipmap.line_gray                              // 默认（灰色）
+                else -> R.mipmap.line_green // 其他（绿色）
+
             }
             holder.stationPoint.setImageResource(stationPointResId)
         } else {
@@ -270,24 +256,20 @@ internal class StationOfLineAdapter(
         val color: Int
         val style: Int
         val bg: Int
-        var padding: Int
         if (position < stationCount) {
             color = context.getColor(R.color.an_text_1)
             style = Typeface.NORMAL
             bg = context.getColor(android.R.color.transparent)
-            padding = utils.dp2px(2F)
         } else if (position == stationCount) {
             color = context.getColor(R.color.md_theme_onSurface)
             style = Typeface.BOLD
             bg = context.getColor(R.color.md_theme_surface_tran)
-            padding = utils.dp2px(2F)
         } else {
             color = context.getColor(R.color.md_theme_onSurface)
             style = Typeface.NORMAL
             bg = context.getColor(android.R.color.transparent)
-            padding = utils.dp2px(2F)
         }
-        padding = 0
+        val padding = 0
         holder.stationIndex.setTextColor(color)
         holder.stationName.setTextColor(color)
         holder.stationIndex.setTypeface(
