@@ -6,10 +6,11 @@ import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.microbus.announcer.BaseActivity
 import com.microbus.announcer.Utils
 import com.microbus.announcer.databinding.ActivityWebviewBinding
 
-class WebviewActivity : AppCompatActivity() {
+class WebviewActivity : BaseActivity() {
 
     var tag: String = javaClass.simpleName
 
@@ -38,30 +39,7 @@ class WebviewActivity : AppCompatActivity() {
         binding.webview.settings.domStorageEnabled = true
         binding.webview.settings.defaultTextEncodingName = "utf-8"
 
-//        binding.webview.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-//        binding.webview.settings.allowFileAccess = true
-//        binding.webview.settings.allowContentAccess = true
-//        binding.webview.settings.cacheMode = WebSettings.LOAD_DEFAULT;
-//
-//        binding.webview.settings.setSupportZoom(true)
-//        binding.webview.settings.builtInZoomControls = true
-//        binding.webview.settings.displayZoomControls = false
-//
-//        binding.webview.clearHistory()
-//        binding.webview.clearCache(true)
-//
-//        binding.webview.webViewClient = object :WebViewClient(){
-//        }
-//
-//        binding.webview.webChromeClient = object :WebChromeClient(){
-//
-//        }
-
         binding.webview.setWebViewClient(object : WebViewClient() {
-//            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-//                view.loadUrl(url)
-//                return true
-//            }
         })
 
         val uriStr = intent.getStringExtra("uriStr")

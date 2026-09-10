@@ -307,7 +307,7 @@ class LineFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 ScrollEventBus.subscribeToAction(ScrollEventBus.lineListScrollToTopActionName)
                     .collect { _ ->
-                        binding.lineRecyclerView.scrollToPosition(0)
+                        binding.lineRecyclerView.smoothScrollToPosition(0)
                     }
             }
         }

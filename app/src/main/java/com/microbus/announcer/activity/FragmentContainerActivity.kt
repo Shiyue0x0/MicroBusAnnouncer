@@ -5,9 +5,10 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import com.microbus.announcer.BaseActivity
 import com.microbus.announcer.R
 
-class FragmentContainerActivity : AppCompatActivity() {
+class FragmentContainerActivity : BaseActivity() {
 
     companion object {
         const val EXTRA_FRAGMENT_CLASS = "fragment_class"

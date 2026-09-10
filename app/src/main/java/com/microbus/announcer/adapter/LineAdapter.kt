@@ -142,7 +142,7 @@ class LineAdapter(
         else {
             val holder = holder as LineViewHolder
             val position = position - 1
-            Log.d("L143", "${allLineList[position].id}")
+//            Log.d("L143", "${allLineList[position].id}")
             holder.line = lineDatabaseHelper.queryById(allLineList[position].id ?: -1).first()
             holder.lineName.text = holder.line.name
 

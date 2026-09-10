@@ -27,7 +27,6 @@
             android:layout_marginRight="8dp"
             android:layout_marginBottom="0dp"
             android:gravity="center"
-            android:minHeight="20sp"
             android:text="@string/station_index_value"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

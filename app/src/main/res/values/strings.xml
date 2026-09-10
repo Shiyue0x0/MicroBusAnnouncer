@@ -33,7 +33,7 @@
     <string name="next_station">下一站</string>
     <string name="terminal">终点站</string>
     <string name="now_location">当前位置</string>
-    <string name="running_info">运行信息</string>
+    <string name="running_info">路线运行记录</string>
     <string name="header_wel_left">MicroBus</string>
     <string name="header_wel_right">欢迎您</string>
     <string name="header_speed">速度 Speed</string>

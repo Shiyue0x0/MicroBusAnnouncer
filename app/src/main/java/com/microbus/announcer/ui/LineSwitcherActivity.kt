@@ -45,6 +45,7 @@ import androidx.preference.PreferenceManager
 import com.amap.api.services.busline.BusLineQuery
 import com.amap.api.services.busline.BusLineResult
 import com.amap.api.services.busline.BusLineSearch
+import com.microbus.announcer.BaseActivity
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.activity.FragmentContainerActivity
@@ -60,6 +61,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -74,8 +76,10 @@ import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.TabRow
+import top.yukonga.miuix.kmp.basic.TabRowDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextButtonColors
 import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.All
@@ -89,7 +93,7 @@ import top.yukonga.miuix.kmp.theme.ThemeController
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import kotlin.time.Duration.Companion.milliseconds
 
-class LineSwitcherActivity : ComponentActivity() {
+class LineSwitcherActivity : BaseActivity() {
 
     private var tag = javaClass.simpleName
     private lateinit var utils: Utils
@@ -370,6 +374,10 @@ class LineSwitcherActivity : ComponentActivity() {
                 .fillMaxWidth()
         ) {
             TextButton(
+                colors = ButtonDefaults.textButtonColors(
+                    color = MiuixTheme.colorScheme.background,
+                    textColor = MiuixTheme.colorScheme.onBackground
+                ),
                 text = localLineTypeList[selectedIndex].name,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { showPopup = true }
@@ -411,6 +419,9 @@ class LineSwitcherActivity : ComponentActivity() {
 
             Button(
                 modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    color = MiuixTheme.colorScheme.background,
+                ),
                 onClick = {
                     FragmentContainerActivity.start(
                         this@LineSwitcherActivity,
@@ -420,6 +431,7 @@ class LineSwitcherActivity : ComponentActivity() {
             ) {
                 Text(
                     text = "搜索城市：${city}",
+                    color = MiuixTheme.colorScheme.onBackground
                 )
                 Icon(
                     imageVector = MiuixIcons.Edit,
@@ -440,7 +452,6 @@ class LineSwitcherActivity : ComponentActivity() {
             selectedTabIndex = searchLineType,
             onTabSelected = { onTabSelected(it) },
             modifier = Modifier.padding(
-//                horizontal = 16.dp,
                 vertical = 8.dp
             )
         )
@@ -466,7 +477,7 @@ class LineSwitcherActivity : ComponentActivity() {
         }
 
         Card(
-            cornerRadius = 24.dp,
+            cornerRadius = 16.dp,
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
@@ -600,6 +611,10 @@ class LineSwitcherActivity : ComponentActivity() {
                     text = getString(R.string.set_temporary_line_name),
                     icon = MiuixIcons.Edit,
                     onClick = {
+                        if(searchText == ""){
+                            utils.showMsg("请输入${getString(R.string.set_temporary_line_name)}")
+                            return@FloatingToolBtnItem
+                        }
                         finishAndSetTemporaryLineName(searchText)
                     })
                 FloatingToolBtnItem(

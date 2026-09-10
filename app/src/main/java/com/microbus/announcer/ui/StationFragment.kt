@@ -1,16 +1,14 @@
 package com.microbus.announcer.ui
 
 import android.annotation.SuppressLint
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +21,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
+import androidx.navigationevent.compose.rememberNavigationEventDispatcherOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.microbus.announcer.R
 import com.microbus.announcer.ScrollEventBus
@@ -69,56 +69,65 @@ class StationFragment : Fragment() {
         binding.TopAppBar.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                Column(modifier = Modifier.padding(bottom = 8.dp)) {
-                    SmallTopAppBar(
-                        title = getString(R.string.nav_station),
-                        navigationIcon = {
-                            IconButton(onClick = {
-                                val intent = Intent()
-                                    .setAction(utils.backHomeName)
-                                LocalBroadcastManager.getInstance(context)
-                                    .sendBroadcast(intent)
-                            }) {
-                                Icon(MiuixIcons.Home, contentDescription = "返回主控")
+
+                val parentOwner = LocalNavigationEventDispatcherOwner.current
+                val newOwner = rememberNavigationEventDispatcherOwner(
+                    parent = parentOwner // 如果父级为空，则显式传入 null 创建一个独立的根分发器
+                )
+
+                CompositionLocalProvider(LocalNavigationEventDispatcherOwner provides newOwner) {
+                    Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                        SmallTopAppBar(
+                            title = getString(R.string.nav_station),
+                            navigationIcon = {
+                                IconButton(onClick = {
+                                    val intent = Intent()
+                                        .setAction(utils.backHomeName)
+                                    LocalBroadcastManager.getInstance(context)
+                                        .sendBroadcast(intent)
+                                }) {
+                                    Icon(MiuixIcons.Home, contentDescription = "返回主控")
+                                }
+                            },
+                            actions = {
+                                NavHelpBox(
+                                    listOf(
+                                        "轻触站点：试听报站",
+                                        "长按站点：编辑站点",
+                                    )
+                                )
                             }
-                        },
-                        actions = {
-                            NavHelpBox(
-                                listOf(
-                                    "轻触站点：试听报站",
-                                    "长按站点：编辑站点",
-                                )
-                            )
-                        }
-                    )
+                        )
 
-                    var searchText by remember { mutableStateOf("") }
+                        var searchText by remember { mutableStateOf("") }
 
-                    SearchBar(
-                        expanded = false,
-                        onExpandedChange = { },
-                        inputField = {
-                            InputField(
-                                query = searchText,
-                                expanded = false,
-                                onExpandedChange = { },
-                                label = "通过 站点ID 或 中英文名 搜索",
-                                onQueryChange = {
-                                    searchText = it
-                                    if (searchText == "") {
+                        SearchBar(
+                            expanded = false,
+                            onExpandedChange = { },
+                            inputField = {
+                                InputField(
+                                    query = searchText,
+                                    expanded = false,
+                                    onExpandedChange = { },
+                                    label = "通过 站点ID 或 中英文名 搜索",
+                                    onQueryChange = {
+                                        searchText = it
+                                        if (searchText == "") {
+                                            refreshStationList(searchText)
+                                        }
+                                    },
+                                    onSearch = {
+                                        searchText = it
                                         refreshStationList(searchText)
-                                    }
-                                },
-                                onSearch = {
-                                    searchText = it
-                                    refreshStationList(searchText)
-                                },
+                                    },
 
-                                )
+                                    )
+                            }
+                        ) {
                         }
-                    ) {
                     }
                 }
+
             }
         }
 
@@ -232,7 +241,7 @@ class StationFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 ScrollEventBus.subscribeToAction(ScrollEventBus.stationListScrollToTopActionName)
                     .collect { _ ->
-                        binding.stationRecyclerView.scrollToPosition(0)
+                        binding.stationRecyclerView.smoothScrollToPosition(0)
                     }
             }
         }

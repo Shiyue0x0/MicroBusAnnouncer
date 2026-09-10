@@ -20,6 +20,7 @@ import android.view.ViewGroup
 import androidx.core.content.withStyledAttributes
 import com.microbus.announcer.R
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.ceil
 import kotlin.properties.Delegates
 
 
@@ -129,7 +130,7 @@ class ESView : View {
         if (layoutParams.width == ViewGroup.LayoutParams.WRAP_CONTENT)
             myMeasuredWidth =
                 MeasureSpec.makeMeasureSpec(
-                    (textPaint.measureText(text) + paddingStart + paddingEnd).toInt(),
+                    ceil(textPaint.measureText(text) + paddingStart + paddingEnd).toInt(),
                     MeasureSpec.EXACTLY
                 )
 

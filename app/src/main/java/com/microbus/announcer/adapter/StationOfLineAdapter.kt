@@ -21,6 +21,7 @@ import com.microbus.announcer.bean.Station
 import com.microbus.announcer.databinding.ItemStationOfLineBinding
 import com.microbus.announcer.model.StationStatus
 import java.util.Locale
+import kotlin.math.ceil
 import kotlin.math.pow
 
 
@@ -86,6 +87,7 @@ internal class StationOfLineAdapter(
 
         lineHeight = holder.stationIndex.lineHeight
 
+
         // todo 适配英文
 
 //        if (utils.getUILang() == "zh") {
@@ -93,16 +95,18 @@ internal class StationOfLineAdapter(
         holder.stationName.maxLines = Int.MAX_VALUE
         holder.stationName.ellipsize = TextUtils.TruncateAt.END
         holder.stationNameNestedScrollView.layoutParams.width = (lineHeight * 1.1).toInt()
-//        } else {
-//            holder.stationName.rotation = 90F
-//            holder.stationName.maxLines = 1
-//            holder.stationName.ellipsize = TextUtils.TruncateAt.MARQUEE
-//            holder.stationNameNestedScrollView.layoutParams.width =
-//                lineHeight * 4 + utils.dp2px(2F) * 2
-//        }
 
-        holder.stationNameNestedScrollView.layoutParams.height =
-            lineHeight * 4 + utils.dp2px(2F) * 2
+        val tv = holder.stationName
+        val paint = tv.paint
+        val fm = paint.fontMetrics
+        val realLineHeight = maxOf(
+            tv.lineHeight,
+            ceil(fm.descent - fm.ascent + fm.leading).toInt(),
+            tv.minimumHeight
+        )
+        val totalHeight = realLineHeight * 4
+
+        holder.stationNameNestedScrollView.layoutParams.height = totalHeight
 
         holder.stationNameNestedScrollView.post {
 

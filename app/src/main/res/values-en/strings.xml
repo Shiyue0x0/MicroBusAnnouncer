@@ -34,7 +34,7 @@
     <string name="next_station">Next Station</string>
     <string name="terminal">Terminal</string>
     <string name="now_location">Now Location</string>
-    <string name="running_info">Running Info</string>
+    <string name="running_info">Line Running Record</string>
     <string name="header_wel_left">Welcome aboard</string>
     <string name="header_wel_right">MicroBus</string>
     <string name="header_speed">Speed</string>
