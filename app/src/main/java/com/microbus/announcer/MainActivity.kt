@@ -12,9 +12,10 @@ import android.view.KeyEvent
 import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.annotation.Discouraged
-import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -36,6 +37,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentContainerView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -43,6 +45,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.microbus.announcer.model.TabPage
 import com.microbus.announcer.ui.LineFragment
+import com.microbus.announcer.ui.LineSwitcherActivity
 import com.microbus.announcer.ui.MainFragment
 import com.microbus.announcer.ui.SettingFragment
 import com.microbus.announcer.ui.StationFragment
@@ -54,6 +57,7 @@ import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.NavigationRail
 import top.yukonga.miuix.kmp.basic.NavigationRailItem
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.rememberNavigationRailState
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
@@ -67,8 +71,8 @@ class MainActivity : BaseActivity(), TabSwitchListener {
     private var backPressedTime: Long = 0
 
     // ViewPager2 和 Adapter 引用
-    private lateinit var viewPager: ViewPager2
-    private lateinit var pagerAdapter: MainPagerAdapter
+    private lateinit var mainViewPager: ViewPager2
+    private lateinit var sideViewPager: ViewPager2
 
     // 用于在Compose中接收新Intent的StateFlow
     private val _newIntentFlow = MutableSharedFlow<Intent>()
@@ -119,9 +123,9 @@ class MainActivity : BaseActivity(), TabSwitchListener {
 
         LaunchedEffect(switchRequest) {
             switchRequest?.let { (position, smoothScroll) ->
-                if (::viewPager.isInitialized) {
+                if (::mainViewPager.isInitialized) {
                     Log.d(tag, "Switching to tab: $position, smooth: $smoothScroll")
-                    viewPager.setCurrentItem(position, smoothScroll)
+                    mainViewPager.setCurrentItem(position, smoothScroll)
                     // 🔥 清除请求，允许再次触发相同的切换
                     _switchTabFlow.value = null
                 }
@@ -134,7 +138,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
             newIntent?.let { intent ->
                 if (intent.getBooleanExtra("switchToMainFrag", false)) {
                     // 切换到主页面
-                    viewPager.currentItem = TabPage.MAIN.position
+                    mainViewPager.currentItem = TabPage.MAIN.position
                 }
             }
         }
@@ -159,6 +163,22 @@ class MainActivity : BaseActivity(), TabSwitchListener {
             }
         }
 
+        LaunchedEffect(isLandscape) {
+
+            Log.d("L163", "${isLandscape}")
+
+            if (isLandscape) {
+                mainViewPager.currentItem = TabPage.MAIN.position
+                mainViewPager.isUserInputEnabled = false
+            }
+
+            if (!isLandscape) {
+                mainViewPager.isUserInputEnabled = true
+            }
+
+            setCurrentTabPosition(0)
+        }
+
         // 处理返回键
         BackHandler {
             onBack()
@@ -167,39 +187,21 @@ class MainActivity : BaseActivity(), TabSwitchListener {
 
         val context = LocalContext.current
 
-        val viewPager = remember {
-            ViewPager2(context).apply {
-                id = View.generateViewId()
-                // 滑动切换
-                isUserInputEnabled = true
-                // 设置离屏页面数量为页面总数，确保所有Fragment都保持存活
-                offscreenPageLimit = TabPage.entries.size - 1
-
-                // 初始化Adapter
-                pagerAdapter = MainPagerAdapter(this@MainActivity)
-                adapter = pagerAdapter
-
-                // 设置页面切换监听
-                registerOnPageChangeCallback(object :
-                    ViewPager2.OnPageChangeCallback() {
-                    override fun onPageSelected(position: Int) {
-                        super.onPageSelected(position)
-                        setCurrentTabPosition(position)
-                    }
-                })
-
-            }
+        // 主viewPager
+        val mainViewPager = remember {
+            this@MainActivity.mainViewPager =
+                getViewPager2(context, setCurrentTabPosition, false)
+            this@MainActivity.mainViewPager
         }
 
-//        val container = remember { FrameLayout(context) }
+        // 副viewPager
+        val sideViewPager = remember {
+            this@MainActivity.sideViewPager =
+                getViewPager2(context, setCurrentTabPosition, true)
+            this@MainActivity.sideViewPager
+        }
 
-//        DisposableEffect(Unit) {
-//            container.addView(viewPager)
-//            this@MainActivity.viewPager = viewPager
-//            onDispose {
-//                (viewPager.parent as? ViewGroup)?.removeView(viewPager)
-//            }
-//        }
+        val (showSideViewPager, setShowSideViewPager) = remember { mutableStateOf(false) }
 
         MiuixTheme(
             controller = controller
@@ -214,12 +216,12 @@ class MainActivity : BaseActivity(), TabSwitchListener {
                             isShowBottomBar,
                             currentTabPosition,
                             view,
-                            viewPager
+                            setCurrentTabPosition
                         )
                     },
                     content = { innerPadding ->
                         AndroidView(
-                            factory = { viewPager },
+                            factory = { mainViewPager },
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(bottom = innerPadding.calculateBottomPadding())
@@ -230,12 +232,40 @@ class MainActivity : BaseActivity(), TabSwitchListener {
 
             // 横屏
             if (isLandscape) {
+
+                val sidePagerProgress by animateFloatAsState(
+                    targetValue = if (showSideViewPager) 1f else 0f,
+                    animationSpec = tween(durationMillis = 300),
+                    label = "sidePager"
+                )
+
                 Row(modifier = Modifier.fillMaxSize()) {
-                    MyNavigationRail(isShowBottomBar, currentTabPosition, view, viewPager)
-                    AndroidView(
-                        factory = { viewPager },
-                        modifier = Modifier.fillMaxSize()
+                    MyNavigationRail(
+                        isShowBottomBar,
+                        currentTabPosition,
+                        view,
+                        true,
+                        showSideViewPager,
+                        setShowSideViewPager,
+                        setCurrentTabPosition
                     )
+                    // 主屏
+                    AndroidView(
+                        factory = { mainViewPager },
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(2f)
+                    )
+                    // 副屏
+                    if (sidePagerProgress > 0f) {
+                        AndroidView(
+                            factory = { sideViewPager },
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(sidePagerProgress)
+                        )
+                    }
+                    // TODO 切换路线页
                 }
             }
         }
@@ -248,7 +278,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
         isShowBottomBar: Boolean,
         currentTabPosition: Int,
         view: View,
-        viewPager: ViewPager2
+        setCurrentTabPosition: (Int) -> Unit,
     ) {
         if (isShowBottomBar && utils.getIsShowBottomBar()) {
             NavigationBar {
@@ -258,7 +288,12 @@ class MainActivity : BaseActivity(), TabSwitchListener {
                         label = stringResource(id = tab.titleResId),
                         selected = currentTabPosition == tab.position,
                         onClick = {
-                            handleTabClick(tab, currentTabPosition, view, viewPager)
+                            handleTabClick(
+                                tab, currentTabPosition, view,
+                                isLandscape = false,
+                                setShowSideViewPager = {},
+                                setCurrentTabPosition
+                            )
                         }
                     )
                 }
@@ -271,41 +306,28 @@ class MainActivity : BaseActivity(), TabSwitchListener {
         isShowBottomBar: Boolean,
         currentTabPosition: Int,
         view: View,
-        viewPager: ViewPager2
+        isLandscape: Boolean,
+        showSideViewPager: Boolean,
+        setShowSideViewPager: (Boolean) -> Unit,
+        setCurrentTabPosition: (Int) -> Unit
     ) {
         if (isShowBottomBar && utils.getIsShowBottomBar()) {
-            NavigationRail {
+            val railState = rememberNavigationRailState()
+            NavigationRail(state = railState) {
                 TabPage.entries.forEach { tab ->
                     NavigationRailItem(
                         icon = ImageVector.vectorResource(tab.iconResId),
                         label = stringResource(id = tab.titleResId),
                         selected = currentTabPosition == tab.position,
                         onClick = {
-                            // 主控锁定检查
-                            if (utils.isOperationLock()) {
-                                utils.showMsg(getString(R.string.operation_lock_on_tip))
-                                // 切换到主页
-                                viewPager.currentItem = TabPage.MAIN.position
-                                return@NavigationRailItem
-                            }
-
-                            if (currentTabPosition != tab.position) {
-                                // 切换到对应的Tab
-                                viewPager.currentItem = tab.position
-                            } else {
-                                // 点击当前项滚动到顶部
-                                val action = when (tab) {
-                                    TabPage.LINE -> ScrollEventBus.lineListScrollToTopActionName
-                                    TabPage.STATION -> ScrollEventBus.stationListScrollToTopActionName
-                                    else -> null
-                                }
-                                action?.let {
-                                    lifecycleScope.launch {
-                                        ScrollEventBus.postScrollEvent(it)
-                                    }
-                                }
-                            }
-                            utils.haptic(view)
+                            handleTabClick(
+                                tab,
+                                currentTabPosition,
+                                view,
+                                isLandscape,
+                                setShowSideViewPager,
+                                setCurrentTabPosition
+                            )
                         }
                     )
                 }
@@ -317,8 +339,28 @@ class MainActivity : BaseActivity(), TabSwitchListener {
         tab: TabPage,
         currentTabPosition: Int,
         view: View,
-        viewPager: ViewPager2
+        isLandscape: Boolean,
+        setShowSideViewPager: (Boolean) -> Unit,
+        setCurrentTabPosition: (Int) -> Unit
     ) {
+
+//        Log.d("L321", "${isLandscape}")
+
+        val viewPager = if (isLandscape)
+            sideViewPager
+        else
+            mainViewPager
+
+        if (isLandscape) {
+            if (tab.position == 0) {
+                setShowSideViewPager(false)
+            } else {
+                setShowSideViewPager(true)
+            }
+        }
+
+        setCurrentTabPosition(tab.position)
+
         // 主控锁定检查
         if (utils.isOperationLock()) {
             utils.showMsg(getString(R.string.operation_lock_on_tip))
@@ -327,9 +369,22 @@ class MainActivity : BaseActivity(), TabSwitchListener {
             return
         }
 
+        // 横屏下只允许在主控
+//        if (isLandscape && tab.position != TabPage.MAIN.position) {
+//            return
+//        }
+
+//        Log.d("L349", "${currentTabPosition}, ${tab.position}")
+
         if (currentTabPosition != tab.position) {
             // 切换到对应的Tab
-            viewPager.currentItem = tab.position
+            if (isLandscape) {
+                if (tab.position != 0) {
+                    viewPager.currentItem = tab.position - 1
+                }
+            } else {
+                viewPager.currentItem = tab.position
+            }
         } else {
             // 点击当前项滚动到顶部
             val action = when (tab) {
@@ -346,80 +401,10 @@ class MainActivity : BaseActivity(), TabSwitchListener {
         utils.haptic(view)
     }
 
-    @Composable
-    @Discouraged("")
-    fun MyViewPager2(setCurrentTabPosition: (Int) -> Unit, modifier: Modifier = Modifier) {
-        AndroidView(
-            modifier = modifier.fillMaxSize(),
-            factory = { context ->
-                // 创建ViewPager2
-                viewPager = ViewPager2(context).apply {
-                    id = View.generateViewId()
-                    // 滑动切换
-                    isUserInputEnabled = true
-                    // 设置离屏页面数量为页面总数，确保所有Fragment都保持存活
-                    offscreenPageLimit = TabPage.entries.size - 1
-                }
-
-                // 初始化Adapter
-                pagerAdapter = MainPagerAdapter(this@MainActivity)
-                viewPager.adapter = pagerAdapter
-
-                // 设置页面切换监听
-                viewPager.registerOnPageChangeCallback(object :
-                    ViewPager2.OnPageChangeCallback() {
-                    override fun onPageSelected(position: Int) {
-                        super.onPageSelected(position)
-                        setCurrentTabPosition(position)
-                    }
-                })
-
-                viewPager
-            },
-
-            )
-
-    }
-
-    // 页面适配器
-    class MainPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
-
-        // 使用lazy初始化，确保Fragment只创建一次
-        private val fragments by lazy {
-            listOf(
-                MainFragment(),
-                LineFragment(),
-                StationFragment(),
-                SettingFragment()
-            )
-        }
-
-        override fun getItemCount(): Int = fragments.size
-
-        override fun createFragment(position: Int): Fragment {
-            return fragments[position]
-        }
-
-        // 可选：为每个Fragment提供稳定的ID
-        override fun getItemId(position: Int): Long {
-            return when (position) {
-                TabPage.MAIN.position -> TabPage.MAIN.position.toLong()
-                TabPage.LINE.position -> TabPage.LINE.position.toLong()
-                TabPage.STATION.position -> TabPage.STATION.position.toLong()
-                TabPage.SETTING.position -> TabPage.SETTING.position.toLong()
-                else -> super.getItemId(position)
-            }
-        }
-
-        // 可选：确保Fragment不会被重新创建
-        override fun containsItem(itemId: Long): Boolean {
-            return itemId in 0 until itemCount
-        }
-    }
 
     // 处理返回键
     private fun onBack() {
-        val currentPosition = viewPager.currentItem
+        val currentPosition = mainViewPager.currentItem
 
         if (currentPosition == TabPage.MAIN.position) {
             // 在主页面
@@ -438,7 +423,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
             }
         } else {
             // 在其他页面，切换到主页
-            viewPager.currentItem = TabPage.MAIN.position
+            mainViewPager.currentItem = TabPage.MAIN.position
         }
     }
 
@@ -495,7 +480,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
      * @param smoothScroll 是否平滑滚动
      */
     override fun switchToTab(position: Int, smoothScroll: Boolean) {
-        if (::viewPager.isInitialized) {
+        if (::mainViewPager.isInitialized) {
             val targetPosition = position.coerceIn(0, TabPage.entries.size - 1)
             Log.d(tag, "switchToTab called: $targetPosition")
             lifecycleScope.launch {
@@ -521,6 +506,84 @@ class MainActivity : BaseActivity(), TabSwitchListener {
     override fun onDestroy() {
         super.onDestroy()
         // 释放资源
-        viewPager.adapter = null
+        mainViewPager.adapter = null
+    }
+
+    // 页面适配器
+    class MyPagerAdapter(activity: FragmentActivity, private var fragRange: IntRange = (0..3)) :
+        FragmentStateAdapter(activity) {
+
+        // 使用lazy初始化，确保Fragment只创建一次
+        private val allFragments by lazy {
+            listOf(
+                MainFragment(),
+                LineFragment(),
+                StationFragment(),
+                SettingFragment()
+            )
+        }
+
+        // 根据 fragRange 获取对应的 fragments
+        private val fragments: List<Fragment>
+            get() = fragRange.map { allFragments[it] }
+
+        // 内部用可变列表保存当前页面索引（顺序即显示顺序）
+        private val pageIndexes: MutableList<Int> = fragRange.toMutableList()
+
+        override fun getItemCount(): Int = fragments.size
+
+        override fun createFragment(position: Int): Fragment {
+            return fragments[position]
+        }
+
+        // 可选：为每个Fragment提供稳定的ID
+        override fun getItemId(position: Int): Long {
+            return pageIndexes[position].toLong()
+        }
+
+        // 可选：确保Fragment不会被重新创建
+        override fun containsItem(itemId: Long): Boolean {
+            return pageIndexes.contains(itemId.toInt())
+        }
+
+
+    }
+
+    fun getViewPager2(
+        context: Context,
+        setCurrentTabPosition: (Int) -> Unit,
+        isSidePage: Boolean
+    ): ViewPager2 {
+
+        val fragRange = if (isSidePage)
+            (1..3)
+        else
+            (0..3)
+
+        Log.d("L526", "${isSidePage} ${fragRange}")
+        return ViewPager2(context).apply {
+            id = View.generateViewId()
+            // 滑动切换
+            isUserInputEnabled = true
+            // 设置离屏页面数量为页面总数，确保所有Fragment都保持存活
+            offscreenPageLimit = TabPage.entries.size
+
+            // 初始化Adapter
+            adapter = MyPagerAdapter(this@MainActivity, fragRange)
+
+            // 设置页面切换监听
+            registerOnPageChangeCallback(object :
+                ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    Log.d("L541", "${position}")
+                    var truePosition = position
+                    if (isSidePage) {
+                        truePosition++
+                    }
+                    super.onPageSelected(truePosition)
+                    setCurrentTabPosition(truePosition)
+                }
+            })
+        }
     }
 }

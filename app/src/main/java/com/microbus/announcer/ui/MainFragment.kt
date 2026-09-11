@@ -878,8 +878,8 @@ class MainFragment : Fragment() {
             binding.locationBtnGroup.check(binding.locationBtn.id)
             binding.mapBtnGroup.check(binding.mapBtn.id)
 
-            // 立即地图移动到当前位置
-            mapToCenter()
+            // 地图移动到当前位置
+            mapToCenter(false)
 
             //点击复制当前经纬度
             if (utils.getIsClickLocationButtonToCopyLngLat()) {
@@ -1854,6 +1854,8 @@ class MainFragment : Fragment() {
 
         binding.mapContainer.setScrollView(binding.main)
 
+        mapToCenter(false)
+
         val markerMipmapIds = ArrayList<Int>()
         markerMipmapIds.add(R.mipmap.marker_gray)
         markerMipmapIds.add(R.mipmap.marker_blue)
@@ -2347,7 +2349,7 @@ class MainFragment : Fragment() {
             CoroutineScope(Dispatchers.IO).launch {
                 if (isAdded) {
                     withContext(Dispatchers.Main) {
-                        mapToCenter()
+                        mapToCenter(false)
                     }
                 }
             }
@@ -4870,10 +4872,8 @@ class MainFragment : Fragment() {
         })
     }
 
-    fun mapToCenter() {
+    fun mapToCenter(enableAnimate: Boolean) {
         aMap.stopAnimation()
-
-
         // 横屏
         if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             val density = resources.displayMetrics.density
@@ -4882,9 +4882,15 @@ class MainFragment : Fragment() {
             val baseScreen = projection.toScreenLocation(currentLngLat)
             baseScreen.x += offsetPx
             val newTarget = projection.fromScreenLocation(baseScreen)
-            aMap.animateCamera(CameraUpdateFactory.changeLatLng(newTarget))
+            if (enableAnimate)
+                aMap.animateCamera(CameraUpdateFactory.changeLatLng(newTarget))
+            else
+                aMap.moveCamera(CameraUpdateFactory.changeLatLng(newTarget))
         } else {
-            aMap.animateCamera(CameraUpdateFactory.changeLatLng(currentLngLat))
+            if (enableAnimate)
+                aMap.animateCamera(CameraUpdateFactory.changeLatLng(currentLngLat))
+            else
+                aMap.moveCamera(CameraUpdateFactory.changeLatLng(currentLngLat))
         }
     }
 

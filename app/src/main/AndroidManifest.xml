@@ -75,7 +75,6 @@
             android:exported="true"
             android:hardwareAccelerated="true"
             android:launchMode="standard"
-            android:screenOrientation="sensor"
             android:windowSoftInputMode="adjustPan"
             tools:ignore="DiscouragedApi,LockedOrientationActivity">
             <intent-filter>

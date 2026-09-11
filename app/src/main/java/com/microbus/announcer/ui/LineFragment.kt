@@ -67,6 +67,8 @@ class LineFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
 
+        Log.d(tag, "onCreateView")
+
         //获取ViewBinding
         binding = FragmentLineBinding.inflate(inflater, container, false)
         stationDatabaseHelper = StationDatabaseHelper.getInstance(requireContext())

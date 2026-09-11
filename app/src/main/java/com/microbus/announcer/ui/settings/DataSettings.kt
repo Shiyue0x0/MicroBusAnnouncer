@@ -2,6 +2,7 @@ package com.microbus.announcer.ui.settings
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.Activity.OVERRIDE_TRANSITION_CLOSE
 import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
@@ -355,7 +356,7 @@ class DataSettings : Fragment() {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             context.startActivity(intent)
         }
-         (activity as? Activity)?.overridePendingTransition(0, 0)
+         (activity as? Activity)?.overridePendingTransition(OVERRIDE_TRANSITION_CLOSE,0, 0)
     }
 
     private fun loadPresetData(resId: Int) {
