@@ -37,7 +37,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import androidx.fragment.app.FragmentContainerView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -45,7 +44,6 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.microbus.announcer.model.TabPage
 import com.microbus.announcer.ui.LineFragment
-import com.microbus.announcer.ui.LineSwitcherActivity
 import com.microbus.announcer.ui.MainFragment
 import com.microbus.announcer.ui.SettingFragment
 import com.microbus.announcer.ui.StationFragment
