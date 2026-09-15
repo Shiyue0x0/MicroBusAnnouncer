@@ -265,7 +265,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
                                 .weight(sidePagerProgress)
                         )
                     }
-                    // TODO 切换路线页
+                    // TODO 设置详细页
                 }
             }
         }

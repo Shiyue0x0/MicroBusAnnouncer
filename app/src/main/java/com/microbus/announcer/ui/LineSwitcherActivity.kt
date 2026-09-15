@@ -41,6 +41,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import com.amap.api.services.busline.BusLineQuery
 import com.amap.api.services.busline.BusLineResult
@@ -587,7 +589,7 @@ class LineSwitcherActivity : BaseActivity() {
                         ) {
                             Text(
                                 text = lineName,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 0.dp),
                             )
                         }
                     }
@@ -611,7 +613,7 @@ class LineSwitcherActivity : BaseActivity() {
                     text = getString(R.string.set_temporary_line_name),
                     icon = MiuixIcons.Edit,
                     onClick = {
-                        if(searchText == ""){
+                        if (searchText == "") {
                             utils.showMsg("请输入${getString(R.string.set_temporary_line_name)}")
                             return@FloatingToolBtnItem
                         }
@@ -674,6 +676,8 @@ class LineSwitcherActivity : BaseActivity() {
 
     }
 
+    var cloudLineNameToIdMap: MutableMap<String, Pair<String, String>> = mutableMapOf()
+
     fun getCloudLineFromRes(res: BusLineResult): List<Line> {
 
         if (res.busLines.isEmpty()) {
@@ -692,12 +696,20 @@ class LineSwitcherActivity : BaseActivity() {
         }
 
         // 获取云端站点
+        cloudLineNameToIdMap = mutableMapOf()
         val lineList = lineNameList.mapIndexed { index, name ->
             val busLines =
                 res.busLines.filter { it.busLineName.substringBefore("(") == name.substringBefore("(") }
             val beginIndex = res.busLines.indexOf(busLines.first())
             val endIndex = res.busLines.indexOf(busLines.last())
-            getOnlineLine(res, beginIndex, endIndex, index * -1)
+            val line = getOnlineLine(res, beginIndex, endIndex, index * -1)
+
+            cloudLineNameToIdMap[line.name] =
+                Pair(res.busLines[beginIndex].busLineId, res.busLines[endIndex].busLineId)
+
+//            Log.d("L708", "${line.name} ${cloudLineNameToIdMap[line.name].toString()}")
+
+            line
         }
 
         return lineList
@@ -779,6 +791,9 @@ class LineSwitcherActivity : BaseActivity() {
 
     fun finishAndLoadCloudLine(line: Line) {
 
+        val originLineName = line.name
+//        Log.d("L794", "${line.name}")
+
         line.name = line.name
             .substringBefore("(")
             .split("路", "号", "线")
@@ -811,6 +826,15 @@ class LineSwitcherActivity : BaseActivity() {
 
             cloudStationList.add(station)
 
+        }
+
+        //
+        val sharedPreferences: SharedPreferences =
+           getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
+        sharedPreferences.edit(commit = true) {
+            putString("lineName", originLineName)
+            putString("onlineLineUpId", cloudLineNameToIdMap[originLineName]?.first)
+            putString("onlineLineDownId", cloudLineNameToIdMap[originLineName]?.second)
         }
 
         val resultIntent = Intent().apply {

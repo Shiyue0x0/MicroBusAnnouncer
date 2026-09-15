@@ -39,6 +39,7 @@ import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.Surface
 import android.view.View
 import android.view.View.GONE
 import android.view.View.INVISIBLE
@@ -48,7 +49,6 @@ import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
-import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
@@ -61,7 +61,9 @@ import androidx.core.view.isVisible
 import androidx.core.view.setPadding
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC
 import androidx.media3.common.C.USAGE_MEDIA
@@ -86,6 +88,7 @@ import com.amap.api.maps.LocationSource
 import com.amap.api.maps.MapView
 import com.amap.api.maps.UiSettings
 import com.amap.api.maps.model.BitmapDescriptorFactory
+import com.amap.api.maps.model.CameraPosition
 import com.amap.api.maps.model.Circle
 import com.amap.api.maps.model.CircleOptions
 import com.amap.api.maps.model.LatLng
@@ -99,6 +102,8 @@ import com.amap.api.maps.model.Polyline
 import com.amap.api.maps.model.PolylineOptions
 import com.amap.api.maps.model.Text
 import com.amap.api.maps.model.TextOptions
+import com.amap.api.maps.model.animation.AnimationSet
+import com.amap.api.maps.model.animation.RotateAnimation
 import com.amap.api.maps.model.animation.TranslateAnimation
 import com.amap.api.services.busline.BusLineQuery
 import com.amap.api.services.busline.BusLineResult
@@ -176,10 +181,6 @@ class MainFragment : Fragment() {
     private var currentTimeMillis = System.currentTimeMillis()
 
     private val mLooper: Looper = Looper.getMainLooper()
-
-    private val mMapHandler: Handler = Handler(mLooper)
-    private lateinit var mapRunnable: Runnable
-
 
     private lateinit var aMapView: MapView
     private lateinit var aMap: AMap
@@ -529,6 +530,7 @@ class MainFragment : Fragment() {
 
         aMapView.onResume()
 
+
     }
 
     private var mapPauseRunnable: Runnable? = null
@@ -578,7 +580,6 @@ class MainFragment : Fragment() {
         super.onPause()
 
     }
-
 
     override fun onStop() {
         Log.d(tag, "onStop")
@@ -879,7 +880,8 @@ class MainFragment : Fragment() {
             binding.mapBtnGroup.check(binding.mapBtn.id)
 
             // 地图移动到当前位置
-            mapToCenter(false)
+            mapToCenter(true)
+            lastTouchMapTime = System.currentTimeMillis() - 10_000
 
             //点击复制当前经纬度
             if (utils.getIsClickLocationButtonToCopyLngLat()) {
@@ -1487,96 +1489,84 @@ class MainFragment : Fragment() {
 
         esList = utils.getEsList(utils.getEsText())
 
-        val esRefreshHandler = Handler(mLooper)
         var isRefreshing = false
         var esRefreshCount = 0
-        val esRefreshRunnable = object : Runnable {
 
-            override fun run() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (isActive) {
 
-                esRefreshHandler.postDelayed(this, 100L)
+//                    Log.d(tag, "L1498")
 
-                if (!isAdded || !isVisible || !enableEs)
-                    return
+                    if (!isAdded || !isVisible || !enableEs)
+                        return@repeatOnLifecycle
 
-                val esSpeed = utils.getEsSpeed()
-                binding.headerLeftNew.pixelMovePerSecond = esSpeed.toFloat()
-                binding.headerRightNew.pixelMovePerSecond = esSpeed.toFloat()
-                binding.headerMiddleNew.pixelMovePerSecond = esSpeed.toFloat()
-                binding.navStationName.pixelMovePerSecond = esSpeed.toFloat()
+                    val esSpeed = utils.getEsSpeed()
+                    binding.headerLeftNew.pixelMovePerSecond = esSpeed.toFloat()
+                    binding.headerRightNew.pixelMovePerSecond = esSpeed.toFloat()
+                    binding.headerMiddleNew.pixelMovePerSecond = esSpeed.toFloat()
+                    binding.navStationName.pixelMovePerSecond = esSpeed.toFloat()
 
-                val pos = utils.getEsFinishPositionOfLastWord()
-                binding.headerLeftNew.finishPositionOfLastWord = pos
-                binding.headerRightNew.finishPositionOfLastWord = pos
-                binding.headerMiddleNew.finishPositionOfLastWord = pos
-                binding.navStationName.finishPositionOfLastWord = pos
+                    val pos = utils.getEsFinishPositionOfLastWord()
+                    binding.headerLeftNew.finishPositionOfLastWord = pos
+                    binding.headerRightNew.finishPositionOfLastWord = pos
+                    binding.headerMiddleNew.finishPositionOfLastWord = pos
+                    binding.navStationName.finishPositionOfLastWord = pos
 
-                binding.headerLeftNew.visibility = if (utils.getIsOpenLeftEs())
-                    VISIBLE
-                else
-                    GONE
-
-                binding.headerMiddleNew.visibility = if (utils.getIsOpenMidEs())
-                    VISIBLE
-                else
-                    GONE
-
-                if (esPlayIndex >= 0 && esPlayIndex < esList.size &&
-                    esList[esPlayIndex].type.contains("R") && esRefreshCount % 10 == 0
-                ) {
-                    refreshEsOnlyText(true)
-                }
-
-
-                val isLeftFinish = binding.headerLeftNew.isShowFinish || !utils.getIsOpenLeftEs()
-                val isRightFinish = binding.headerRightNew.isShowFinish
-//                Log.d(tag, "Finished: $isLeftFinish $isRightFinish")
-                if (!isRefreshing && isLeftFinish && isRightFinish) {
-                    isRefreshing = true
-                    esPlayNext()
-                    refreshEs()
-                    isRefreshing = false
-                }
-                if (binding.headerMiddleNew.isShowFinish) {
-                    binding.headerMiddleNew.showText(currentLine.name)
-                }
-
-                if (::aMap.isInitialized && aMap.isTrafficEnabled != utils.getIsMapTrafficEnabled()) {
-                    aMap.isTrafficEnabled = utils.getIsMapTrafficEnabled()
-                }
-
-                esRefreshCount++
-
-                val navCardVisibility =
-                    if (utils.getIsNavMode() &&
-                        !(currentLine.name == resources.getString(R.string.line_all) && utils.getIsMapEditLineMode()
-                                )
-                    )
+                    binding.headerLeftNew.visibility = if (utils.getIsOpenLeftEs())
                         VISIBLE
                     else
                         GONE
 
-                if (binding.navCard.visibility != navCardVisibility) {
-                    binding.navCard.visibility = navCardVisibility
-                    binding.fill3.visibility = navCardVisibility
-                }
+                    binding.headerMiddleNew.visibility = if (utils.getIsOpenMidEs())
+                        VISIBLE
+                    else
+                        GONE
 
+                    if (esPlayIndex >= 0 && esPlayIndex < esList.size &&
+                        esList[esPlayIndex].type.contains("R") && esRefreshCount % 10 == 0
+                    ) {
+                        refreshEsOnlyText(true)
+                    }
+
+
+                    val isLeftFinish =
+                        binding.headerLeftNew.isShowFinish || !utils.getIsOpenLeftEs()
+                    val isRightFinish = binding.headerRightNew.isShowFinish
+//                Log.d(tag, "Finished: $isLeftFinish $isRightFinish")
+                    if (!isRefreshing && isLeftFinish && isRightFinish) {
+                        isRefreshing = true
+                        esPlayNext()
+                        refreshEs()
+                        isRefreshing = false
+                    }
+                    if (binding.headerMiddleNew.isShowFinish) {
+                        binding.headerMiddleNew.showText(currentLine.name)
+                    }
+
+                    if (::aMap.isInitialized && aMap.isTrafficEnabled != utils.getIsMapTrafficEnabled()) {
+                        aMap.isTrafficEnabled = utils.getIsMapTrafficEnabled()
+                    }
+
+                    esRefreshCount++
+
+                    val navCardVisibility =
+                        if (utils.getIsNavMode() &&
+                            !(currentLine.name == resources.getString(R.string.line_all) && utils.getIsMapEditLineMode()
+                                    )
+                        )
+                            VISIBLE
+                        else
+                            GONE
+
+                    if (binding.navCard.visibility != navCardVisibility) {
+                        binding.navCard.visibility = navCardVisibility
+                        binding.fill3.visibility = navCardVisibility
+                    }
+                    delay(100.milliseconds)
+                }
             }
         }
-        esRefreshHandler.postDelayed(esRefreshRunnable, 0L)
-
-////        var speedRefreshCount = 0
-//        val speedRefreshRunnable = object : Runnable {
-//            override fun run() {
-////                currentSpeedKmH = speedRefreshCount.toDouble()
-////                speedRefreshCount++
-//
-//
-//
-//                speedRefreshHandler.postDelayed(this, 1000L)
-//            }
-//        }
-//        speedRefreshHandler.postDelayed(speedRefreshRunnable, 0L)
 
         binding.headerLeftNew.minShowTimeMs = 500
         binding.headerRightNew.minShowTimeMs = 500
@@ -1837,7 +1827,7 @@ class MainFragment : Fragment() {
 
         setMapMode(utils.getMapType())
 
-        aMap.isMyLocationEnabled = false
+//        aMap.isMyLocationEnabled = false
         aMap.isTrafficEnabled = utils.getIsMapTrafficEnabled()
         aMap.setLocationSource(object : LocationSource {
             override fun activate(listener: LocationSource.OnLocationChangedListener) {
@@ -1849,7 +1839,11 @@ class MainFragment : Fragment() {
         })
 
         val myLocationStyle = MyLocationStyle()
-        myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_MAP_ROTATE_NO_CENTER)
+        myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE)
+//        myLocationStyle.myLocationIcon(BitmapDescriptorFactory.fromResource(R.mipmap.location_marker))
+//        myLocationStyle.anchor(0.5F, 0.57F)
+//        myLocationStyle.showMyLocation(true)
+//        myLocationStyle.interval(1000);
         aMap.myLocationStyle = myLocationStyle
 
         binding.mapContainer.setScrollView(binding.main)
@@ -1874,6 +1868,7 @@ class MainFragment : Fragment() {
                 .icon(BitmapDescriptorFactory.fromResource(R.mipmap.location_marker))
         )
         locationMarker.setAnchor(0.5F, 0.57F)
+
 
         //标点点击事件
         aMap.setOnMultiPointClickListener {
@@ -2009,8 +2004,7 @@ class MainFragment : Fragment() {
         aMap.animateCamera(CameraUpdateFactory.zoomTo(14F))
 
         //切换地图位置至初始位置
-        aMap.animateCamera(CameraUpdateFactory.newLatLng(currentLngLat))
-
+        mapToCenter(false)
 
         //设置缩放按钮位于右侧中部
         val uiSettings = aMap.uiSettings
@@ -2097,45 +2091,104 @@ class MainFragment : Fragment() {
             lastTouchMapTime = System.currentTimeMillis()
         }
 
+
         lifecycleScope.launch {
-            while (isActive) {  // isActive 会在协程被取消时自动退出
-                withContext(Dispatchers.Main) {
-                    if (this@MainFragment::locationMarker.isInitialized && binding.locationBtn.isChecked
-                    ) {
-                        locationMarker.rotateAngle = -sensorHelper.getAzimuth().toFloat()
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                val windowManager = requireActivity().windowManager
+
+                var lastRotateAngle = 0f
+                var curRotateAngle = 0f
+
+                while (isActive) {
+//                    Log.d(tag, "L2115")
+
+
+                    withContext(Dispatchers.Main) {
+                        if (binding.locationBtn.isChecked && binding.mapBtn.isChecked) {
+
+                            val rotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                windowManager.defaultDisplay?.rotation ?: Surface.ROTATION_0
+                            } else {
+                                @Suppress("DEPRECATION")
+                                windowManager.defaultDisplay.rotation
+                            }
+//                            Log.d(tag, "L2112 ${rotation}")
+
+
+                            var rotateAngle = (sensorHelper.getAzimuth().toFloat() + 360f) % 360f
+//                            Log.d("L2108", "${rotateAngle}")
+                            lastRotateAngle = curRotateAngle
+                            curRotateAngle = rotateAngle
+
+                            val rotateAngleAdd = when (rotation) {
+                                Surface.ROTATION_0 -> 0f
+                                Surface.ROTATION_90 -> 90f
+                                Surface.ROTATION_180 -> 180f
+                                Surface.ROTATION_270 -> 270f
+                                else -> 0f
+                            }
+
+                            rotateAngle = (rotateAngle + rotateAngleAdd) % 360f
+//                            Log.d("L2108", "${rotateAngle}")
+
+                            val updRotate = abs(lastRotateAngle - curRotateAngle) > 10f
+
+                            if (this@MainFragment::locationMarker.isInitialized && updRotate) {
+
+//                                Log.d("L2138", "${abs(lastRotateAngle - curRotateAngle)}")
+
+                                //更新定位标点
+                                val translateAnimation = TranslateAnimation(currentLngLat)
+                                val rotateAnimation =
+                                    RotateAnimation(locationMarker.rotateAngle, -rotateAngle)
+
+                                val set = AnimationSet(false).apply {
+                                    addAnimation(translateAnimation)
+                                    addAnimation(rotateAnimation)
+                                    setDuration(100L)
+                                }
+                                locationMarker.setAnimation(set)
+                                locationMarker.startAnimation()
+                            }
+
+                            // 更新地图
+                            if (System.currentTimeMillis() - lastTouchMapTime >= 10_000) {
+                                val cameraPosition = CameraPosition.builder()
+                                    .target(getMapFinalLngLat(currentLngLat))
+                                    .bearing(if (updRotate) rotateAngle else aMap.cameraPosition.bearing)
+                                    .zoom(aMap.cameraPosition.zoom)
+                                    .tilt(aMap.cameraPosition.tilt)
+                                    .build()
+
+                                aMap.animateCamera(
+                                    CameraUpdateFactory.newCameraPosition(cameraPosition),
+                                    100,
+                                    null
+                                )
+                            }
+
+
+                        }
+
+                        // 每隔1s刷新地图Text
+                        if (binding.mapBtn.isChecked) {
+                            // 获取地图缩放级别
+                            aMapLastZoom = aMapCurrentZoom
+                            aMapCurrentZoom = aMap.cameraPosition!!.zoom
+                            // 放大到一定级别
+                            if (aMapLastZoom < aMapZoomPoint && aMapCurrentZoom >= aMapZoomPoint) {
+                                refreshMapStationText()
+                            }
+                            // 缩小到一定级别
+                            else if (aMapLastZoom >= aMapZoomPoint && aMapCurrentZoom < aMapZoomPoint) {
+                                refreshMapStationText()
+                            }
+                        }
                     }
+                    delay(1000.milliseconds)
                 }
-                delay(100.milliseconds) // 单位是毫秒，100ms = 0.1秒
             }
         }
-
-        // 每隔1s刷新地图Text
-        mMapHandler.removeCallbacksAndMessages(null)
-        mapRunnable = object : Runnable {
-            override fun run() {
-
-                mMapHandler.removeCallbacksAndMessages(null)
-
-                if (!isAdded)
-                    return
-
-                // 获取地图缩放级别
-                aMapLastZoom = aMapCurrentZoom
-                aMapCurrentZoom = aMap.cameraPosition!!.zoom
-                // 放大到一定级别
-                if (aMapLastZoom < aMapZoomPoint && aMapCurrentZoom >= aMapZoomPoint) {
-                    refreshMapStationText()
-                }
-                // 缩小到一定级别
-                else if (aMapLastZoom >= aMapZoomPoint && aMapCurrentZoom < aMapZoomPoint) {
-                    refreshMapStationText()
-                }
-
-                mMapHandler.postDelayed(this, 1000L)
-
-            }
-        }
-        mMapHandler.postDelayed(mapRunnable, 1000L)
 
     }
 
@@ -2343,38 +2396,17 @@ class MainFragment : Fragment() {
         lastLngLat = currentLngLat
         currentLngLat = LatLng(location.latitude, location.longitude)
 
-        if (System.currentTimeMillis() - lastTouchMapTime > 15 * 1000) {
-
-            // 更新地图位置、方位
-            CoroutineScope(Dispatchers.IO).launch {
-                if (isAdded) {
-                    withContext(Dispatchers.Main) {
-                        mapToCenter(false)
-                    }
-                }
-            }
-        }
-
-        //更新定位标点
-//        if (!this::locationMarker.isInitialized) {
-//            locationMarker = aMap.addMarker(
-//                MarkerOptions().position(currentLngLat).setFlat(true)
-//                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.location_marker))
-//            )
-//            locationMarker.setAnchor(0.5F, 0.57F)
+//        if (System.currentTimeMillis() - lastTouchMapTime > 15 * 1000) {
+//
+//            // 更新地图位置、方位
+//            CoroutineScope(Dispatchers.IO).launch {
+//                if (isAdded) {
+//                    withContext(Dispatchers.Main) {
+//                        mapToCenter(false)
+//                    }
+//                }
+//            }
 //        }
-
-//        locationMarker.rotateAngle = -sensorHelper.getAzimuth().toFloat()
-
-        val anim = TranslateAnimation(currentLngLat)
-        anim.setDuration(100L)
-        anim.setInterpolator(DecelerateInterpolator())
-        locationMarker.setAnimation(anim)
-        locationMarker.startAnimation()
-
-//        Log.d("now latitude", location.latitude.toString())
-//        Log.d("last local", (currentTimeMillis - lastTimeMillis).toString())
-//        Log.d("bearing", location.bearing.toString())
 
         lastDistanceToCurrentStation = currentDistanceToCurrentStation
         currentDistanceToCurrentStation = utils.calculateDistance(
@@ -4873,25 +4905,32 @@ class MainFragment : Fragment() {
     }
 
     fun mapToCenter(enableAnimate: Boolean) {
-        aMap.stopAnimation()
+        if (enableAnimate) {
+            aMap.stopAnimation()
+        }
+
+        val finalLngLat = getMapFinalLngLat(currentLngLat)
+
+        if (enableAnimate)
+            aMap.animateCamera(CameraUpdateFactory.changeLatLng(finalLngLat))
+        else
+            aMap.moveCamera(CameraUpdateFactory.changeLatLng(finalLngLat))
+    }
+
+
+    fun getMapFinalLngLat(currentLngLat: LatLng): LatLng {
+        var finalLngLat = currentLngLat
         // 横屏
         if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             val density = resources.displayMetrics.density
             val offsetPx = (floatingViewWidthDpWhenLand / 2 * density).toInt()
             val projection = aMap.projection
             val baseScreen = projection.toScreenLocation(currentLngLat)
+//            Log.d("L4886", "${offsetPx}")
             baseScreen.x += offsetPx
-            val newTarget = projection.fromScreenLocation(baseScreen)
-            if (enableAnimate)
-                aMap.animateCamera(CameraUpdateFactory.changeLatLng(newTarget))
-            else
-                aMap.moveCamera(CameraUpdateFactory.changeLatLng(newTarget))
-        } else {
-            if (enableAnimate)
-                aMap.animateCamera(CameraUpdateFactory.changeLatLng(currentLngLat))
-            else
-                aMap.moveCamera(CameraUpdateFactory.changeLatLng(currentLngLat))
+            finalLngLat = projection.fromScreenLocation(baseScreen)
         }
+        return finalLngLat
     }
 
     fun updFloatingViewWidth() {
@@ -4907,5 +4946,6 @@ class MainFragment : Fragment() {
             }
         binding.floatingView.layoutParams = lp
     }
+
 
 }
