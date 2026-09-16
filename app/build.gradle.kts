@@ -110,8 +110,11 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.gson)
     implementation(libs.material)
+    implementation(libs.backdrop)
+
+
+    //AMap
     implementation(files("libs/AMap3DMap_11.2.100_AMapSearch_9.8.1_AMapLocation_11.2.100_20260805.jar"))
-    implementation(libs.appleliquidglassforandroid)
 
     // miuix
     implementation(libs.miuix.ui.android)

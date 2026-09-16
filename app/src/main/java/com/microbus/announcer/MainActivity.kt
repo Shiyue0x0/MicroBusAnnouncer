@@ -14,9 +14,11 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -204,28 +206,23 @@ class MainActivity : BaseActivity(), TabSwitchListener {
         MiuixTheme(
             controller = controller
         ) {
-
             // 竖屏
             if (!isLandscape) {
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    bottomBar = {
-                        MyNavigationBar(
-                            isShowBottomBar,
-                            currentTabPosition,
-                            view,
-                            setCurrentTabPosition
-                        )
-                    },
-                    content = { innerPadding ->
-                        AndroidView(
-                            factory = { mainViewPager },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(bottom = innerPadding.calculateBottomPadding())
-                        )
-                    }
-                )
+                Column(modifier = Modifier.fillMaxSize()) {
+                    AndroidView(
+                        factory = { mainViewPager },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    )
+                    MyNavigationBar(
+                        isShowBottomBar,
+                        currentTabPosition,
+                        view,
+                        setCurrentTabPosition
+                    )
+
+                }
             }
 
             // 横屏
