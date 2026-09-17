@@ -21,6 +21,7 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.Icon
 import android.media.AudioAttributes
@@ -49,11 +50,13 @@ import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
@@ -86,6 +89,7 @@ import com.amap.api.maps.AMapOptions
 import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.LocationSource
 import com.amap.api.maps.MapView
+import com.amap.api.maps.TextureMapView
 import com.amap.api.maps.UiSettings
 import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.CameraPosition
@@ -138,6 +142,7 @@ import com.microbus.announcer.model.LineDirection
 import com.microbus.announcer.model.StationStatus
 import com.microbus.announcer.model.TabPage
 import com.microbus.announcer.util.WavSilenceGenerator
+import com.qmdeve.liquidglass.widget.LiquidGlassView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -182,7 +187,7 @@ class MainFragment : Fragment() {
 
     private val mLooper: Looper = Looper.getMainLooper()
 
-    private lateinit var aMapView: MapView
+    private lateinit var aMapView: TextureMapView
     private lateinit var aMap: AMap
 
     /**0 灰色：已通过；1 蓝色：当前站点；2 绿色：前方站点*/
@@ -494,6 +499,8 @@ class MainFragment : Fragment() {
             }
         }
 
+        utils.applyOrientation(resources.configuration.orientation, binding.floatingView)
+
         return binding.root
     }
 
@@ -607,6 +614,7 @@ class MainFragment : Fragment() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         updFloatingViewWidth()
+        utils.applyOrientation(resources.configuration.orientation, binding.floatingView)
     }
 
     val client = OkHttpClient()
@@ -2184,14 +2192,63 @@ class MainFragment : Fragment() {
                                 refreshMapStationText()
                             }
                         }
+
+
                     }
                     delay(1000.milliseconds)
                 }
             }
         }
 
+
+        // liquidGlassView
+        if (utils.getIsLiquidGlass()) {
+
+
+// 调用
+            binding.liquidGlassView.applyGlassConfig()
+            binding.liquidGlassViewOfLineStationCard.applyGlassConfig()
+
+            binding.liquidGlassView.bind(binding.mapContainer)
+            binding.liquidGlassViewOfLineStationCard.bind(binding.mapContainer)
+
+        }
+
     }
 
+    private fun LiquidGlassView.applyGlassConfig() {
+        setBlurRadius(2f)
+        setRefractionHeight(0f)
+        setRefractionOffset(0f)
+        setCornerRadius(utils.dp2px(24f).toFloat())
+    }
+
+    fun setGlassSourceImage(bitmap: Bitmap, targetView: View, glassSourceImage: ImageView) {
+
+        // 获取 targetView 相对于地图 View 的坐标
+        val headerLoc = IntArray(2)
+        val mapLoc = IntArray(2)
+        targetView.getLocationInWindow(headerLoc)
+        binding.mapContainer.getLocationInWindow(mapLoc)  // 换成你实际的 map view
+
+        val left = headerLoc[0] - mapLoc[0]
+        val top = headerLoc[1] - mapLoc[1]
+        val width = targetView.width
+        val height = targetView.height
+
+        // 边界保护，避免越界崩溃
+        if (left < 0 || top < 0 || left + width > bitmap.width || top + height > bitmap.height) {
+            Log.e(
+                tag,
+                "裁剪区域越界: left=$left top=$top w=$width h=$height bitmap=${bitmap.width}x${bitmap.height}"
+            )
+            return
+        }
+
+        // 裁剪
+        val cropped = Bitmap.createBitmap(bitmap, left, top, width, height)
+        glassSourceImage.setImageBitmap(cropped)
+    }
 
     /**
      * 初始化通知
@@ -2278,7 +2335,8 @@ class MainFragment : Fragment() {
         val onlineLineDownId = sharedPreferences.getString("onlineLineDownId", "") ?: ""
 
 
-        val lastLineDirection = sharedPreferences.getInt("lastLineDirection", LineDirection.ON_UP)
+        val lastLineDirection =
+            sharedPreferences.getInt("lastLineDirection", LineDirection.ON_UP)
 //        Log.d("L2568", "${lastLineDirection}")
         currentLineDirection = lastLineDirection
 
@@ -2679,7 +2737,9 @@ class MainFragment : Fragment() {
                 val circle = aMap.addCircle(
                     CircleOptions()
                         .center(latLng)
-                        .radius(utils.getStationRangeByLineType(currentLine.type, "In").toDouble())
+                        .radius(
+                            utils.getStationRangeByLineType(currentLine.type, "In").toDouble()
+                        )
                         .fillColor(fillColor)
                         .strokeWidth(0F)
                         .zIndex(-100F)
@@ -3495,7 +3555,8 @@ class MainFragment : Fragment() {
 
             val ttsTextList = ArrayList<String>()
             // 查找本地音频/合成TTS音频
-            val supportMediaFormatList = listOf("mp3", "wav", "ogg", "aac", "flac", "m4a", "pcm")
+            val supportMediaFormatList =
+                listOf("mp3", "wav", "ogg", "aac", "flac", "m4a", "pcm")
             for (voice in mediaList) {
 
 
@@ -4207,7 +4268,12 @@ class MainFragment : Fragment() {
     }
 
 
-    fun startEditLineOnMap(id: Int, name: String = "", direction: Int, type: String = "update") {
+    fun startEditLineOnMap(
+        id: Int,
+        name: String = "",
+        direction: Int,
+        type: String = "update"
+    ) {
 
         if (!isAdded)
             return
@@ -4475,7 +4541,11 @@ class MainFragment : Fragment() {
                     if (!lineWithTypeMap.containsKey(stationIndex)) {
                         val mPolyline = aMap.addPolyline(
                             PolylineOptions().width(16f)
-                                .setCustomTexture((BitmapDescriptorFactory.fromResource(lineColorId)))
+                                .setCustomTexture(
+                                    (BitmapDescriptorFactory.fromResource(
+                                        lineColorId
+                                    ))
+                                )
                                 .addAll(stationPointList)
                                 .zIndex(-90F)
                         )
@@ -4490,7 +4560,11 @@ class MainFragment : Fragment() {
                         polylineList[stationIndex].remove()
                         val mPolyline = aMap.addPolyline(
                             PolylineOptions().width(16f)
-                                .setCustomTexture((BitmapDescriptorFactory.fromResource(lineColorId)))
+                                .setCustomTexture(
+                                    (BitmapDescriptorFactory.fromResource(
+                                        lineColorId
+                                    ))
+                                )
                                 .addAll(stationPointList)
                                 .zIndex(-90F)
                         )
@@ -4844,55 +4918,61 @@ class MainFragment : Fragment() {
                         } $chosenStationCnName"
                     )
                     .setMessage(chosenStationEnName)
-                    .setPositiveButton("设为区间起点", object : DialogInterface.OnClickListener {
-                        override fun onClick(p0: DialogInterface?, p1: Int) {
+                    .setPositiveButton(
+                        "设为区间起点",
+                        object : DialogInterface.OnClickListener {
+                            override fun onClick(p0: DialogInterface?, p1: Int) {
 
-                            currentLineStartingIndex = lineList.indexOf(startingId.toString())
+                                currentLineStartingIndex =
+                                    lineList.indexOf(startingId.toString())
 
-                            if (currentLineStartingIndex == -1) currentLineStartingIndex = 0
+                                if (currentLineStartingIndex == -1) currentLineStartingIndex = 0
 
-                            if (currentLineTerminalIndex < currentLineStartingIndex || currentLineTerminalIndex == Int.MAX_VALUE) {
-                                currentLineTerminalIndex = lineList.size - 1
+                                if (currentLineTerminalIndex < currentLineStartingIndex || currentLineTerminalIndex == Int.MAX_VALUE) {
+                                    currentLineTerminalIndex = lineList.size - 1
+                                }
+
+                                if (currentLineTerminalIndex - currentLineStartingIndex < 1) {
+                                    utils.showMsg("不能将原终点站设置为起点站")
+                                    return
+                                }
+
+                                setShuttleLine(
+                                    lineList,
+                                    currentLineStartingIndex,
+                                    currentLineTerminalIndex
+                                )
+
                             }
+                        })
+                    .setNegativeButton(
+                        "设为区间终点",
+                        object : DialogInterface.OnClickListener {
+                            override fun onClick(p0: DialogInterface?, p1: Int) {
 
-                            if (currentLineTerminalIndex - currentLineStartingIndex < 1) {
-                                utils.showMsg("不能将原终点站设置为起点站")
-                                return
+                                currentLineTerminalIndex =
+                                    lineList.indexOf(startingId.toString())
+
+                                if (currentLineTerminalIndex == -1) currentLineTerminalIndex =
+                                    lineList.size - 1
+
+                                if (currentLineTerminalIndex < currentLineStartingIndex || currentLineStartingIndex == -1) {
+                                    currentLineStartingIndex = 0
+                                }
+
+                                if (currentLineTerminalIndex - currentLineStartingIndex < 1) {
+                                    utils.showMsg("不能将原起点站设置终点站")
+                                    return
+                                }
+
+                                setShuttleLine(
+                                    lineList,
+                                    currentLineStartingIndex,
+                                    currentLineTerminalIndex
+                                )
+
                             }
-
-                            setShuttleLine(
-                                lineList,
-                                currentLineStartingIndex,
-                                currentLineTerminalIndex
-                            )
-
-                        }
-                    })
-                    .setNegativeButton("设为区间终点", object : DialogInterface.OnClickListener {
-                        override fun onClick(p0: DialogInterface?, p1: Int) {
-
-                            currentLineTerminalIndex = lineList.indexOf(startingId.toString())
-
-                            if (currentLineTerminalIndex == -1) currentLineTerminalIndex =
-                                lineList.size - 1
-
-                            if (currentLineTerminalIndex < currentLineStartingIndex || currentLineStartingIndex == -1) {
-                                currentLineStartingIndex = 0
-                            }
-
-                            if (currentLineTerminalIndex - currentLineStartingIndex < 1) {
-                                utils.showMsg("不能将原起点站设置终点站")
-                                return
-                            }
-
-                            setShuttleLine(
-                                lineList,
-                                currentLineStartingIndex,
-                                currentLineTerminalIndex
-                            )
-
-                        }
-                    })
+                        })
                     .setNeutralButton("设为当前站点") { _, _ ->
                         setStationAndState(position, currentLineStationState)
                         refreshLineStationListAndNotice()

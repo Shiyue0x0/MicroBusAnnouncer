@@ -2,6 +2,7 @@
 activityComposeVersion = "1.13.0"
 agp = "9.2.1"
 backdrop = "2.0.1"
+coreVersion = "1.0.5"
 easypermissions = "3.0.0"
 fragmentKtx = "1.9.0"
 gson = "2.14.0"
@@ -42,6 +43,7 @@ androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", versi
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefreshlayout", version.ref = "swiperefreshlayout" }
 backdrop = { module = "io.github.kyant0:backdrop", version.ref = "backdrop" }
+liquidglass = { module = "com.qmdeve.liquidglass:core", version.ref = "coreVersion" }
 easypermissions = { module = "pub.devrel:easypermissions", version.ref = "easypermissions" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }

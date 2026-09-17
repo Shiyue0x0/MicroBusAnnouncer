@@ -2,13 +2,17 @@ package com.microbus.announcer.ui
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -34,11 +38,17 @@ import com.microbus.announcer.databinding.FragmentLineBinding
 import com.microbus.announcer.ui.compose.NavHelpBox
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.FloatingToolbar
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Add
+import top.yukonga.miuix.kmp.icon.extended.All
+import top.yukonga.miuix.kmp.icon.extended.Edit
 import top.yukonga.miuix.kmp.icon.extended.Home
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 
 class LineFragment : Fragment() {
@@ -110,15 +120,44 @@ class LineFragment : Fragment() {
         initSwipeRefreshLayout()
 
         //添加点击添加站点事件
-        binding.addLineFab.setOnClickListener {
-            utils.haptic(binding.addLineFab)
-            addLine()
+        binding.addLineFabCompose.setContent {
+            FloatingToolbar(
+                modifier = Modifier
+                    .imePadding(),
+                color = MiuixTheme.colorScheme.secondary
+            ) {
+                Row(
+                    modifier = Modifier.padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TooltipBox(text = getString(R.string.add_line)) {
+                        IconButton(onClick = {
+                            utils.haptic(binding.addLineFabCompose)
+                            addLine()
+                        }) {
+                            Icon(
+                                MiuixIcons.Add,
+                                contentDescription = getString(R.string.add_line)
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         startCollectingScrollEvents()
 
+        utils.applyOrientation(resources.configuration.orientation, binding.addLineFabCompose)
+
         return binding.root
     }
+
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        utils.applyOrientation(newConfig.orientation, binding.addLineFabCompose)
+    }
+
 
     private lateinit var adapter: LineAdapter
     private var hasFirstOnScrolled = false

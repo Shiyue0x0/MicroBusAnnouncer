@@ -14,12 +14,14 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,7 +29,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -35,6 +40,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
@@ -44,6 +50,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
 import com.microbus.announcer.model.TabPage
 import com.microbus.announcer.ui.LineFragment
 import com.microbus.announcer.ui.MainFragment
@@ -52,11 +64,13 @@ import com.microbus.announcer.ui.StationFragment
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.DividerDefaults
+import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
+import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.NavigationRail
 import top.yukonga.miuix.kmp.basic.NavigationRailItem
-import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.rememberNavigationRailState
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -91,13 +105,15 @@ class MainActivity : BaseActivity(), TabSwitchListener {
 
         // 设置状态栏为全屏布局
         @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        window.decorView.systemUiVisibility =
+            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
 
         utils.setUILang(utils.getUILang())
 
         powerManager = this.getSystemService(POWER_SERVICE) as PowerManager
         @Suppress("DEPRECATION")
-        wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, tag)
+        wakeLock =
+            powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, tag)
         wakeLock.acquire(60 * 60 * 1000L)
 
         setContent {
@@ -124,7 +140,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
         LaunchedEffect(switchRequest) {
             switchRequest?.let { (position, smoothScroll) ->
                 if (::mainViewPager.isInitialized) {
-                    Log.d(tag, "Switching to tab: $position, smooth: $smoothScroll")
+//                    Log.d(tag, "Switching to tab: $position, smooth: $smoothScroll")
                     mainViewPager.setCurrentItem(position, smoothScroll)
                     // 🔥 清除请求，允许再次触发相同的切换
                     _switchTabFlow.value = null
@@ -165,7 +181,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
 
         LaunchedEffect(isLandscape) {
 
-            Log.d("L163", "${isLandscape}")
+//            Log.d("L163", "${isLandscape}")
 
             if (isLandscape) {
                 mainViewPager.currentItem = TabPage.MAIN.position
@@ -189,15 +205,13 @@ class MainActivity : BaseActivity(), TabSwitchListener {
 
         // 主viewPager
         val mainViewPager = remember {
-            this@MainActivity.mainViewPager =
-                getViewPager2(context, setCurrentTabPosition, false)
+            this@MainActivity.mainViewPager = getViewPager2(context, setCurrentTabPosition, false)
             this@MainActivity.mainViewPager
         }
 
         // 副viewPager
         val sideViewPager = remember {
-            this@MainActivity.sideViewPager =
-                getViewPager2(context, setCurrentTabPosition, true)
+            this@MainActivity.sideViewPager = getViewPager2(context, setCurrentTabPosition, true)
             this@MainActivity.sideViewPager
         }
 
@@ -206,27 +220,63 @@ class MainActivity : BaseActivity(), TabSwitchListener {
         MiuixTheme(
             controller = controller
         ) {
+
             // 竖屏
             if (!isLandscape) {
-                Column(modifier = Modifier.fillMaxSize()) {
+
+                val backdrop = rememberLayerBackdrop()
+
+                Box(modifier = Modifier.fillMaxSize()) {
                     AndroidView(
                         factory = { mainViewPager },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
+                            .fillMaxSize()
+                            .then(
+                                if (utils.getIsLiquidGlass()) {
+                                    Modifier.layerBackdrop(backdrop)
+                                } else {
+                                    Modifier
+                                }
+                            )
                     )
-                    MyNavigationBar(
-                        isShowBottomBar,
-                        currentTabPosition,
-                        view,
-                        setCurrentTabPosition
-                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(
+                                start = 16.dp,
+                                top = 0.dp,
+                                end = 16.dp,
+                                bottom = 16.dp,
+                            )
+                            .then(
+                                if (utils.getIsLiquidGlass()) {
+                                    Modifier.drawBackdrop(
+                                        backdrop = backdrop,
+                                        shape = { CircleShape },
+                                        effects = {
+                                            vibrancy()
+                                            blur(2f.dp.toPx())
+                                            lens(
+                                                refractionHeight = 2f.dp.toPx(),
+                                                refractionAmount = 4f.dp.toPx()
+                                            )
+                                        }
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            )
+                    ) {
+                        MyNavigationBar(
+                            isShowBottomBar, currentTabPosition, view, setCurrentTabPosition
+                        )
+                    }
 
                 }
             }
 
             // 横屏
-            if (isLandscape) {
+            else {
 
                 val sidePagerProgress by animateFloatAsState(
                     targetValue = if (showSideViewPager) 1f else 0f,
@@ -234,33 +284,76 @@ class MainActivity : BaseActivity(), TabSwitchListener {
                     label = "sidePager"
                 )
 
-                Row(modifier = Modifier.fillMaxSize()) {
-                    MyNavigationRail(
-                        isShowBottomBar,
-                        currentTabPosition,
-                        view,
-                        true,
-                        showSideViewPager,
-                        setShowSideViewPager,
-                        setCurrentTabPosition
-                    )
-                    // 主屏
-                    AndroidView(
-                        factory = { mainViewPager },
+                val backdrop = rememberLayerBackdrop()
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                ) {
+                    Row(
                         modifier = Modifier
-                            .fillMaxHeight()
-                            .weight(2f)
-                    )
-                    // 副屏
-                    if (sidePagerProgress > 0f) {
+                            .fillMaxSize()
+                            .then(
+                                if (utils.getIsLiquidGlass()) {
+                                    Modifier.layerBackdrop(backdrop)
+                                } else {
+                                    Modifier
+                                }
+                            )
+                    ) {
+                        // 主屏
                         AndroidView(
-                            factory = { sideViewPager },
-                            modifier = Modifier
+                            factory = { mainViewPager }, modifier = Modifier
                                 .fillMaxHeight()
-                                .weight(sidePagerProgress)
+                                .weight(2f)
+                        )
+                        // 副屏
+                        if (sidePagerProgress > 0f) {
+                            AndroidView(
+                                factory = { sideViewPager },
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .weight(sidePagerProgress)
+                            )
+                        }
+                        // TODO 设置详细页
+                    }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(
+                                start = 16.dp,
+                                top = 16.dp,
+                                end = 0.dp,
+                                bottom = 16.dp,
+                            )
+                            .then(
+                                if (utils.getIsLiquidGlass()) {
+                                    Modifier.drawBackdrop(
+                                        backdrop = backdrop,
+                                        shape = { CircleShape },
+                                        effects = {
+                                            vibrancy()
+                                            blur(2f.dp.toPx())
+                                            lens(
+                                                refractionHeight = 2f.dp.toPx(),
+                                                refractionAmount = 4f.dp.toPx()
+                                            )
+                                        }
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            )
+                    ) {
+                        MyNavigationRail(
+                            currentTabPosition,
+                            view,
+                            true,
+                            setShowSideViewPager,
+                            setCurrentTabPosition
                         )
                     }
-                    // TODO 设置详细页
                 }
             }
         }
@@ -274,43 +367,27 @@ class MainActivity : BaseActivity(), TabSwitchListener {
         currentTabPosition: Int,
         view: View,
         setCurrentTabPosition: (Int) -> Unit,
+        modifier: Modifier = Modifier,
     ) {
         if (isShowBottomBar && utils.getIsShowBottomBar()) {
-            NavigationBar {
+            NavigationBar(
+                modifier = modifier
+                    .clip(CircleShape)
+                    .then(
+                        if (!utils.getIsLiquidGlass()) {
+                            Modifier.border(
+                                width = 1.dp,
+                                color = DividerDefaults.DividerColor,
+                                shape = CircleShape
+                            )
+                        } else
+                            Modifier
+                    ),
+                color = if (utils.getIsLiquidGlass()) Color.Transparent else MiuixTheme.colorScheme.surfaceVariant,
+                showDivider = false
+            ) {
                 TabPage.entries.forEach { tab ->
                     NavigationBarItem(
-                        icon = ImageVector.vectorResource(tab.iconResId),
-                        label = stringResource(id = tab.titleResId),
-                        selected = currentTabPosition == tab.position,
-                        onClick = {
-                            handleTabClick(
-                                tab, currentTabPosition, view,
-                                isLandscape = false,
-                                setShowSideViewPager = {},
-                                setCurrentTabPosition
-                            )
-                        }
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun MyNavigationRail(
-        isShowBottomBar: Boolean,
-        currentTabPosition: Int,
-        view: View,
-        isLandscape: Boolean,
-        showSideViewPager: Boolean,
-        setShowSideViewPager: (Boolean) -> Unit,
-        setCurrentTabPosition: (Int) -> Unit
-    ) {
-        if (isShowBottomBar && utils.getIsShowBottomBar()) {
-            val railState = rememberNavigationRailState()
-            NavigationRail(state = railState) {
-                TabPage.entries.forEach { tab ->
-                    NavigationRailItem(
                         icon = ImageVector.vectorResource(tab.iconResId),
                         label = stringResource(id = tab.titleResId),
                         selected = currentTabPosition == tab.position,
@@ -319,13 +396,56 @@ class MainActivity : BaseActivity(), TabSwitchListener {
                                 tab,
                                 currentTabPosition,
                                 view,
-                                isLandscape,
-                                setShowSideViewPager,
+                                isLandscape = false,
+                                setShowSideViewPager = {},
                                 setCurrentTabPosition
                             )
-                        }
-                    )
+                        })
                 }
+            }
+        }
+    }
+
+    @Composable
+    fun MyNavigationRail(
+        currentTabPosition: Int,
+        view: View,
+        isLandscape: Boolean,
+        setShowSideViewPager: (Boolean) -> Unit,
+        setCurrentTabPosition: (Int) -> Unit
+    ) {
+        val railState = rememberNavigationRailState()
+        NavigationRail(
+            state = railState,
+            color = if (utils.getIsLiquidGlass()) Color.Transparent else MiuixTheme.colorScheme.surfaceVariant,
+            modifier = Modifier
+                .clip(CircleShape)
+                .then(
+                    if (!utils.getIsLiquidGlass()) {
+                        Modifier.border(
+                            width = 1.dp,
+                            color = DividerDefaults.DividerColor,
+                            shape = CircleShape
+                        )
+                    } else
+                        Modifier
+                ),
+        ) {
+            TabPage.entries.forEach { tab ->
+                NavigationRailItem(
+                    icon = ImageVector.vectorResource(tab.iconResId),
+                    label = stringResource(id = tab.titleResId),
+                    selected = currentTabPosition == tab.position,
+                    onClick = {
+                        handleTabClick(
+                            tab,
+                            currentTabPosition,
+                            view,
+                            isLandscape,
+                            setShowSideViewPager,
+                            setCurrentTabPosition
+                        )
+                    })
             }
         }
     }
@@ -341,10 +461,8 @@ class MainActivity : BaseActivity(), TabSwitchListener {
 
 //        Log.d("L321", "${isLandscape}")
 
-        val viewPager = if (isLandscape)
-            sideViewPager
-        else
-            mainViewPager
+        val viewPager = if (isLandscape) sideViewPager
+        else mainViewPager
 
         if (isLandscape) {
             if (tab.position == 0) {
@@ -441,10 +559,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
     }
 
     override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String?>,
-        grantResults: IntArray,
-        deviceId: Int
+        requestCode: Int, permissions: Array<out String?>, grantResults: IntArray, deviceId: Int
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults, deviceId)
         Log.d(tag, "requestCode: $requestCode")
@@ -460,10 +575,8 @@ class MainActivity : BaseActivity(), TabSwitchListener {
         if (allGranted) {
             when (requestCode) {
                 PermissionManager.REQUEST_LOCATION -> {
-                    val intent = Intent()
-                        .setAction(utils.openLocationActionName)
-                    LocalBroadcastManager.getInstance(this)
-                        .sendBroadcast(intent)
+                    val intent = Intent().setAction(utils.openLocationActionName)
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
                 }
             }
         }
@@ -477,7 +590,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
     override fun switchToTab(position: Int, smoothScroll: Boolean) {
         if (::mainViewPager.isInitialized) {
             val targetPosition = position.coerceIn(0, TabPage.entries.size - 1)
-            Log.d(tag, "switchToTab called: $targetPosition")
+//            Log.d(tag, "switchToTab called: $targetPosition")
             lifecycleScope.launch {
                 // 🔥 每次生成不同的值，确保 Flow 能触发
                 _switchTabFlow.emit(Pair(targetPosition, smoothScroll))
@@ -493,7 +606,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
      * @param smoothScroll 是否平滑滚动
      */
     override fun switchToTab(tab: TabPage, smoothScroll: Boolean) {
-        Log.d("switchToTab", "switchToTab")
+//        Log.d("switchToTab", "switchToTab")
         switchToTab(tab.position, smoothScroll)
     }
 
@@ -511,10 +624,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
         // 使用lazy初始化，确保Fragment只创建一次
         private val allFragments by lazy {
             listOf(
-                MainFragment(),
-                LineFragment(),
-                StationFragment(),
-                SettingFragment()
+                MainFragment(), LineFragment(), StationFragment(), SettingFragment()
             )
         }
 
@@ -545,17 +655,13 @@ class MainActivity : BaseActivity(), TabSwitchListener {
     }
 
     fun getViewPager2(
-        context: Context,
-        setCurrentTabPosition: (Int) -> Unit,
-        isSidePage: Boolean
+        context: Context, setCurrentTabPosition: (Int) -> Unit, isSidePage: Boolean
     ): ViewPager2 {
 
-        val fragRange = if (isSidePage)
-            (1..3)
-        else
-            (0..3)
+        val fragRange = if (isSidePage) (1..3)
+        else (0..3)
 
-        Log.d("L526", "${isSidePage} ${fragRange}")
+//        Log.d("L526", "${isSidePage} ${fragRange}")
         return ViewPager2(context).apply {
             id = View.generateViewId()
             // 滑动切换
@@ -567,10 +673,9 @@ class MainActivity : BaseActivity(), TabSwitchListener {
             adapter = MyPagerAdapter(this@MainActivity, fragRange)
 
             // 设置页面切换监听
-            registerOnPageChangeCallback(object :
-                ViewPager2.OnPageChangeCallback() {
+            registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
                 override fun onPageSelected(position: Int) {
-                    Log.d("L541", "${position}")
+//                    Log.d("L541", "${position}")
                     var truePosition = position
                     if (isSidePage) {
                         truePosition++

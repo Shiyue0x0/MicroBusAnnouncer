@@ -2,11 +2,15 @@ package com.microbus.announcer.ui
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -35,13 +39,17 @@ import com.microbus.announcer.databinding.FragmentStationBinding
 import com.microbus.announcer.ui.compose.NavHelpBox
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.FloatingToolbar
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Home
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 
 class StationFragment : Fragment() {
@@ -135,38 +143,42 @@ class StationFragment : Fragment() {
         initSwipeRefreshLayout()
 
         //添加点击添加站点事件
-        binding.addStationFab.setOnClickListener {
-            utils.haptic(binding.addStationFab)
-            addStation()
+        binding.addStationFabCompose.setContent {
+            FloatingToolbar(
+                modifier = Modifier
+                    .imePadding(),
+                color = MiuixTheme.colorScheme.secondary
+            ) {
+                Row(
+                    modifier = Modifier.padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TooltipBox(text = getString(R.string.add_line)) {
+                        IconButton(onClick = {
+                            utils.haptic(binding.addStationFabCompose)
+                            addStation()
+                        }) {
+                            Icon(
+                                MiuixIcons.Add,
+                                contentDescription = getString(R.string.add_station)
+                            )
+                        }
+                    }
+                }
+            }
         }
-
-
-//        val mBroadcastReceiver = object : BroadcastReceiver() {
-//            override fun onReceive(
-//                context: Context,
-//                intent: Intent
-//            ) {
-//                if (isAdded) {
-//                    when (intent.action) {
-//                        utils.stationListScrollToTopActionName -> {
-//                            binding.stationRecyclerView.scrollToPosition(0)
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//
-//        val intentFilter = IntentFilter()
-//        intentFilter.addAction(utils.stationListScrollToTopActionName)
-//
-//        LocalBroadcastManager.getInstance(requireContext())
-//            .registerReceiver(mBroadcastReceiver, intentFilter)
-
 
         startCollectingScrollEvents()
 
+        utils.applyOrientation(resources.configuration.orientation, binding.addStationFabCompose)
 
         return binding.root
+    }
+
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        utils.applyOrientation(newConfig.orientation, binding.addStationFabCompose)
     }
 
     private lateinit var adapter: StationAdapter

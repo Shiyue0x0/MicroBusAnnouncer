@@ -120,6 +120,10 @@ class SystemSettings : Fragment() {
             mutableStateOf(utils.getIsShowBottomBar())
         }
 
+        val (liquidGlass, setLiquidGlass) = remember {
+            mutableStateOf(utils.getIsLiquidGlass())
+        }
+
         val (saveBackAfterExit, setSaveBackAfterExit) = remember {
             mutableStateOf(utils.getIsSaveBackAfterExit())
         }
@@ -138,6 +142,7 @@ class SystemSettings : Fragment() {
                     "lang" -> setLang(prefs.getString(key, "") ?: "")
                     "city" -> setCity(prefs.getString(key, "") ?: "")
                     "showBottomBar" -> setShowBottomBar(prefs.getBoolean(key, true))
+                    "liquidGlass" -> setLiquidGlass(prefs.getBoolean(key, true))
                     "saveBackAfterExit" -> setSaveBackAfterExit(prefs.getBoolean(key, true))
                     "notice" -> setNotice(prefs.getBoolean(key, true))
                     "isNavMode" -> setIsNavMode(prefs.getBoolean(key, false))
@@ -173,6 +178,7 @@ class SystemSettings : Fragment() {
                             ) {
                                 UiLangItem(lang)
                                 CityNameItem(city)
+                                LiquidGlassItem(liquidGlass, setLiquidGlass)
                                 BottomBarItem(showBottomBar, setShowBottomBar)
                                 SaveBackAfterExitItem(saveBackAfterExit, setSaveBackAfterExit)
                                 NoticeItem(notice, setNotice)
@@ -263,6 +269,28 @@ class SystemSettings : Fragment() {
                     .show(WindowInsetsCompat.Type.ime())
             },
         )
+    }
+
+    @Composable
+    fun LiquidGlassItem(value: Boolean, setValue: (Boolean) -> Unit) {
+        BaseSettingItem(
+            "液态玻璃效果", "实验性，适用于部分组件，重启生效", painterResource(id = R.drawable.glass),
+            {
+                toggleLiquidGlass(value, setValue, !value)
+            },
+            rightContain = {
+                SwitchSettingItem(value) {
+                    toggleLiquidGlass(value, setValue, it)
+                }
+            },
+        )
+    }
+
+    fun toggleLiquidGlass(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
+        setValue(it)
+        prefs.edit {
+            putBoolean("liquidGlass", it)
+        }
     }
 
     @Composable

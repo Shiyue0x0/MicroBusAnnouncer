@@ -26,6 +26,7 @@ import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
@@ -61,7 +62,6 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 import com.microbus.announcer.activity.WebviewActivity
-import kotlin.compareTo
 
 
 class Utils(private val context: Context) {
@@ -150,6 +150,14 @@ class Utils(private val context: Context) {
      */
     fun getIsShowBottomBar(): Boolean {
         return prefs.getBoolean("showBottomBar", true)
+    }
+
+
+    /**
+     * 从设置中获取是否显示底部导航栏
+     */
+    fun getIsLiquidGlass(): Boolean {
+        return prefs.getBoolean("liquidGlass", true)
     }
 
     /**
@@ -1530,6 +1538,40 @@ class Utils(private val context: Context) {
         view.getLocalVisibleRect(rect)
         // 如果 rect 不为空，说明有部分可见
         return !rect.isEmpty
+    }
+
+     fun applyOrientation(orientation: Int, view: View) {
+        val marginDp = when (orientation) {
+            Configuration.ORIENTATION_LANDSCAPE -> {
+                // 横屏逻辑
+                16f
+            }
+
+            Configuration.ORIENTATION_PORTRAIT -> {
+                // 竖屏逻辑
+                16f + 96f
+            }
+
+            else -> 16f
+
+        }
+        setViewMarginBottom(view, marginDp)
+
+    }
+
+     fun setViewMarginBottom(view: View, marginDp: Float) {
+        val params = view.layoutParams
+        if (params is ViewGroup.MarginLayoutParams) {
+            val px = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                marginDp,
+                view.resources.displayMetrics
+            ).toInt()
+            if (params.bottomMargin != px) {
+                params.bottomMargin = px
+                view.layoutParams = params
+            }
+        }
     }
 
 }
