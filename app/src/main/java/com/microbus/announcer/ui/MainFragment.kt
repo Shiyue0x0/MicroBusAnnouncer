@@ -21,21 +21,13 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.content.res.Resources
-import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.Icon
-import android.media.AudioAttributes
-import android.media.AudioFocusRequest
-import android.media.AudioManager
-import android.media.audiofx.LoudnessEnhancer
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -50,13 +42,25 @@ import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
@@ -68,14 +72,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC
-import androidx.media3.common.C.USAGE_MEDIA
-import androidx.media3.common.MediaItem
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.DefaultLoadControl
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -88,7 +85,6 @@ import com.amap.api.maps.AMap.MAP_TYPE_NORMAL
 import com.amap.api.maps.AMapOptions
 import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.LocationSource
-import com.amap.api.maps.MapView
 import com.amap.api.maps.TextureMapView
 import com.amap.api.maps.UiSettings
 import com.amap.api.maps.model.BitmapDescriptorFactory
@@ -122,6 +118,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
@@ -129,6 +131,9 @@ import com.microbus.announcer.TabSwitchListener
 import com.microbus.announcer.Utils
 import com.microbus.announcer.adapter.StationOfLineAdapter
 import com.microbus.announcer.adapter.StationOfRunningInfoAdapter
+import com.microbus.announcer.announce.AnnouncementContext
+import com.microbus.announcer.announce.AnnouncementPlayer
+import com.microbus.announcer.announce.AnnouncementResolver
 import com.microbus.announcer.bean.EsItem
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.RunningInfo
@@ -141,7 +146,7 @@ import com.microbus.announcer.databinding.FragmentMainBinding
 import com.microbus.announcer.model.LineDirection
 import com.microbus.announcer.model.StationStatus
 import com.microbus.announcer.model.TabPage
-import com.microbus.announcer.util.WavSilenceGenerator
+import com.microbus.announcer.ui.compose.EsHeaderCompose
 import com.qmdeve.liquidglass.widget.LiquidGlassView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -155,7 +160,10 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.File
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
 import java.net.UnknownHostException
 import java.time.LocalDate
 import java.time.LocalTime
@@ -164,8 +172,8 @@ import java.util.Locale
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.math.abs
-import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
+import androidx.compose.runtime.mutableStateOf
 
 class MainFragment : Fragment() {
 
@@ -174,9 +182,6 @@ class MainFragment : Fragment() {
     private lateinit var utils: Utils
     private lateinit var binding: FragmentMainBinding
     private lateinit var prefs: SharedPreferences
-
-    private val appRootPath =
-        Environment.getExternalStorageDirectory().absolutePath + "/Announcer"
 
     val lastDistanceToStationList = ArrayList<Double>()
     val currentDistanceToStationList = ArrayList<Double>()
@@ -241,8 +246,6 @@ class MainFragment : Fragment() {
     /**路线到站序列*/
     private var lineArriveStationIdList = ArrayList<Int>()
 
-    private var audioManager: AudioManager? = null
-    private var audioFocusRequest: AudioFocusRequest? = null
 
     private lateinit var notificationManager: NotificationManager
     private lateinit var notificationBuilder: Notification.Builder
@@ -266,8 +269,6 @@ class MainFragment : Fragment() {
     private lateinit var powerManager: PowerManager
     private lateinit var wakeLock: PowerManager.WakeLock
 
-    /**TTS*/
-    private lateinit var tts: TextToSpeech
 
     private lateinit var audioStreamScope: Job
 
@@ -281,8 +282,6 @@ class MainFragment : Fragment() {
 
     val lastStationHandler = Handler(mLooper)
     val nextStationHandler = Handler(mLooper)
-
-    private val audioReleaseHandler = Handler(mLooper)
 
     private lateinit var announcementLangList: ArrayList<String>
 
@@ -310,13 +309,8 @@ class MainFragment : Fragment() {
 
     private var enableLowPowerMode = false
 
-    private lateinit var player: ExoPlayer
-
     private var runningSimRunning = false
 
-    private var loudnessEnhancer: LoudnessEnhancer? = null
-
-    private var audioSessionId: Int? = null
 
     private val startLineSwitcherForResult =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -395,11 +389,146 @@ class MainFragment : Fragment() {
     // 横屏状态下floatingView的宽度（dp）
     private val floatingViewWidthDpWhenLand = 400
 
+
+    val lineName = mutableStateOf("")
+
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
 
+
         binding = FragmentMainBinding.inflate(inflater, container, false)
+//        return binding.root
+
+        return ComposeView(requireContext()).apply {
+            setContent { MainUI() }
+        }
+
+    }
+
+    @Composable
+    @Preview
+    fun MainUI() {
+
+        val controller = remember { ThemeController(ColorSchemeMode.System) }
+
+        MiuixTheme(
+            controller = controller
+        ) {
+            val backdrop = rememberLayerBackdrop()
+
+            Scaffold(content = { paddingValues ->
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                ) {
+
+                    AndroidView(
+                        factory = { binding.root }, modifier = Modifier
+                            .fillMaxSize()
+                            .then(
+                                if (utils.getIsLiquidGlass()) {
+                                    Modifier.layerBackdrop(backdrop)
+                                } else {
+                                    Modifier
+                                }
+                            )
+                    )
+
+                    Box(modifier = Modifier.padding(top = paddingValues.calculateTopPadding())) {
+                        // 顶部电显
+                        EsHeaderCompose(
+//                            leftText = headerLeft.value,
+//                            middleNew = headerMiddle.value,
+//                            rightText = headerRight.value,
+
+                            lineName = lineName.value,
+                            currentSpeedKmH = currentSpeedKmH,
+                            currentLineStation = currentLineStation,
+                            currentLineStationList = currentLineStationList,
+                            currentLineStationCount = currentLineStationCount,
+                            currentLineStationState = currentLineStationState,
+
+                            onHeaderClick = {
+                                if (isOperationLock) {
+                                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+                                    return@EsHeaderCompose
+                                }
+
+                                val intent =
+                                    Intent(requireContext(), LineSwitcherActivity::class.java)
+                                intent.putExtra("currentLineId", currentLine.id)
+                                startLineSwitcherForResult.launch(intent)
+
+                                return@EsHeaderCompose
+                            },
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .fillMaxWidth()
+                                .then(
+                                    if (utils.getIsLiquidGlass()) {
+                                        Modifier.drawBackdrop(
+                                            backdrop = backdrop,
+                                            shape = { CircleShape },
+                                            effects = {
+                                                vibrancy()
+                                                blur(2f.dp.toPx())
+                                                lens(
+                                                    refractionHeight = 2f.dp.toPx(),
+                                                    refractionAmount = 4f.dp.toPx()
+                                                )
+                                            }
+                                        )
+                                    } else {
+                                        Modifier
+                                    }
+                                )
+                        )
+                    }
+
+                }
+
+
+//                FlexibleBottomSheet(
+//                    onDismissRequest = {},
+//                    sheetState = rememberFlexibleBottomSheetState(
+//                        flexibleSheetSize = FlexibleSheetSize(
+//                            fullyExpanded = 0.9f,
+//                            intermediatelyExpanded = 0.5f,
+//                            slightlyExpanded = 0.15f,
+//                        ),
+////                            isModal = false,
+//                        skipSlightlyExpanded = false,
+//                        initialValue = FlexibleSheetValue.Hidden,
+//                    ),
+//                    containerColor = BottomSheetDefaults.backgroundColor().copy(alpha = 0.85f),
+//                ) {
+//                    androidx.compose.material3.Text(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(8.dp),
+//                        text = "This is Flexible Bottom Sheet",
+//                        textAlign = TextAlign.Center,
+//                        color = androidx.compose.ui.graphics.Color.Gray,
+//                    )
+//                }
+            })
+
+
+        }
+
+    }
+
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        initView(savedInstanceState)
+    }
+
+    fun initView(savedInstanceState: Bundle?) {
+
 
         utils = Utils(requireContext())
 
@@ -450,14 +579,19 @@ class MainFragment : Fragment() {
             binding.root.fitsSystemWindows = false
         }
 
+        binding.lineName = getString(R.string.main_line_0)
+
         // 横屏/竖屏适配
         updFloatingViewWidth()
 
-        //初始化定位
+        // 初始化定位
         initLocation()
 
-        //初始化地图
+        // 初始化地图
         initMap(savedInstanceState)
+
+        // 初始化液态玻璃UI
+        initLiquidGlass()
 
         //初始化通知
         if (utils.getNotice()) {
@@ -482,12 +616,6 @@ class MainFragment : Fragment() {
         // 初始化本地广播
         initLocalBroadcast()
 
-        // 初始化路线运行服务
-//        initLineRunningService()
-
-//        binding.lineStationListContainer.setScrollView(binding.lineStationList)
-
-
         announcementLangList = utils.getLangList()
 
         if (prefs.getBoolean("enableLowPowerMode", false)) {
@@ -500,8 +628,6 @@ class MainFragment : Fragment() {
         }
 
         utils.applyOrientation(resources.configuration.orientation, binding.floatingView)
-
-        return binding.root
     }
 
     private var isVisible = false
@@ -536,7 +662,6 @@ class MainFragment : Fragment() {
         binding.navStationName.startAnimation()
 
         aMapView.onResume()
-
 
     }
 
@@ -614,7 +739,6 @@ class MainFragment : Fragment() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         updFloatingViewWidth()
-        utils.applyOrientation(resources.configuration.orientation, binding.floatingView)
     }
 
     val client = OkHttpClient()
@@ -624,12 +748,6 @@ class MainFragment : Fragment() {
      * 加载路线
      */
     fun loadLine(line: Line) {
-
-//        Log.d(tag, "lineName: ${line.name}")
-//        Log.d(tag, "upLineStation: ${line.upLineStation}")
-//        Log.d(tag, "downLineStation: ${line.downLineStation}")
-
-//        speedRefreshHandler.removeCallbacksAndMessages(null)
 
         //切换当前路线
         currentLine = line
@@ -643,8 +761,9 @@ class MainFragment : Fragment() {
 
         //加载路线名称
 //        binding.headerMiddle.text = currentLine.name
-        binding.headerMiddleNew.showText(currentLine.name)
-        binding.headerMiddleNew.requestLayout()
+//        binding.headerMiddleNew.showText(currentLine.name)
+        binding.lineName = currentLine.name
+        binding.headerMiddleNew.showText(binding.lineName!!)
 
 
         //获取当前方向路线站点下标（String形式）序列
@@ -746,16 +865,19 @@ class MainFragment : Fragment() {
                 fadeIn.setAnimationListener(object : Animation.AnimationListener {
                     override fun onAnimationStart(animation: Animation?) {
                         binding.lineStationCard.visibility = INVISIBLE
+//                        binding.liquidGlassViewOfLineStationCard.visibility = INVISIBLE
                     }
 
                     override fun onAnimationEnd(animation: Animation?) {
                         binding.lineStationCard.visibility = VISIBLE
+//                        binding.liquidGlassViewOfLineStationCard.visibility = VISIBLE
                     }
 
                     override fun onAnimationRepeat(animation: Animation?) {
                     }
                 })
                 binding.lineStationCard.startAnimation(fadeIn)
+//                binding.liquidGlassViewOfLineStationCard.startAnimation(fadeIn)
                 viewList.forEach { view ->
                     view.visibility = VISIBLE
                 }
@@ -771,12 +893,15 @@ class MainFragment : Fragment() {
                 override fun onAnimationEnd(animation: Animation?) {
                     if (binding.lineStationCard.isVisible)
                         binding.lineStationCard.visibility = INVISIBLE
+//                    if (binding.liquidGlassViewOfLineStationCard.isVisible)
+//                        binding.liquidGlassViewOfLineStationCard.visibility = INVISIBLE
                 }
 
                 override fun onAnimationRepeat(animation: Animation?) {
                 }
             })
             binding.lineStationCard.startAnimation(fadeOut)
+//            binding.liquidGlassViewOfLineStationCard.startAnimation(fadeOut)
             viewList.forEach { view ->
                 view.visibility = GONE
             }
@@ -1222,7 +1347,7 @@ class MainFragment : Fragment() {
             binding.locationBtnGroup.uncheck(binding.locationBtn.id)
 
             //关闭报站
-            pauseAnnounce()
+            anPlayer.pauseAnnounce()
 
             // 切换到起点站
             if (currentLineStationCount != 0) {
@@ -1452,7 +1577,7 @@ class MainFragment : Fragment() {
         // 停止播报
         binding.stopAnnouncement.setOnClickListener {
             runningSimRunning = false
-            pauseAnnounce()
+            anPlayer.pauseAnnounce()
         }
 
         binding.serviceBtn.setOnClickListener {
@@ -1500,6 +1625,10 @@ class MainFragment : Fragment() {
         var isRefreshing = false
         var esRefreshCount = 0
 
+
+        binding.headerLeftNew.minShowTimeMs = 500
+        binding.headerRightNew.minShowTimeMs = 500
+
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 while (isActive) {
@@ -1542,6 +1671,7 @@ class MainFragment : Fragment() {
                         binding.headerLeftNew.isShowFinish || !utils.getIsOpenLeftEs()
                     val isRightFinish = binding.headerRightNew.isShowFinish
 //                Log.d(tag, "Finished: $isLeftFinish $isRightFinish")
+
                     if (!isRefreshing && isLeftFinish && isRightFinish) {
                         isRefreshing = true
                         esPlayNext()
@@ -1550,10 +1680,6 @@ class MainFragment : Fragment() {
                     }
                     if (binding.headerMiddleNew.isShowFinish) {
                         binding.headerMiddleNew.showText(currentLine.name)
-                    }
-
-                    if (::aMap.isInitialized && aMap.isTrafficEnabled != utils.getIsMapTrafficEnabled()) {
-                        aMap.isTrafficEnabled = utils.getIsMapTrafficEnabled()
                     }
 
                     esRefreshCount++
@@ -1576,143 +1702,21 @@ class MainFragment : Fragment() {
             }
         }
 
-        binding.headerLeftNew.minShowTimeMs = 500
-        binding.headerRightNew.minShowTimeMs = 500
-
         binding.navStationName.finishPositionOfLastWord = 0.0F
 
     }
 
-    var ttsReady = false
+    private lateinit var anResolver: AnnouncementResolver
+    private lateinit var anPlayer: AnnouncementPlayer
 
     @OptIn(UnstableApi::class)
     private fun initAnnouncement() {
 
-        tts = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                tts.language = Locale.CHINA
-                ttsReady = true
-            } else {
-                utils.showMsg("TTS加载失败")
-            }
-//            Log.d("L1895", status.toString())
-        }
+        // anResolver
+        anResolver = AnnouncementResolver(requireContext())
 
-        //设置音频属性
-        val attributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
-            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()
-
-        audioFocusRequest =
-            AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-                .setAudioAttributes(attributes).setOnAudioFocusChangeListener { focusChange ->
-                    when (focusChange) {
-                        //长时间丢失焦点
-                        AudioManager.AUDIOFOCUS_LOSS -> {
-                            //mediaPlayer!!.release()
-                        }
-                        //短暂失去焦点
-                        AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                            //mediaPlayer!!.pause()
-                        }
-                    }
-                }.build()
-
-        // 获取系统音频管理
-        audioManager = requireContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
-
-        // 设置音频格式
-        val exoAudioAttributes = androidx.media3.common.AudioAttributes.Builder()
-            .setUsage(USAGE_MEDIA)
-            .setContentType(AUDIO_CONTENT_TYPE_MUSIC)
-            .build()
-
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                /* minBufferMs = */ 50000,  // 最小缓冲时长，建议提高
-                /* maxBufferMs = */ 60000,  // 最大缓冲时长
-                /* bufferForPlaybackMs = */ 2500, // 开始播放所需最小缓冲
-                /* bufferForPlaybackAfterRebufferMs = */ 5000 // 恢复播放所需最小缓冲
-            )
-            .build()
-
-        player = ExoPlayer.Builder(requireContext())
-            .setLoadControl(loadControl)   // <--- 在这里设置
-            .setAudioAttributes(exoAudioAttributes, true)
-            .setHandleAudioBecomingNoisy(true)
-            .build()
-
-        player.addListener(object : Player.Listener {
-
-
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                when (playbackState) {
-
-                    Player.STATE_READY -> {
-                        // 播放准备就绪
-                        audioManager?.requestAudioFocus(audioFocusRequest!!)
-                        binding.stopAnnouncement.visibility = VISIBLE
-                        showAnSubtitle()
-                        Log.d("L1935", player.currentMediaItemIndex.toString())
-                    }
-
-                    Player.STATE_ENDED -> {
-                        Log.d("L1946", "STATE_ENDED")
-                        // 播放完成
-                        if (runningSimRunning) {
-                            if (hasNextStation()) {
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    delay((utils.getAutoAnInterval() * 1000L).milliseconds)
-                                    withContext(Dispatchers.Main) {
-                                        if (nextStation()) {
-                                            announce()
-                                        } else {
-                                            stopSimRunning()
-                                        }
-                                    }
-                                }
-                            } else {
-                                stopSimRunning()
-                            }
-                        }
-
-                    }
-
-                    Player.STATE_BUFFERING -> {}
-
-                    Player.STATE_IDLE -> {}
-                }
-            }
-
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                Log.d("L1966", "${player.currentMediaItemIndex} $reason")
-                if (utils.getAnSubtitle()) {
-                    if (reason == 3) {
-                        return
-                    }
-                    if (player.currentMediaItemIndex >= filePathList.size) {
-                        return
-                    }
-                    showAnSubtitle()
-                }
-            }
-
-
-            override fun onPlayerError(error: PlaybackException) {
-                utils.showMsg("播放异常: ${error.message}")
-                player.release()
-                pauseAnnounce()
-            }
-
-            override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                this@MainFragment.audioSessionId = audioSessionId
-                setTargetGain()
-            }
-
-        })
-
-        // 开启预加载，目标时长为 30 秒 (30,000,000 微秒)
-        player.preloadConfiguration = ExoPlayer.PreloadConfiguration(30_000_000L)
+        // anPlayer
+        anPlayer = AnnouncementPlayer(requireContext())
 
     }
 
@@ -2032,7 +2036,7 @@ class MainFragment : Fragment() {
             }
             if (utils.getClickMapPauseAn()) {
                 runningSimRunning = false
-                pauseAnnounce()
+                anPlayer.pauseAnnounce()
             }
 
             lastTouchMapTime = System.currentTimeMillis()
@@ -2094,7 +2098,7 @@ class MainFragment : Fragment() {
         aMap.setOnMapTouchListener {
             if (utils.getClickMapPauseAn()) {
                 runningSimRunning = false
-                pauseAnnounce()
+                anPlayer.pauseAnnounce()
             }
             lastTouchMapTime = System.currentTimeMillis()
         }
@@ -2104,7 +2108,7 @@ class MainFragment : Fragment() {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 val windowManager = requireActivity().windowManager
 
-                var lastRotateAngle = 0f
+                var lastRotateAngle: Float
                 var curRotateAngle = 0f
 
                 while (isActive) {
@@ -2114,12 +2118,13 @@ class MainFragment : Fragment() {
                     withContext(Dispatchers.Main) {
                         if (binding.locationBtn.isChecked && binding.mapBtn.isChecked) {
 
-                            val rotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                windowManager.defaultDisplay?.rotation ?: Surface.ROTATION_0
-                            } else {
-                                @Suppress("DEPRECATION")
-                                windowManager.defaultDisplay.rotation
-                            }
+                            @Suppress("DEPRECATION") val rotation =
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                    windowManager.defaultDisplay?.rotation ?: Surface.ROTATION_0
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    windowManager.defaultDisplay.rotation
+                                }
 //                            Log.d(tag, "L2112 ${rotation}")
 
 
@@ -2137,22 +2142,27 @@ class MainFragment : Fragment() {
                             }
 
                             rotateAngle = (rotateAngle + rotateAngleAdd) % 360f
-//                            Log.d("L2108", "${rotateAngle}")
 
                             val updRotate = abs(lastRotateAngle - curRotateAngle) > 10f
 
-                            if (this@MainFragment::locationMarker.isInitialized && updRotate) {
+                            if (this@MainFragment::locationMarker.isInitialized) {
 
-//                                Log.d("L2138", "${abs(lastRotateAngle - curRotateAngle)}")
-
-                                //更新定位标点
-                                val translateAnimation = TranslateAnimation(currentLngLat)
-                                val rotateAnimation =
-                                    RotateAnimation(locationMarker.rotateAngle, -rotateAngle)
 
                                 val set = AnimationSet(false).apply {
-                                    addAnimation(translateAnimation)
-                                    addAnimation(rotateAnimation)
+
+                                    //更新蓝点位置
+                                    addAnimation(TranslateAnimation(currentLngLat))
+
+                                    //更新蓝点方位
+                                    if (updRotate) {
+                                        addAnimation(
+                                            RotateAnimation(
+                                                locationMarker.rotateAngle,
+                                                -rotateAngle
+                                            )
+                                        )
+                                    }
+
                                     setDuration(100L)
                                 }
                                 locationMarker.setAnimation(set)
@@ -2193,6 +2203,9 @@ class MainFragment : Fragment() {
                             }
                         }
 
+                        if (::aMap.isInitialized && aMap.isTrafficEnabled != utils.getIsMapTrafficEnabled()) {
+                            aMap.isTrafficEnabled = utils.getIsMapTrafficEnabled()
+                        }
 
                     }
                     delay(1000.milliseconds)
@@ -2201,54 +2214,8 @@ class MainFragment : Fragment() {
         }
 
 
-        // liquidGlassView
-        if (utils.getIsLiquidGlass()) {
-
-
-// 调用
-            binding.liquidGlassView.applyGlassConfig()
-            binding.liquidGlassViewOfLineStationCard.applyGlassConfig()
-
-            binding.liquidGlassView.bind(binding.mapContainer)
-            binding.liquidGlassViewOfLineStationCard.bind(binding.mapContainer)
-
-        }
-
     }
 
-    private fun LiquidGlassView.applyGlassConfig() {
-        setBlurRadius(2f)
-        setRefractionHeight(0f)
-        setRefractionOffset(0f)
-        setCornerRadius(utils.dp2px(24f).toFloat())
-    }
-
-    fun setGlassSourceImage(bitmap: Bitmap, targetView: View, glassSourceImage: ImageView) {
-
-        // 获取 targetView 相对于地图 View 的坐标
-        val headerLoc = IntArray(2)
-        val mapLoc = IntArray(2)
-        targetView.getLocationInWindow(headerLoc)
-        binding.mapContainer.getLocationInWindow(mapLoc)  // 换成你实际的 map view
-
-        val left = headerLoc[0] - mapLoc[0]
-        val top = headerLoc[1] - mapLoc[1]
-        val width = targetView.width
-        val height = targetView.height
-
-        // 边界保护，避免越界崩溃
-        if (left < 0 || top < 0 || left + width > bitmap.width || top + height > bitmap.height) {
-            Log.e(
-                tag,
-                "裁剪区域越界: left=$left top=$top w=$width h=$height bitmap=${bitmap.width}x${bitmap.height}"
-            )
-            return
-        }
-
-        // 裁剪
-        val cropped = Bitmap.createBitmap(bitmap, left, top, width, height)
-        glassSourceImage.setImageBitmap(cropped)
-    }
 
     /**
      * 初始化通知
@@ -2454,63 +2421,7 @@ class MainFragment : Fragment() {
         lastLngLat = currentLngLat
         currentLngLat = LatLng(location.latitude, location.longitude)
 
-//        if (System.currentTimeMillis() - lastTouchMapTime > 15 * 1000) {
-//
-//            // 更新地图位置、方位
-//            CoroutineScope(Dispatchers.IO).launch {
-//                if (isAdded) {
-//                    withContext(Dispatchers.Main) {
-//                        mapToCenter(false)
-//                    }
-//                }
-//            }
-//        }
-
-        lastDistanceToCurrentStation = currentDistanceToCurrentStation
-        currentDistanceToCurrentStation = utils.calculateDistance(
-            currentLngLat.longitude,
-            currentLngLat.latitude,
-            currentLineStation.longitude,
-            currentLineStation.latitude
-        )
-
-
-        // 距离格式化
-        if (currentLine.name == "") {
-            binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
-            binding.currentDistanceToCurrentStationValue.text =
-                getString(R.string.main_distance_value)
-        } else if (currentDistanceToCurrentStation >= 100000) {
-            binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
-            binding.currentDistanceToCurrentStationValue.text =
-                String.format(Locale.CHINA, "%.1f", currentDistanceToCurrentStation / 1000)
-            binding.navStationDistanceValue.text =
-                String.format(Locale.CHINA, "%.0f", currentDistanceToCurrentStation / 1000)
-        } else if (currentDistanceToCurrentStation >= 10000) {
-            binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
-            binding.currentDistanceToCurrentStationValue.text =
-                String.format(Locale.CHINA, "%.2f", currentDistanceToCurrentStation / 1000)
-            binding.navStationDistanceValue.text =
-                String.format(Locale.CHINA, "%.0f", currentDistanceToCurrentStation / 1000)
-        } else if (currentDistanceToCurrentStation >= 1000) {
-            binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
-            binding.currentDistanceToCurrentStationValue.text =
-                String.format(Locale.CHINA, "%.3f", currentDistanceToCurrentStation / 1000)
-            binding.navStationDistanceValue.text =
-                String.format(Locale.CHINA, "%.0f", currentDistanceToCurrentStation / 1000)
-        } else {
-            binding.currentDistanceToCurrentStationUnit.text = getString(R.string.m)
-            binding.currentDistanceToCurrentStationValue.text =
-                String.format(Locale.CHINA, "%.1f", currentDistanceToCurrentStation)
-            binding.navStationDistanceValue.text =
-                String.format(Locale.CHINA, "%.0f", currentDistanceToCurrentStation)
-        }
-
-
-        binding.navStationDistanceUnit.text =
-            binding.currentDistanceToCurrentStationUnit.text.toString().replace("(", "")
-                .replace(")", "")
-
+        updCurrentDistance()
 
         //更新速度
         val distance = utils.calculateDistance(
@@ -2530,7 +2441,7 @@ class MainFragment : Fragment() {
             String.format(Locale.CHINA, "%.0f", currentSpeedKmH)
 
 
-        // 计算当前定位距离路线站点的距离
+        // 计算当前定位距离所有路线站点的距离
         for (i in currentLineStationList.indices) {
             lastDistanceToStationList[i] = currentDistanceToStationList[i]
             currentDistanceToStationList[i] = utils.calculateDistance(
@@ -2549,6 +2460,52 @@ class MainFragment : Fragment() {
 
     }
 
+    fun updCurrentDistance() {
+        lastDistanceToCurrentStation = currentDistanceToCurrentStation
+        currentDistanceToCurrentStation = utils.calculateDistance(
+            currentLngLat.longitude,
+            currentLngLat.latitude,
+            currentLineStation.longitude,
+            currentLineStation.latitude
+        )
+
+        val distance = currentDistanceToCurrentStation
+
+        when {
+//            currentLine.name == "" -> {
+//                binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
+//                binding.currentDistanceToCurrentStationValue.text = getString(R.string.main_distance_value)
+//            }
+
+            distance >= 1000 -> {
+                val km = distance / 1000
+                binding.currentDistanceToCurrentStationUnit.text = getString(R.string.km)
+                binding.currentDistanceToCurrentStationValue.text = String.format(
+                    Locale.CHINA,
+                    when {
+                        distance >= 100000 -> "%.1f"
+                        distance >= 10000 -> "%.2f"
+                        else -> "%.3f"
+                    },
+                    km
+                )
+                binding.navStationDistanceValue.text = String.format(Locale.CHINA, "%.0f", km)
+            }
+
+            else -> {
+                binding.currentDistanceToCurrentStationUnit.text = getString(R.string.m)
+                binding.currentDistanceToCurrentStationValue.text =
+                    String.format(Locale.CHINA, "%.1f", distance)
+                binding.navStationDistanceValue.text =
+                    String.format(Locale.CHINA, "%.0f", distance)
+            }
+        }
+
+        binding.navStationDistanceUnit.text =
+            binding.currentDistanceToCurrentStationUnit.text.toString()
+                .replace("(", "")
+                .replace(")", "")
+    }
 
     /**
      * 遍历站点列表，检查是否符合进站、出站、即将到站条件，并切换站点然后报站
@@ -2608,6 +2565,7 @@ class MainFragment : Fragment() {
                 }
 
                 announce()
+
                 utils.longHaptic()
                 return true
             }
@@ -3259,28 +3217,6 @@ class MainFragment : Fragment() {
      */
     private fun refreshLineStationChangeInfo() {
 
-        // De
-//
-//        var newInfo = ""
-//
-//        val dateFormat = SimpleDateFormat("[HH:mm:ss] ", Locale.getDefault())
-//        newInfo += dateFormat.format(Date(System.currentTimeMillis()))
-//
-//        when (currentLineStationState) {
-//            onArrive -> newInfo += "${resources.getString(R.string.arrive)} "
-//            onWillArrive -> newInfo += "${resources.getString(R.string.will_arrive)} "
-//            onNext -> newInfo += "${resources.getString(R.string.next)} "
-//        }
-//        newInfo += if (utils.getUILang() == "zh")
-//            currentLineStation.cnName
-//        else
-//            currentLineStation.enName
-//        newInfo += "\n"
-//
-//        binding.lineStationChangeInfo.text =
-//            binding.lineStationChangeInfo.text as String + newInfo
-
-
         val stationName = if (utils.getUILang() == "zh")
             currentLineStation.cnName
         else
@@ -3322,7 +3258,7 @@ class MainFragment : Fragment() {
         refreshEs(toStaringAndTerminal = true)
     }
 
-    val filePathList = ArrayList<String>()
+    var filePathList = ArrayList<String>()
 
     /**
      * 语音播报
@@ -3339,347 +3275,24 @@ class MainFragment : Fragment() {
             return
         }
 
-        //新建缓存文件目录
-        val tempFilePath = requireContext().getExternalFilesDir("")?.path
+        audioStreamScope = lifecycleScope.launch {
+//            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            withContext(Dispatchers.IO) {
+                val announcementContext = AnnouncementContext(
+                    binding.lineName!!,
+                    currentLineStationList,
+                    currentLineStationCount,
+                    currentLineStationState,
+                    currentSpeedKmH,
+                    announcementLangList
+                )
 
-        filePathList.clear()
+                filePathList = anResolver.resolveAndBuild(format, announcementContext)
 
-        audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-
-        pauseAnnounce()
-
-        audioStreamScope = CoroutineScope(Dispatchers.IO).launch {
-
-            if (currentLineStationList.isEmpty()) {
-                withContext(Dispatchers.Main) {
-                    pauseAnnounce()
-                }
-                return@launch
-            }
-
-            val mediaList = ArrayList<String>()
-            val stationType = when (currentLineStationCount) {
-                0 -> "Starting"
-                1 -> "Second"
-                currentLineStationList.size - 1 -> "Terminal"
-                else -> "Default"
-            }
-            val stationState = when (currentLineStationState) {
-                StationStatus.ON_ARRIVE -> "Arrive"
-                StationStatus.ON_NEXT -> "Next"
-                StationStatus.ON_WILL_ARRIVE -> "WillArrive"
-                else -> ""
-            }
-
-            val anExps =
-                if (format == "") utils.getAnnouncementFormat(stationState, stationType)
-                else format
-
-            if (anExps == "") {
-                withContext(Dispatchers.Main) {
-                    pauseAnnounce()
-                }
-                return@launch
-            }
-
-            val anExpList = anExps.split("\n")
-            val chooseIndex = Random.nextInt(0, anExpList.size)
-            val anExp = anExpList[chooseIndex]
-//            Log.d("anExp", anExp)
-
-            val anList = utils.getAnnouncements(anExp)
-            for (item in anList) {
-                if (item == "") {
-//                utils.showMsg("请到\"设置\"-\"语音播报库\"设置报站内容")
-                    withContext(Dispatchers.Main) {
-                        pauseAnnounce()
-                    }
-                    return@launch
-                } else if (item[0] == '<') {
-                    when (item) {
-                        in listOf(
-                            "<year>",
-                            "<years>",
-                            "<month>",
-                            "<date>",
-                            "<hour>",
-                            "<minute>",
-                            "<second>"
-                        ) -> {
-                            val str = when (item) {
-                                "<year>" -> LocalDate.now().year.toString()
-                                "<years>" -> (LocalDate.now().year % 100).toString()
-                                "<month>" -> LocalDate.now().monthValue.toString()
-                                "<date>" -> LocalDate.now().dayOfMonth.toString()
-                                "<hour>" -> LocalTime.now().hour.toString()
-                                "<minute>" -> LocalTime.now().minute.toString()
-                                "<second>" -> LocalTime.now().second.toString()
-                                else -> ""
-                            }
-                            mediaList.addAll(utils.getNumOrLetterVoiceList(str))
-                        }
-
-                        "<time>" -> {
-                            mediaList.addAll(utils.getTimeVoiceList())
-                        }
-
-                        "<speed>" -> {
-                            mediaList.addAll(
-                                utils.intOrLetterToCnReading(
-                                    currentSpeedKmH.toInt().toString(),
-                                    "cn/number/"
-                                )
-                            )
-                        }
-
-                        "<line>" -> {
-                            // 寻找line音频
-                            var hasLocalVoice = false
-                            for (lang in announcementLangList) {
-                                val file =
-                                    File("$appRootPath/Media/${utils.getAnnouncementLibrary()}/${lang}/line")
-                                val fileList = file.walk()
-                                    .filter { it.isFile && it.nameWithoutExtension == currentLine.name }
-                                    .toList()
-                                if (fileList.isNotEmpty()) {
-                                    mediaList.add("/${lang}/line/" + currentLine.name)
-                                    hasLocalVoice = true
-                                    break
-                                }
-                            }
-                            if (!hasLocalVoice) {
-                                mediaList.addAll(utils.getNumOrLetterVoiceList(currentLine.name))
-                            }
-                        }
-
-                        else -> {
-
-
-                            if (item.startsWith("<blank") && item.endsWith(">")) {
-                                val matchResult = Regex("<blank(\\d+)>").find(item)
-                                val blankDurationMs =
-                                    matchResult?.groupValues?.get(1)?.toIntOrNull() ?: continue
-                                mediaList.add("/blank/${blankDurationMs}.pcm")
-                            } else {
-                                val station = when (item.substring(1, 3)) {
-                                    "ns" -> currentLineStation
-                                    "ss" -> currentLineStationList.first()
-                                    "ts" -> currentLineStationList.last()
-                                    "ms" -> {
-                                        val stationList =
-                                            stationDatabaseHelper.queryById(
-                                                (item.substring(
-                                                    5,
-                                                    item.length - 1
-                                                )).toInt()
-                                            )
-                                        if (stationList.isNotEmpty())
-                                            stationList.first()
-                                        else Station(
-                                            id = Int.MAX_VALUE,
-                                            cnName = "未知站点",
-                                            enName = "unknown"
-                                        )
-                                    }
-
-                                    else -> Station()
-                                }
-                                val lang = if (item.substring(1, 3) == "ms") {
-                                    item.substring(3, 5)
-                                } else
-                                    item.drop(3).dropLast(1)
-                                mediaList.add(
-                                    "/${lang}/station/" + when (lang) {
-                                        "cn" -> station.cnName
-                                        "en" -> station.enName
-                                        else -> "/${lang}/station/" + utils.getStationNameFromCn(
-                                            station.cnName,
-                                            lang
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    var hasLocalVoice = false
-                    for (lang in announcementLangList) {
-                        val file =
-                            File("$appRootPath/Media/${utils.getAnnouncementLibrary()}/${lang}/common")
-                        val fileList = file.walk()
-                            .filter { it.isFile && it.nameWithoutExtension == item }
-                            .toList()
-                        if (fileList.isNotEmpty()) {
-                            mediaList.add("/${lang}/common/$item")
-                            hasLocalVoice = true
-                            break
-                        }
-                    }
-                    if (!hasLocalVoice) {
-                        mediaList.add("/common/$item")
-                    }
-                }
-            }
-
-
-
-            File(tempFilePath!!).mkdirs()
-
-            val utteranceIdDoneList = ArrayList<String>()
-
-            if (utils.getIsUseTTS() && ttsReady) {
-
-                File("$tempFilePath/tts").walkTopDown().forEach {
-                    it.delete()
-                }
-                File("$tempFilePath/tts").mkdirs()
-
-                tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-
-                    override fun onStart(utteranceId: String?) {
-                    }
-
-                    override fun onDone(utteranceId: String) {
-                        utteranceIdDoneList.add(utteranceId)
-                    }
-
-                    @Deprecated("Deprecated in Java")
-                    override fun onError(utteranceId: String?) {
-                        utils.showMsg("TTS合成异常，请检查系统设置")
-                    }
-
-                })
+                anPlayer.play(filePathList, anResolver)
 
             }
-
-
-            val ttsTextList = ArrayList<String>()
-            // 查找本地音频/合成TTS音频
-            val supportMediaFormatList =
-                listOf("mp3", "wav", "ogg", "aac", "flac", "m4a", "pcm")
-            for (voice in mediaList) {
-
-
-                Log.d("L3770", voice)
-
-                var localFile = File("")
-
-                // blank
-                if (voice.startsWith("/blank")) {
-                    val matchResult = Regex("/blank/(\\d+).pcm").find(voice)
-                    val blankDurationMs =
-                        matchResult?.groupValues?.get(1)?.toIntOrNull() ?: continue
-                    val outputPath = "$tempFilePath/blank/${blankDurationMs}.pcm"
-                    if (!File(outputPath).exists()) {
-                        val wavSilenceGeneratorRes =
-                            WavSilenceGenerator.generateSilenceWav(
-                                blankDurationMs.toLong(),
-                                outputPath
-                            )
-                        if (!wavSilenceGeneratorRes) continue
-                    }
-                    localFile = File(outputPath)
-                }
-
-                for (format in supportMediaFormatList) {
-                    val file =
-                        File("$appRootPath/Media/${utils.getAnnouncementLibrary()}/${voice}.${format}")
-                    if (file.exists()) {
-                        // 尝试从
-                        localFile = file
-                        break
-                    }
-                }
-
-                // 不存在本地音频
-                if (localFile.path == "") {
-                    // 启用TTS，合成TTS音频
-                    if (utils.getIsUseTTS()) {
-                        val text = voice.split('/').last()
-//                        Log.d(tag, text)
-
-                        val ttsFileName = "${text}.wav"
-                        val ttsFile = File("$tempFilePath/tts/", ttsFileName)
-                        if (!ttsTextList.contains(text)) {
-                            ttsFile.getParentFile()?.mkdirs()
-                            ttsFile.createNewFile()
-                            val params = Bundle().apply {
-                                putString(
-                                    TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID,
-                                    ttsFileName
-                                )
-                            }
-                            tts.synthesizeToFile(
-                                text,
-                                params,
-                                ttsFile,
-                                ttsFile.path
-                            )
-                            ttsTextList.add(text)
-                        }
-                        filePathList.add(ttsFile.path)
-                    }
-                    // 存在本地音频
-                } else {
-                    filePathList.add(localFile.path)
-                    Log.d("L3835", localFile.path)
-                }
-
-            }
-
-//            for (file in filePathList)
-//                Log.d(tag, file)
-
-
-            audioReleaseHandler.removeCallbacksAndMessages(null)
-
-            filePathList.forEachIndexed { i, filePath ->
-
-                if (!isActive) {
-                    withContext(Dispatchers.Main) {
-                        pauseAnnounce()
-                    }
-                    return@launch
-                }
-
-                // 等待TTS合成完成
-                if (filePath.split("/").reversed()[1] == "tts") {
-
-                    while (true) {
-                        if (!isActive) {
-                            withContext(Dispatchers.Main) {
-                                pauseAnnounce()
-                            }
-                            return@launch
-                        }
-//                        Thread.sleep(50)
-                        if (utteranceIdDoneList.contains(filePath)) {
-//                            Log.d(tag, "filePath ok $filePath")
-                            break
-                        }
-                    }
-                }
-
-                withContext(Dispatchers.Main) {
-
-
-                    val mediaItem = MediaItem.Builder()
-                        .setUri(filePath)
-                        .build()
-                    player.addMediaItem(i, mediaItem)
-                    Log.d("L3863", filePath)
-
-                    if (i == 0) {
-                        // 准备并开始播放
-                        player.prepare()
-                        player.play()
-                    }
-
-                }
-
-            }
-
-
+//            }
         }
 
     }
@@ -3805,14 +3418,8 @@ class MainFragment : Fragment() {
 
         simRunningHandler.removeCallbacksAndMessages(null)
 
-        audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
-
         if (::audioStreamScope.isInitialized)
             audioStreamScope.cancel()
-
-
-        player.stop()
-        player.clearMediaItems()
     }
 
     fun refreshEs(toStation: Boolean = false, toStaringAndTerminal: Boolean = false) {
@@ -3997,6 +3604,7 @@ class MainFragment : Fragment() {
             binding.headerRightNew.showText(rightText)
         }
 
+
 //        Log.d(tag, "refreshEsOnlyText E")
 
 
@@ -4062,6 +3670,9 @@ class MainFragment : Fragment() {
 
         //刷新地图标点和轨迹
         refreshMarkerAndTrack()
+
+        //更新当前站点距离
+        updCurrentDistance()
     }
 
     fun getOnlineLine(
@@ -4222,7 +3833,7 @@ class MainFragment : Fragment() {
                         }
 
                         utils.setLoudnessBoostAmountName -> {
-                            setTargetGain()
+                            anPlayer.setTargetGain()
                         }
 
                         utils.backHomeName -> {
@@ -4230,6 +3841,39 @@ class MainFragment : Fragment() {
                         }
 
                         utils.pauseAnnounceName -> {
+                            anPlayer.pauseAnnounce()
+                        }
+
+                        // 播放准备就绪
+                        utils.ON_PLAYER_STATE_READY -> {
+                            binding.stopAnnouncement.visibility = VISIBLE
+                        }
+
+                        // 播放完成
+                        utils.ON_PLAYER_STATE_ENDED -> {
+                            if (runningSimRunning) {
+                                if (hasNextStation()) {
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        delay((utils.getAutoAnInterval() * 1000L).milliseconds)
+                                        withContext(Dispatchers.Main) {
+                                            if (nextStation()) {
+                                                announce()
+                                            } else {
+                                                stopSimRunning()
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    stopSimRunning()
+                                }
+                            }
+
+                            if (!runningSimRunning) {
+                                pauseAnnounce()
+                            }
+                        }
+
+                        utils.ON_PLAYER_PAUSE -> {
                             pauseAnnounce()
                         }
 
@@ -4238,15 +3882,21 @@ class MainFragment : Fragment() {
             }
         }
 
-        val intentFilter = IntentFilter()
-        intentFilter.addAction(utils.tryListeningAnActionName)
-        intentFilter.addAction(utils.switchLineActionName)
-        intentFilter.addAction(utils.editLineOnMapActionName)
-        intentFilter.addAction(utils.requestCityFromLocationActionName)
-        intentFilter.addAction(utils.openLocationActionName)
-        intentFilter.addAction(utils.setLoudnessBoostAmountName)
-        intentFilter.addAction(utils.backHomeName)
-        intentFilter.addAction(utils.pauseAnnounceName)
+        val intentFilter = IntentFilter().apply {
+            listOf(
+                utils.tryListeningAnActionName,
+                utils.switchLineActionName,
+                utils.editLineOnMapActionName,
+                utils.requestCityFromLocationActionName,
+                utils.openLocationActionName,
+                utils.setLoudnessBoostAmountName,
+                utils.backHomeName,
+                utils.pauseAnnounceName,
+                utils.ON_PLAYER_STATE_READY,
+                utils.ON_PLAYER_STATE_ENDED,
+                utils.ON_PLAYER_PAUSE
+            ).forEach { addAction(it) }
+        }
 
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(mBroadcastReceiver, intentFilter)
@@ -4639,35 +4289,6 @@ class MainFragment : Fragment() {
         utils.showMsg("模拟运行报站结束")
     }
 
-    fun showAnSubtitle() {
-        val path = filePathList[player.currentMediaItemIndex]
-        // blank 播报间隔：不显示字幕
-        if (Regex("^.*/blank/[^/]+\\.pcm$").matches(path))
-            return
-        val fileName = path.split('/').last()
-        val lastDotIndex = fileName.lastIndexOf(".")
-        utils.showMsg(
-            fileName.take(lastDotIndex), true
-        )
-    }
-
-    fun setTargetGain() {
-
-        if (audioSessionId == null) {
-            return
-        }
-
-        val loudnessEnhancer = LoudnessEnhancer(audioSessionId!!)
-
-        // 使用audioSessionId创建音量增强器
-        loudnessEnhancer.setTargetGain(utils.getLoudnessBoostAmount()) // 毫分贝
-        loudnessEnhancer.enabled = true
-
-        // 注意：需要将loudnessEnhancer保存在成员变量中防止被GC回收
-        this@MainFragment.loudnessEnhancer = loudnessEnhancer
-
-    }
-
 
     fun addLine(isRingRoute: Boolean = false) {
 
@@ -5014,17 +4635,50 @@ class MainFragment : Fragment() {
     }
 
     fun updFloatingViewWidth() {
-        val lp = binding.floatingView.layoutParams
-        lp.width =
-                // 横屏
-            if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                (floatingViewWidthDpWhenLand * resources.displayMetrics.density).toInt()  // 400dp
-            }
-            // 竖屏
-            else {
-                ViewGroup.LayoutParams.MATCH_PARENT
-            }
-        binding.floatingView.layoutParams = lp
+        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+        val width = if (isLandscape) {
+            (floatingViewWidthDpWhenLand * resources.displayMetrics.density).toInt()
+        } else {
+            ViewGroup.LayoutParams.MATCH_PARENT
+        }
+
+        listOf(binding.floatingView, binding.floatingViewBottom).forEach { view ->
+            view.layoutParams = view.layoutParams.apply { this.width = width }
+            utils.applyOrientation(resources.configuration.orientation, view)
+        }
+    }
+
+    fun initLiquidGlass() {
+
+        var cardBackgroundColor: Int
+
+        // liquidGlassView
+        if (utils.getIsLiquidGlass()) {
+
+            binding.liquidGlassViewOfHeaderNew.applyGlassConfig()
+//            binding.liquidGlassViewOfNavCard.applyGlassConfig()
+//            binding.liquidGlassViewOfLineStationCard.applyGlassConfig()
+
+            cardBackgroundColor = Color.TRANSPARENT
+        } else {
+            cardBackgroundColor =
+                ContextCompat.getColor(requireContext(), R.color.an_contain_bg_tran)
+        }
+
+        binding.headerNew.setCardBackgroundColor(cardBackgroundColor)
+//        binding.navCard.setCardBackgroundColor(cardBackgroundColor)
+//        binding.lineStationCard.setCardBackgroundColor(cardBackgroundColor)
+
+
+    }
+
+    private fun LiquidGlassView.applyGlassConfig() {
+        setBlurRadius(6f)
+        setRefractionHeight(0f)
+        setRefractionOffset(0f)
+        setCornerRadius(utils.dp2px(24f).toFloat())
+        bind(binding.mapContainer)
     }
 
 

@@ -25,7 +25,7 @@
         <com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
             android:id="@+id/stationRecyclerView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
             android:fadingEdgeLength="20dp"
             android:requiresFadingEdge="vertical"
             app:fastScrollAutoHide="false"

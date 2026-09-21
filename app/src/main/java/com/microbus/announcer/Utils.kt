@@ -68,7 +68,7 @@ class Utils(private val context: Context) {
 
     var tag: String = javaClass.simpleName
     private var prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-    private val appRootPath =
+    val appRootPath =
         Environment.getExternalStorageDirectory().absolutePath + "/Announcer"
 
     val baseActionName = "com.microbus.announcer"
@@ -89,6 +89,13 @@ class Utils(private val context: Context) {
     val backHomeName = "${baseActionName}.back_home"
 
     val pauseAnnounceName = "${baseActionName}.pause_announce"
+
+    val ON_PLAYER_STATE_READY = "${baseActionName}.PLAYER_STATE_READY"
+
+    val ON_PLAYER_STATE_ENDED = "${baseActionName}.PLAYER_STATE_ENDED"
+
+    val ON_PLAYER_PAUSE = "${baseActionName}.PLAYER_PAUSE"
+
 
     val LOAD_LOCAL_LINE = 0
     val LOAD_LINE_ALL = 1
@@ -505,35 +512,6 @@ class Utils(private val context: Context) {
             }
         }
         return list
-    }
-
-    fun getTimeVoiceList(): ArrayList<String> {
-        val currentTime = LocalTime.now()
-        val voiceList = ArrayList<String>()
-
-        voiceList.addAll(intOrLetterToCnReading(currentTime.hour.toString(), "/cn/number/"))
-        voiceList.add("/cn/common/点")
-        voiceList.addAll(intOrLetterToCnReading(currentTime.minute.toString(), "/cn/number/", true))
-        voiceList.add("/cn/common/分")
-
-        return voiceList
-    }
-
-    fun getNumOrLetterVoiceList(str: String): ArrayList<String> {
-
-        //拆分数字和字母
-        val strList = "([a-zA-Z]+|\\d+)".toRegex().findAll(str).toList()
-        val voiceList = ArrayList<String>()
-
-        strList.forEach { result ->
-            if ("\\d+".toRegex().findAll(result.value).toList().isNotEmpty())
-                voiceList.addAll(intOrLetterToCnReading(result.value, "/cn/number/"))
-            else
-                voiceList.addAll(intOrLetterToCnReading(result.value, "/en/letter/"))
-
-        }
-
-        return voiceList
     }
 
     fun showStationDialog(
@@ -1540,7 +1518,7 @@ class Utils(private val context: Context) {
         return !rect.isEmpty
     }
 
-     fun applyOrientation(orientation: Int, view: View) {
+    fun applyOrientation(orientation: Int, view: View) {
         val marginDp = when (orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
                 // 横屏逻辑
@@ -1559,7 +1537,7 @@ class Utils(private val context: Context) {
 
     }
 
-     fun setViewMarginBottom(view: View, marginDp: Float) {
+    fun setViewMarginBottom(view: View, marginDp: Float) {
         val params = view.layoutParams
         if (params is ViewGroup.MarginLayoutParams) {
             val px = TypedValue.applyDimension(

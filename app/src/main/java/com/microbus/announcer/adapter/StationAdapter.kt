@@ -3,6 +3,7 @@ package com.microbus.announcer.adapter
 import android.annotation.SuppressLint
 import android.content.Context
 import android.app.Activity
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -158,6 +159,12 @@ internal class StationAdapter(
                     }
                 )
                 return@setOnLongClickListener true
+            }
+
+            if (position + 1 == itemCount - 1) {
+                val lp = holder.stationCard.layoutParams as RecyclerView.LayoutParams
+                lp.bottomMargin = utils.dp2px(96f)
+                holder.stationCard.layoutParams = lp
             }
 
         }

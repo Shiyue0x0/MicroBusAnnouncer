@@ -241,17 +241,26 @@ class StationDatabaseHelper private constructor(
     }
 
     fun getStationsFromCursor(cursor: Cursor): MutableList<Station> {
-        val list: MutableList<Station> = ArrayList()
+        // 提前获取列索引，避免循环内重复查找
+        val idxId = cursor.getColumnIndexOrThrow("id")
+        val idxCnName = cursor.getColumnIndexOrThrow("cnName")
+        val idxEnName = cursor.getColumnIndexOrThrow("enName")
+        val idxLongitude = cursor.getColumnIndexOrThrow("longitude")
+        val idxLatitude = cursor.getColumnIndexOrThrow("latitude")
+        val idxType = cursor.getColumnIndexOrThrow("type")
+
+        val list = ArrayList<Station>(cursor.count)
         while (cursor.moveToNext()) {
-            val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
-            station.id = cursor.getInt(0)
-            station.cnName = cursor.getString(1)
-            station.enName = cursor.getString(2)
-            station.longitude = cursor.getDouble(3)
-            station.latitude = cursor.getDouble(4)
-            if (!cursor.isNull(5))
-                station.type = cursor.getString(5)
-            list.add(station)
+            list.add(
+                Station(
+                    id = cursor.getInt(idxId),
+                    cnName = cursor.getString(idxCnName) ?: "",
+                    enName = cursor.getString(idxEnName) ?: "",
+                    longitude = cursor.getDouble(idxLongitude),
+                    latitude = cursor.getDouble(idxLatitude),
+                    type = if (cursor.isNull(idxType)) "B" else cursor.getString(idxType) ?: "B"
+                )
+            )
         }
         return list
     }

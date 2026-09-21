@@ -267,7 +267,7 @@ internal class StationOfLineAdapter(
         } else if (position == stationCount) {
             color = context.getColor(R.color.md_theme_onSurface)
             style = Typeface.BOLD
-            bg = context.getColor(R.color.md_theme_surface_tran)
+            bg = context.getColor(R.color.an_contain_bg_tran)
         } else {
             color = context.getColor(R.color.md_theme_onSurface)
             style = Typeface.NORMAL

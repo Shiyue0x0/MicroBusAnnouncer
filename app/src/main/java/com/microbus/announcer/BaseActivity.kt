@@ -17,10 +17,6 @@ open class BaseActivity : AppCompatActivity() {
 
         utils = Utils(newBase)
 
-        if(false){
-            super.attachBaseContext(newBase)
-        }
-
         // todo 强制平板 dpi（仅横屏时生效）
         if (newBase.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             val config = Configuration(newBase.resources.configuration).apply {

@@ -194,30 +194,40 @@ class LineDatabaseHelper private constructor(
     }
 
     fun getLinesFromCursor(cursor: Cursor): MutableList<Line> {
-        val list: MutableList<Line> = ArrayList()
-        while (cursor.moveToNext()) {
-            val line = Line()
-            line.id = cursor.getInt(0)
-            line.name = cursor.getString(1)
-            line.upLineStation = cursor.getString(2)
-            line.downLineStation = cursor.getString(3)
-            line.isUpAndDownInvert = cursor.getString(4) == "true"
-            if (!cursor.isNull(5))
-                line.type = cursor.getString(5)
-            else
-                line.type = "B"
-            try {
-                val columnIndex = cursor.getColumnIndex("isRingRoute")
-                line.isRingRoute = if (columnIndex >= 0) {
-                    cursor.getInt(columnIndex) == 1
-                } else {
-                    false
-                }
-            } catch (e: Exception) {
-                line.isRingRoute = false
+        // 预缓存列索引，只查一次
+        val idxId = cursor.getColumnIndexOrThrow("id")
+        val idxName = cursor.getColumnIndexOrThrow("name")
+        val idxUp = cursor.getColumnIndexOrThrow("upLineStation")
+        val idxDown = cursor.getColumnIndexOrThrow("downLineStation")
+        val idxInvert = cursor.getColumnIndexOrThrow("isUpAndDownInvert")
+        val idxType = cursor.getColumnIndex("type")            // 新增列，可能不存在
+        val idxRing = cursor.getColumnIndex("isRingRoute")     // 新增列，可能不存在
+
+        val list = ArrayList<Line>(cursor.count.coerceAtLeast(0))
+
+        cursor.use { c ->
+            while (c.moveToNext()) {
+                list += Line(
+                    id = c.getInt(idxId),
+                    name = c.getString(idxName).orEmpty(),
+                    upLineStation = c.getString(idxUp).orEmpty(),
+                    downLineStation = c.getString(idxDown).orEmpty(),
+                    isUpAndDownInvert = c.getString(idxInvert).toBooleanCompat(default = true),
+                    type = if (idxType >= 0 && !c.isNull(idxType)) {
+                        c.getString(idxType).orEmpty().ifEmpty { "B" }
+                    } else "B",
+                    isRingRoute = idxRing >= 0 && c.getInt(idxRing) == 1
+                )
             }
-            list.add(line)
         }
         return list
     }
+
+    /** 兼容 "true"/"false"、"1"/"0"，默认值兜底 */
+    private fun String?.toBooleanCompat(default: Boolean): Boolean =
+        when (this?.trim()?.lowercase()) {
+            "true", "1", "yes", "y" -> true
+            "false", "0", "no", "n" -> false
+            else -> default
+        }
 }

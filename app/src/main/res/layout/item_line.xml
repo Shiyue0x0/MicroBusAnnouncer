@@ -26,7 +26,7 @@
             android:id="@+id/line_name_card"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/secondary"
+            app:cardBackgroundColor="@color/md_theme_surface_tran"
             app:cornerRadius="8dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

@@ -72,7 +72,6 @@ android {
 
     layout.buildDirectory.set(file("C:/AndroidBuilds/Announcer"))
 
-
 }
 
 dependencies {
@@ -103,17 +102,14 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.litert.api)
     implementation(libs.easypermissions)
     implementation(libs.okhttp)
     implementation(libs.recyclerview.fastscroll)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.gson)
     implementation(libs.material)
+    implementation(libs.flexible.bottomsheet.material3)
 
-    //liquidglass
-    implementation(libs.backdrop)
-    implementation(libs.liquidglass)
 
     //AMap
     implementation(files("libs/AMap3DMap_11.2.100_AMapSearch_9.8.1_AMapLocation_11.2.100_20260805.jar"))
@@ -125,6 +121,10 @@ dependencies {
 
     //exoplayer
     implementation(libs.androidx.media3.exoplayer)
+
+    //liquidglass
+    implementation(libs.backdrop)
+    implementation(libs.liquidglass)
 
     // Test
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

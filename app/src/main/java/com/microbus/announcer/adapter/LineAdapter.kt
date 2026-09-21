@@ -263,6 +263,11 @@ class LineAdapter(
                 switchDirection(holder)
             }
 
+            if (position + 1 == itemCount - 1) {
+                val lp = holder.lineCard.layoutParams as RecyclerView.LayoutParams
+                lp.bottomMargin = utils.dp2px(96f)
+                holder.lineCard.layoutParams = lp
+            }
 
         }
     }
@@ -398,27 +403,36 @@ class LineAdapter(
                     val upTerminalStationCnName =
                         stationDatabaseHelper.queryById(upStationList.last().toInt()).first().cnName
 
-                    val downStationList = holder.line.downLineStation.split(" ")
-                    val downStartingStationCnName =
-                        stationDatabaseHelper.queryById(downStationList.first().toInt())
-                            .first().cnName
-                    val downTerminalStationCnName =
-                        stationDatabaseHelper.queryById(downStationList.last().toInt())
-                            .first().cnName
+                    var message = "上行：${upStartingStationCnName} - ${upTerminalStationCnName}"
 
-                    MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
-                        .setTitle("选择要编辑的方向")
-                        .setMessage("上行：${upStartingStationCnName} - ${upTerminalStationCnName}\n下行：${downStartingStationCnName} - $downTerminalStationCnName")
-                        .setNeutralButton(context.getString(android.R.string.cancel), null)
-                        .setNegativeButton("上行") { _, _ ->
-                            val intent = Intent()
-                                .setAction(utils.editLineOnMapActionName)
-                                .putExtra("id", holder.line.id)
-                                .putExtra("direction", 0)   //上行
-                            LocalBroadcastManager.getInstance(context)
-                                .sendBroadcast(intent)
-                        }
-                        .setPositiveButton("下行") { _, _ ->
+                    if (!holder.line.isRingRoute) {
+                        val downStationList = holder.line.downLineStation.split(" ")
+                        val downStartingStationCnName =
+                            stationDatabaseHelper.queryById(downStationList.first().toInt())
+                                .first().cnName
+                        val downTerminalStationCnName =
+                            stationDatabaseHelper.queryById(downStationList.last().toInt())
+                                .first().cnName
+                        message += "\n下行：${downStartingStationCnName} - $downTerminalStationCnName"
+
+                    }
+
+                    val builder =
+                        MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
+                            .setTitle("选择要编辑的方向")
+                            .setMessage(message)
+                            .setNeutralButton(context.getString(android.R.string.cancel), null)
+                            .setNegativeButton("上行") { _, _ ->
+                                val intent = Intent()
+                                    .setAction(utils.editLineOnMapActionName)
+                                    .putExtra("id", holder.line.id)
+                                    .putExtra("direction", 0)   //上行
+                                LocalBroadcastManager.getInstance(context)
+                                    .sendBroadcast(intent)
+                            }
+
+                    if (!holder.line.isRingRoute) {
+                        builder.setPositiveButton("下行") { _, _ ->
                             val intent = Intent()
                                 .setAction(utils.editLineOnMapActionName)
                                 .putExtra("id", holder.line.id)
@@ -426,7 +440,9 @@ class LineAdapter(
                             LocalBroadcastManager.getInstance(context)
                                 .sendBroadcast(intent)
                         }
-                        .show()
+                    }
+
+                    builder.show()
                 }
                 .show()
 

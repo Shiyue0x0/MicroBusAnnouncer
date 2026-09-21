@@ -13,6 +13,7 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.util.AttributeSet
+import android.util.Log
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.View
@@ -49,6 +50,12 @@ class ESView : View {
 
 
     var loopCount = 0
+
+    private var onShowFinishChanged: ((Boolean) -> Unit)? = null
+
+    fun setOnShowFinishChangedListener(listener: (Boolean) -> Unit) {
+        onShowFinishChanged = listener
+    }
 
     constructor(context: Context, attrs: AttributeSet) : super(
         context, attrs
@@ -105,7 +112,7 @@ class ESView : View {
         backgroundPaint.style = Paint.Style.FILL
         backgroundPaint.color = background
 
-        // 新增：遮罩画笔
+        // 遮罩画笔
         maskPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         maskPaint.style = Paint.Style.FILL
         maskPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
@@ -119,25 +126,25 @@ class ESView : View {
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
 
-        var myMeasuredWidth = (measuredWidth + paddingStart + paddingEnd).toInt()
+        var myMeasuredWidth = ceil(measuredWidth + paddingStart + paddingEnd).toInt()
 
         if (layoutParams.width > maxWidth)
             myMeasuredWidth = MeasureSpec.makeMeasureSpec(
-                (maxWidth + paddingStart + paddingEnd).toInt(),
+                ceil(maxWidth + paddingStart + paddingEnd).toInt(),
                 MeasureSpec.EXACTLY
             )
 
         if (layoutParams.width == ViewGroup.LayoutParams.WRAP_CONTENT)
             myMeasuredWidth =
                 MeasureSpec.makeMeasureSpec(
-                    ceil(textPaint.measureText(text) + paddingStart + paddingEnd).toInt(),
+                    ceil(textWidth + paddingStart + paddingEnd).toInt(),
                     MeasureSpec.EXACTLY
                 )
 
 
-        if (textPaint.measureText(text).toInt() > maxWidth.toInt())
+        if (textWidth > maxWidth)
             myMeasuredWidth = MeasureSpec.makeMeasureSpec(
-                (maxWidth + paddingStart + paddingEnd).toInt(),
+                ceil(maxWidth + paddingStart + paddingEnd).toInt(),
                 MeasureSpec.EXACTLY
             )
 
@@ -164,16 +171,20 @@ class ESView : View {
             Path.Direction.CW
         )
 
+//        Log.d("L168", "${paddingLeft.toFloat()} ${text}")
+
+        // 左渐隐层
         leftMaskShader = LinearGradient(
-            paddingLeft.toFloat(),
+            paddingStart,
             0f,
-            shaderWidth + paddingLeft.toFloat(),
+            shaderWidth + paddingStart,
             0f,
             intArrayOf(Color.TRANSPARENT, Color.WHITE),
             floatArrayOf(0f, 1f),
             Shader.TileMode.CLAMP
         )
 
+        // 右渐隐层
         rightMaskShader = LinearGradient(
             measuredWidth - shaderWidth - paddingEnd,
             0f,
@@ -198,11 +209,21 @@ class ESView : View {
 //    }
     var pixelMovePerSecond = 150F
     var isShowFinish = false
+        set(value) {
+            if (field != value) {
+                field = value
+                Log.d("L215", "${value} ${getText()}")
+                onShowFinishChanged?.invoke(value)
+            }
+        }
     var scrollX = Float.MAX_VALUE
     val shaderWidth = 40f
 
 
     override fun onDraw(canvas: Canvas) {
+
+        Log.d("L225", "${minShowTimeMs} ${text}")
+
         super.onDraw(canvas)
         val fm = textPaint.fontMetrics
         val y = height / 2 + (fm.bottom - fm.top) / 2 - fm.bottom
@@ -218,10 +239,10 @@ class ESView : View {
         canvas.clipRect(fillRect)
 
         // View宽度足够容纳文本，居中显示
-        if (textPaint.measureText(text) <= width - paddingStart - paddingEnd) {
+        if (textWidth <= width - paddingStart - paddingEnd) {
             canvas.drawText(
                 text,
-                (width - textPaint.measureText(text)) / 2,
+                (width - textWidth) / 2,
                 y,
                 textPaint
             )
@@ -243,29 +264,10 @@ class ESView : View {
                 textPaint
             )
 
-//            // 左渐隐层
-//            shaderPaint.shader = leftLinearGradient
-//            canvas.drawRect(
-//                paddingStart,
-//                0F,
-//                shaderWidth + paddingStart,
-//                height.toFloat(),
-//                shaderPaint
-//            )
-//
-//            // 右渐隐层
-//            shaderPaint.shader = rightLinearGradient
-//            canvas.drawRect(
-//                width - shaderWidth - paddingEnd,
-//                0F,
-//                width.toFloat() - paddingEnd,
-//                height.toFloat(),
-//                shaderPaint
-//            )
-            // 应用左遮罩：使用 DST_IN 模式裁剪文字边缘
+            // 应用左遮罩
             maskPaint.shader = leftMaskShader
             canvas.drawRect(
-                paddingStart,
+                paddingStart - 1,
                 0F,
                 shaderWidth + paddingStart,
                 height.toFloat(),
@@ -277,7 +279,7 @@ class ESView : View {
             canvas.drawRect(
                 width - shaderWidth - paddingEnd,
                 0F,
-                width.toFloat() - paddingEnd,
+                width.toFloat() - paddingEnd + 1,
                 height.toFloat(),
                 maskPaint
             )
@@ -312,8 +314,15 @@ class ESView : View {
         startAnimation()
     }
 
+    private var textWidth: Float = 0f
+
     fun setText(textNew: String) {
+//        if (text == textNew) return
+
         text = textNew
+        textWidth = textPaint.measureText(text)
+
+        requestLayout()
         postInvalidate()
     }
 
@@ -357,14 +366,14 @@ class ESView : View {
                     lastFrameTimeNanos = frameTimeNanos
 
                     // 文字宽度超出屏幕时（滚动）
-                    if (textPaint.measureText(text) > width - paddingStart - paddingEnd) {
+                    if (textWidth > width - paddingStart - paddingEnd) {
                         // 使用实际时间增量更新滚动位置（单位：像素/秒）
                         scrollX -= (pixelMovePerSecond * clampedDeltaSeconds).toFloat()
 
                         postInvalidate()
 
                         // 文字滚动完毕时
-                        if (scrollX < -textPaint.measureText(text) + width * finishPositionOfLastWord &&
+                        if (scrollX < -textWidth + width * finishPositionOfLastWord &&
                             allFrameCount / 1.0 * 1000 > minShowTimeMs  // 此处改用实际经过时间
                         ) {
                             isShowFinish = true
@@ -372,14 +381,14 @@ class ESView : View {
                             isShowFinish = false
                         }
 
-                        if (scrollX < -textPaint.measureText(text) + width * finishPositionOfLastWord * 0.95) {
+                        if (scrollX < -textWidth + width * finishPositionOfLastWord * 0.95) {
                             frameCount = 0F
                             scrollX = width.toFloat() - paddingEnd
                             loopCount++
                         }
                     }
                     // 文字宽度不足以超出屏幕时（静止）
-                    else if (textPaint.measureText(text) <= width) {
+                    else if (textWidth <= width) {
                         isShowFinish = if (allFrameCount / 1.0 * 1000 > minShowTimeMs) {
                             true
                         } else {
