@@ -57,6 +57,15 @@ class ESView : View {
         onShowFinishChanged = listener
     }
 
+    var isShowFinish = false
+        set(value) {
+            if (field != value) {
+                field = value
+                Log.d("L215", "${value} ${getText()}")
+                onShowFinishChanged?.invoke(value)
+            }
+        }
+
     constructor(context: Context, attrs: AttributeSet) : super(
         context, attrs
     ) {
@@ -208,14 +217,7 @@ class ESView : View {
 //        windowManager.defaultDisplay.refreshRate
 //    }
     var pixelMovePerSecond = 150F
-    var isShowFinish = false
-        set(value) {
-            if (field != value) {
-                field = value
-                Log.d("L215", "${value} ${getText()}")
-                onShowFinishChanged?.invoke(value)
-            }
-        }
+
     var scrollX = Float.MAX_VALUE
     val shaderWidth = 40f
 

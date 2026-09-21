@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View.GONE
 import android.view.View.VISIBLE
+import android.widget.TextView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -14,6 +15,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -22,22 +24,27 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.preference.PreferenceManager
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
+import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.databinding.ViewEsHeaderBinding
 import com.microbus.announcer.model.StationStatus
+import com.microbus.announcer.ui.view.ESView
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.Locale
+import kotlin.text.contains
 import kotlin.time.Duration.Companion.milliseconds
 
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun EsHeaderCompose(
     modifier: Modifier = Modifier,
-    isAnimating: Boolean = true,           // 新增：动画开关
+    isAnimating: Boolean = false,
     onHeaderClick: (() -> Unit)? = null,
-    lineName: String,
+
+    line: Line,
     currentSpeedKmH: Double,
     currentLineStation: Station,
     currentLineStationList: ArrayList<Station>,
@@ -53,13 +60,13 @@ fun EsHeaderCompose(
     @SuppressLint("MutableCollectionMutableState")
     val (esList, setEsList) = remember { mutableStateOf(utils.getEsList(utils.getEsText())) }
 
-    val (esPlayIndex, setEsPlayIndex) = remember { mutableIntStateOf(-1) }
+    val esPlayIndex = remember { mutableIntStateOf(-1) }
 
     val (esSpeed, setEsSpeed) = remember {
         mutableIntStateOf(utils.getEsSpeed())
     }
 
-    val (minShowTimeMs, setMinShowTimeMs) = remember {mutableIntStateOf(Int.MAX_VALUE)}
+    val minShowTimeMs = remember { mutableIntStateOf(0) }
 
     val (esFinishPositionOfLastWord, setEsFinishPositionOfLastWord) = remember {
         mutableFloatStateOf(utils.getEsFinishPositionOfLastWord())
@@ -73,13 +80,17 @@ fun EsHeaderCompose(
         mutableStateOf(utils.getIsOpenMidEs())
     }
 
-    val (leftText, setLeftText) = remember { mutableStateOf("") }
-    val (middleText, setMiddleText) = remember { mutableStateOf("") }
-    val (rightText, setRightText) = remember { mutableStateOf("") }
+    val (leftText, setLeftText) = remember { mutableStateOf(context.getString(R.string.main_staring_station_name)) }
+    val (middleText, setMiddleText) = remember { mutableStateOf(context.getString(R.string.main_line_0)) }
+    val (rightText, setRightText) = remember { mutableStateOf(context.getString(R.string.main_terminal_name)) }
 
     val (isLeftShowFinish, setIsLeftShowFinish) = remember { mutableStateOf(false) }
     val (isMiddleShowFinish, setIsMiddleShowFinish) = remember { mutableStateOf(false) }
     val (isRightShowFinish, setIsRightShowFinish) = remember { mutableStateOf(false) }
+
+    val currentIsLeftShowFinish by rememberUpdatedState(isLeftShowFinish)
+    val currentIsMiddleShowFinish by rememberUpdatedState(isMiddleShowFinish)
+    val currentIsRightShowFinish by rememberUpdatedState(isRightShowFinish)
 
     DisposableEffect(prefs) {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
@@ -113,7 +124,7 @@ fun EsHeaderCompose(
             "<arrive>" -> utils.getEsArriveWord()
 
             // 其他占位符
-            "<line>" -> lineName
+            "<line>" -> line.name
 
             "<year>" -> LocalDate.now().year.toString()
             "<years>" -> (LocalDate.now().year % 100).toString()
@@ -181,9 +192,9 @@ fun EsHeaderCompose(
         var rightText: String
 
         @SuppressLint("LocalContextGetResourceValueCall")
-        if (esPlayIndex >= 0 && esPlayIndex < esList.size) {
-            leftText = esList[esPlayIndex].leftText
-            rightText = esList[esPlayIndex].rightText
+        if (esPlayIndex.intValue >= 0 && esPlayIndex.intValue < esList.size) {
+            leftText = esList[esPlayIndex.intValue].leftText
+            rightText = esList[esPlayIndex.intValue].rightText
         } else {
             leftText = context.getString(R.string.main_staring_station_name)
             rightText = context.getString(R.string.main_terminal_name)
@@ -191,7 +202,7 @@ fun EsHeaderCompose(
 
         if (isMiddleShowFinish) {
 //            binding.headerMiddleNew.showText(lineName)
-            setMiddleText(lineName)
+            setMiddleText(line.name)
         }
 
         for (keyword in utils.getDefaultKeywordList()) {
@@ -218,23 +229,24 @@ fun EsHeaderCompose(
 //        Log.d(tag, "refreshEsOnlyText E")
 
         // TODO
+        Log.d("L221", "${leftText} ${rightText}")
         setLeftText(leftText)
         setRightText(rightText)
-
 
     }
 
     fun esPlayNext() {
-        if (esPlayIndex < esList.size - 1) {
-            setEsPlayIndex(esPlayIndex + 1)
+        Log.d("L237", "${esPlayIndex}")
+        if (esPlayIndex.intValue < esList.size - 1) {
+            esPlayIndex.intValue++
         } else {
             setEsList(utils.getEsList(utils.getEsText()))
-            setEsPlayIndex(
-                if (esList.isNotEmpty())
-                    0
-                else
-                    -1
-            )
+            esPlayIndex.intValue = (
+                    if (esList.isNotEmpty())
+                        0
+                    else
+                        -1
+                    )
         }
     }
 
@@ -257,10 +269,9 @@ fun EsHeaderCompose(
     fun refreshEs(toStation: Boolean = false, toStaringAndTerminal: Boolean = false) {
 
 
-        if (esPlayIndex == -1 && esList.isNotEmpty()) {
-            setEsPlayIndex(0)
+        if (esPlayIndex.intValue == -1 && esList.isNotEmpty()) {
+            esPlayIndex.intValue = 0
         }
-
 
         if (esList.isNotEmpty()) {
             // 切换到首末站显示
@@ -278,23 +289,23 @@ fun EsHeaderCompose(
                     }
                     // 寻找首末站内容
                     if (element.type.contains("B")) {
-                        setEsPlayIndex(i)
+                        esPlayIndex.intValue = i
                         hasB = true
                         break
                     }
                 }
                 if (!hasB) {
-                    setEsPlayIndex(
-                        if (frontDefaultItemIndex >= 0) {
-                            frontDefaultItemIndex
-                        } else {
-                            -1
-                        }
-                    )
+                    esPlayIndex.intValue = (
+                            if (frontDefaultItemIndex >= 0) {
+                                frontDefaultItemIndex
+                            } else {
+                                -1
+                            }
+                            )
                 }
             }
             // 仅某状态显示，或切换到当前状态显示
-            else if (esList[esPlayIndex].type.contains(Regex("[NWASCT]")) || toStation) {
+            else if (esList[esPlayIndex.intValue].type.contains(Regex("[NWASCT]")) || toStation) {
 
                 var hasMatchCurrentState = false
                 var hasMatchCurrentPos = false
@@ -303,7 +314,7 @@ fun EsHeaderCompose(
                 val start = if (toStation)
                     0
                 else
-                    esPlayIndex
+                    esPlayIndex.intValue
 
                 for (i in start until esList.size) {
 
@@ -331,7 +342,7 @@ fun EsHeaderCompose(
                             ) {
                                 continue
                             }
-                            setEsPlayIndex(i)
+                            esPlayIndex.intValue = i
                             hasMatchCurrentState = true
                             hasMatchCurrentPos = true
                             break
@@ -339,7 +350,7 @@ fun EsHeaderCompose(
                         // 只有状态类型
                     } else if (currentMatchType != "") {
                         if (getStationStateTypeMap()[currentMatchType] == currentLineStationState) {
-                            setEsPlayIndex(i)
+                            esPlayIndex.intValue = i
                             hasMatchCurrentState = true
                             break
                         }
@@ -352,7 +363,7 @@ fun EsHeaderCompose(
                             continue
                         }
                         if (getStationPositionTypeMap()[currentPosType] == currentLineStationCount) {
-                            setEsPlayIndex(i)
+                            esPlayIndex.intValue = i
                             hasMatchCurrentPos = true
                             break
                         }
@@ -360,7 +371,7 @@ fun EsHeaderCompose(
                 }
                 if (!hasMatchCurrentState && !hasMatchCurrentPos) {
                     if (frontDefaultItemIndex >= 0) {
-                        setEsPlayIndex(frontDefaultItemIndex)
+                        esPlayIndex.intValue = frontDefaultItemIndex
                     } else {
                         var resIndex = -1
                         for ((i, element) in esList.withIndex()) {
@@ -371,7 +382,7 @@ fun EsHeaderCompose(
                                 break
                             }
                         }
-                        setEsPlayIndex(resIndex)
+                        esPlayIndex.intValue = resIndex
                     }
                 }
             }
@@ -380,10 +391,10 @@ fun EsHeaderCompose(
         }
 
         val minTimeS =
-            if (esPlayIndex >= 0 && esPlayIndex < esList.size) esList[esPlayIndex].minTimeS else 5
+            if (esPlayIndex.intValue >= 0 && esPlayIndex.intValue < esList.size) esList[esPlayIndex.intValue].minTimeS else 5
 //        binding.headerLeftNew.minShowTimeMs = minTimeS * 1000
 //        binding.headerRightNew.minShowTimeMs = minTimeS * 1000
-        setMinShowTimeMs(minTimeS * 1000)
+        minShowTimeMs.intValue = (minTimeS * 1000)
         refreshEsOnlyText()
 
     }
@@ -409,28 +420,31 @@ fun EsHeaderCompose(
         while (isRunning) {
 
             Log.d("L80", "repeat")
-            if (esPlayIndex >= 0 && esPlayIndex < esList.size &&
-                esList[esPlayIndex].type.contains("R") && esRefreshCount % 10 == 0
+            Log.d("L412", "${esPlayIndex}")
+            if (esPlayIndex.intValue >= 0 && esPlayIndex.intValue < esList.size &&
+                esList[esPlayIndex.intValue].type.contains("R") && esRefreshCount % 10 == 0
             ) {
                 refreshEsOnlyText(true)
             }
 
             val isLeftFinish =
-                isLeftShowFinish || !utils.getIsOpenLeftEs()
+                currentIsLeftShowFinish || !utils.getIsOpenLeftEs()
 
-            val isRightFinish = isRightShowFinish
+            val isRightFinish = currentIsRightShowFinish
 
-            Log.d("L431", "${isRefreshing} ${isLeftFinish} ${isRightFinish}")
+            Log.d("L431", "${isRefreshing} ${isLeftShowFinish} ${isRightShowFinish}")
 
             if (!isRefreshing && isLeftFinish && isRightFinish) {
                 isRefreshing = true
                 esPlayNext()
+                Log.d("L438", "${esPlayIndex}")
                 refreshEs()
                 isRefreshing = false
             }
+
             if (isMiddleShowFinish) {
 //            binding.headerMiddleNew.showText(lineName)
-                setMiddleText(lineName)
+                setMiddleText(line.name)
             }
 
             esRefreshCount++
@@ -441,9 +455,43 @@ fun EsHeaderCompose(
         }
     }
 
+    /**
+     * 立即刷新电显，并切换到站点状态和位置（如果有）
+     */
+    fun refreshEsToStation() {
+        refreshEs(toStation = true)
+    }
+
+    /**
+     * 立即刷新电显，并切换到首末站显示（如果有）
+     */
+    fun refreshEsToStaringAndTerminal() {
+        refreshEs(toStaringAndTerminal = true)
+    }
+
+    LaunchedEffect(currentLineStation, currentLineStationState) {
+        refreshEsToStation()
+    }
+
+    LaunchedEffect(line) {
+        setMiddleText(line.name)
+        refreshEsToStaringAndTerminal()
+    }
+
+    fun updateText(view: ESView, text: String) {
+        if (view.getText() != text) {
+            if (esPlayIndex.intValue > 0 && esList[esPlayIndex.intValue].type.contains("R")) {
+                view.setText(text)
+            } else {
+                view.showText(text)
+            }
+        }
+    }
+
     AndroidView(
         modifier = modifier,
         factory = { context ->
+
             val binding = ViewEsHeaderBinding.inflate(
                 LayoutInflater.from(context), null, false
             )
@@ -461,6 +509,7 @@ fun EsHeaderCompose(
 //                setIsMiddleShowFinish(finish)
 //                Log.d("L466", "${middleText} ${finish}")
 //            }
+
             binding.headerRightNew.setOnShowFinishChangedListener { finish ->
                 setIsRightShowFinish(finish)
                 Log.d("L466", "${rightText} ${finish}")
@@ -471,15 +520,15 @@ fun EsHeaderCompose(
         update = { view ->
             val binding = view.tag as? ViewEsHeaderBinding ?: return@AndroidView
 
-            Log.d("L32", "update")
+            Log.d("L32", "update ${leftText} ${rightText}")
 
-            binding.headerLeftNew.minShowTimeMs = minShowTimeMs
-            binding.headerRightNew.minShowTimeMs = minShowTimeMs
+            binding.headerLeftNew.minShowTimeMs = minShowTimeMs.intValue
+            binding.headerRightNew.minShowTimeMs = minShowTimeMs.intValue
 
             // 更新Text
-            binding.headerLeftNew.showText(leftText)
-            binding.headerMiddleNew.showText(middleText)
-            binding.headerRightNew.showText(rightText)
+            updateText(binding.headerLeftNew, leftText)
+            updateText(binding.headerMiddleNew, middleText)
+            updateText(binding.headerRightNew, rightText)
 
             listOf(
                 binding.headerLeftNew,
@@ -495,20 +544,19 @@ fun EsHeaderCompose(
                 it.pixelMovePerSecond = esSpeed.toFloat()
                 it.finishPositionOfLastWord = esFinishPositionOfLastWord
 
-                binding.headerLeftNew.visibility =
-                    if (utils.getIsOpenLeftEs())
-                        VISIBLE
-                    else
-                        GONE
-
-                binding.headerMiddleNew.visibility =
-                    if (utils.getIsOpenMidEs())
-                        VISIBLE
-                    else
-                        GONE
-
-
             }
+
+            binding.headerLeftNew.visibility =
+                if (utils.getIsOpenLeftEs())
+                    VISIBLE
+                else
+                    GONE
+
+            binding.headerMiddleNew.visibility =
+                if (utils.getIsOpenMidEs())
+                    VISIBLE
+                else
+                    GONE
 
 //            refreshEsOnlyText(true)
 

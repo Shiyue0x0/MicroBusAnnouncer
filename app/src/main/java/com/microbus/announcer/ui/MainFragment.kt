@@ -54,6 +54,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
@@ -174,6 +176,7 @@ import java.util.TimerTask
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 class MainFragment : Fragment() {
 
@@ -220,28 +223,29 @@ class MainFragment : Fragment() {
 
     var originLine = Line()
 
-    private var currentLine = Line()
+    private var currentLine by mutableStateOf(Line())
 
     /**当前路线站点运行方向（上下行）*/
     var currentLineDirection = LineDirection.ON_UP
 
     /**当前路线运行方向站点列表*/
-    private var currentLineStationList = ArrayList<Station>()
+    private var currentLineStationList by mutableStateOf(ArrayList<Station>())
 
     /**当前路线站点*/
-    private var currentLineStation =
+    private var currentLineStation by mutableStateOf(
         Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
+    )
 
     /**当前路线运行站点计数，对应currentLineStation的下标*/
-    private var currentLineStationCount = 0
-    private var currentLineStationState: Int = StationStatus.ON_NEXT
+    private var currentLineStationCount by mutableIntStateOf(0)
+    private var currentLineStationState by mutableIntStateOf(StationStatus.ON_NEXT)
 
     private var circleList = ArrayList<Circle>()
     private val polylineList = ArrayList<Polyline>()
 
 
     /**当前速度*/
-    private var currentSpeedKmH = -1.0
+    private var currentSpeedKmH by androidx.compose.runtime.mutableDoubleStateOf(-1.0)
 
     /**路线到站序列*/
     private var lineArriveStationIdList = ArrayList<Int>()
@@ -311,6 +315,7 @@ class MainFragment : Fragment() {
 
     private var runningSimRunning = false
 
+    private var esIsAnimating = mutableStateOf(false)
 
     private val startLineSwitcherForResult =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -440,17 +445,15 @@ class MainFragment : Fragment() {
                     Box(modifier = Modifier.padding(top = paddingValues.calculateTopPadding())) {
                         // 顶部电显
                         EsHeaderCompose(
-//                            leftText = headerLeft.value,
-//                            middleNew = headerMiddle.value,
-//                            rightText = headerRight.value,
 
-                            lineName = lineName.value,
+                            line = currentLine,
                             currentSpeedKmH = currentSpeedKmH,
                             currentLineStation = currentLineStation,
                             currentLineStationList = currentLineStationList,
                             currentLineStationCount = currentLineStationCount,
                             currentLineStationState = currentLineStationState,
 
+                            isAnimating = esIsAnimating.value,
                             onHeaderClick = {
                                 if (isOperationLock) {
                                     utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
@@ -661,6 +664,8 @@ class MainFragment : Fragment() {
         binding.headerRightNew.startAnimation()
         binding.navStationName.startAnimation()
 
+        esIsAnimating.value = true
+
         aMapView.onResume()
 
     }
@@ -708,6 +713,7 @@ class MainFragment : Fragment() {
         binding.headerRightNew.stopAnimation()
         binding.navStationName.stopAnimation()
 
+        esIsAnimating.value = false
 
         super.onPause()
 
