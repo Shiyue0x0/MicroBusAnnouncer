@@ -96,7 +96,9 @@ class AnnouncementPlayer
                     // 播放准备就绪
                     Player.STATE_READY -> {
                         audioManager?.requestAudioFocus(audioFocusRequest!!)
-                        showAnSubtitle()
+                        if (utils.getAnSubtitle()) {
+                            showAnSubtitle()
+                        }
                         val intent = Intent()
                             .setAction(utils.ON_PLAYER_STATE_READY)
                         LocalBroadcastManager.getInstance(context)
@@ -105,7 +107,7 @@ class AnnouncementPlayer
 
                     // 播放完成
                     Player.STATE_ENDED -> {
-                        Log.d("L1946", "STATE_ENDED")
+//                        Log.d("L1946", "STATE_ENDED")
                         val intent = Intent()
                             .setAction(utils.ON_PLAYER_STATE_ENDED)
                         LocalBroadcastManager.getInstance(context)
@@ -173,13 +175,13 @@ class AnnouncementPlayer
                     }
                 }
 
-                withContext(Dispatchers.Main){
+                withContext(Dispatchers.Main) {
                     val mediaItem = MediaItem.Builder()
                         .setUri(filePath)
                         .setMediaId(filePath)
                         .build()
                     player.addMediaItem(i, mediaItem)
-                    Log.d("L3863", filePath)
+//                    Log.d("L3863", filePath)
 
                     if (i == 0) {
                         player.prepare()

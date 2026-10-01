@@ -37,23 +37,27 @@ class LineDatabaseHelper private constructor(
                 "upLineStation VARCHAR NOT NULL," +
                 "downLineStation VARCHAR NOT NULL," +
                 "type VARCHAR DEFAULT 'B'," +
-                "isRingRoute BOOLEAN DEFAULT 0);"
+                "isRingRoute BOOLEAN DEFAULT 0," +
+                "isUpAndDownInvert BOOLEAN DEFAULT 0);"
         db!!.execSQL(sql)
 
         Log.d(tag, "已创建表 $tableName")
     }
 
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
-        try {
-            val alterSql = "ALTER TABLE $tableName ADD COLUMN isRingRoute BOOLEAN DEFAULT 0;"
-            db?.execSQL(alterSql)
-            Log.d(tag, "数据库升级：已添加列 isRingRoute")
-        } catch (e: SQLException) {
-            // 列已存在时忽略异常（保证向下兼容）
-            Log.d(tag, "列 isRingRoute 已存在，跳过添加")
+
+        // 自 Version 2 起，新增isRingRoute
+        if (oldVersion  < 2) {
+            try {
+                val alterSql = "ALTER TABLE $tableName ADD COLUMN isRingRoute BOOLEAN DEFAULT 0;"
+                db?.execSQL(alterSql)
+                Log.d(tag, "数据库升级：已添加列 isRingRoute")
+            } catch (e: SQLException) {
+                // 列已存在时忽略异常（保证向下兼容）
+                Log.d(tag, "列 isRingRoute 已存在，跳过添加")
+            }
         }
 
-        // 如果有其他升级逻辑，继续添加...
     }
 
     fun insert(line: Line): Long {

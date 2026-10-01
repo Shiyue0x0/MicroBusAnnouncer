@@ -9,5 +9,5 @@ data class Line(
     var downLineStation: String = "",
     var isUpAndDownInvert: Boolean = true,
     var type: String = "B",
-    var isRingRoute: Boolean = false,
+    var isRingRoute: Boolean = false, //自 dbVersion 2 起
 ) : Serializable

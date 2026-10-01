@@ -1527,7 +1527,7 @@ class Utils(private val context: Context) {
 
             Configuration.ORIENTATION_PORTRAIT -> {
                 // 竖屏逻辑
-                16f + 96f
+                16f + 72f
             }
 
             else -> 16f
@@ -1550,6 +1550,11 @@ class Utils(private val context: Context) {
                 view.layoutParams = params
             }
         }
+    }
+
+    fun angleBetween(bearing1: Double, bearing2: Double): Double {
+        val diff = abs(bearing1 - bearing2) % 360
+        return if (diff > 180) 360 - diff else diff
     }
 
 }

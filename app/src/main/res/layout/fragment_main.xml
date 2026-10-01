@@ -62,93 +62,13 @@
                 android:orientation="horizontal"
                 app:layout_constraintTop_toBottomOf="@+id/bar" />
 
-            <com.qmdeve.liquidglass.widget.LiquidGlassView
-                android:id="@+id/liquidGlassViewOfHeaderNew"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                app:layout_constraintBottom_toBottomOf="@+id/headerNew"
-                app:layout_constraintEnd_toEndOf="@+id/headerNew"
-                app:layout_constraintStart_toStartOf="@+id/headerNew"
-                app:layout_constraintTop_toTopOf="@+id/headerNew" />
-
-            <!-- 电显 新 -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/headerNew"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:clickable="true"
-                android:focusable="true"
-                app:cardBackgroundColor="@color/an_contain_bg_tran"
-                app:cardCornerRadius="24dp"
-                app:layout_constraintTop_toBottomOf="@+id/topFill"
-                app:strokeColor="@color/md_theme_surface_tran2"
-                app:strokeWidth="2dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="8dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <!--            app:background="?attr/cardBackgroundColor"-->
-                    <com.microbus.announcer.ui.view.ESView
-                        android:id="@+id/headerLeftNew"
-                        android:layout_width="0dp"
-                        android:layout_height="20sp"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginEnd="2dp"
-                        android:layout_weight="1"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp"
-                        android:text="@string/main_staring_station_name"
-                        android:textColor="@color/md_theme_onSurface"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-
-                    <com.microbus.announcer.ui.view.ESView
-                        android:id="@+id/headerMiddleNew"
-                        android:layout_width="wrap_content"
-                        android:layout_height="20sp"
-                        android:maxWidth="80sp"
-                        android:paddingStart="8dp"
-                        android:paddingTop="8dp"
-                        android:paddingEnd="8dp"
-                        android:paddingBottom="8dp"
-                        android:text="@{lineName, default=@string/main_line_0}"
-                        android:textColor="@color/md_theme_onSurface"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        app:background="@color/an_contain_bg_tran"
-                        app:cornerRadius="16dp" />
-
-                    <com.microbus.announcer.ui.view.ESView
-                        android:id="@+id/headerRightNew"
-                        android:layout_width="0dp"
-                        android:layout_height="20sp"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginEnd="2dp"
-                        android:layout_weight="1"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp"
-                        android:text="@string/main_terminal_name"
-                        android:textColor="@color/md_theme_onSurface"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
 
             <LinearLayout
                 android:id="@+id/fill2"
                 android:layout_width="match_parent"
-                android:layout_height="8dp"
+                android:layout_height="60dp"
                 android:orientation="horizontal"
-                app:layout_constraintTop_toBottomOf="@+id/headerNew" />
+                app:layout_constraintTop_toBottomOf="@+id/topFill" />
 
 
             <!--            <com.qmdeve.liquidglass.widget.LiquidGlassView-->
@@ -169,7 +89,7 @@
                 android:layout_marginEnd="16dp"
                 android:clickable="true"
                 android:focusable="true"
-                android:visibility="visible"
+                android:visibility="gone"
                 app:cardBackgroundColor="@color/an_contain_bg_tran"
                 app:cardCornerRadius="24dp"
                 app:layout_constraintTop_toBottomOf="@+id/fill2"
@@ -813,6 +733,7 @@
                     </LinearLayout>
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/mainSwitchGroup"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
@@ -855,7 +776,8 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginEnd="8dp"
-                                android:layout_weight="1">
+                                android:layout_weight="1"
+                                android:visibility="gone">
 
                                 <com.google.android.material.button.MaterialButton
                                     android:id="@+id/mapBtn"
@@ -904,6 +826,7 @@
 
 
                     <LinearLayout
+                        android:id="@+id/lineStationController"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"

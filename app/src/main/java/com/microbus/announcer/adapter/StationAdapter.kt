@@ -161,11 +161,13 @@ internal class StationAdapter(
                 return@setOnLongClickListener true
             }
 
+            val lp = holder.stationCard.layoutParams as RecyclerView.LayoutParams
             if (position + 1 == itemCount - 1) {
-                val lp = holder.stationCard.layoutParams as RecyclerView.LayoutParams
                 lp.bottomMargin = utils.dp2px(96f)
-                holder.stationCard.layoutParams = lp
+            } else {
+                lp.bottomMargin = utils.dp2px(8f)
             }
+            holder.stationCard.layoutParams = lp
 
         }
     }

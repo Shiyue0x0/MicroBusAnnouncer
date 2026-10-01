@@ -24,7 +24,11 @@ open class BaseActivity : AppCompatActivity() {
             }
             super.attachBaseContext(newBase.createConfigurationContext(config))
         } else {
-            super.attachBaseContext(newBase)
+            // TODO
+            val config = Configuration(newBase.resources.configuration).apply {
+                densityDpi = 560
+            }
+            super.attachBaseContext(newBase.createConfigurationContext(config))
         }
     }
 }

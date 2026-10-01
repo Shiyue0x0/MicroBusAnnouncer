@@ -61,7 +61,7 @@ class ESView : View {
         set(value) {
             if (field != value) {
                 field = value
-                Log.d("L215", "${value} ${getText()}")
+//                Log.d("L215", "${value} ${getText()}")
                 onShowFinishChanged?.invoke(value)
             }
         }
@@ -224,7 +224,7 @@ class ESView : View {
 
     override fun onDraw(canvas: Canvas) {
 
-        Log.d("L225", "${minShowTimeMs} ${text}")
+//        Log.d("L225", "${minShowTimeMs} ${text}")
 
         super.onDraw(canvas)
         val fm = textPaint.fontMetrics
@@ -303,7 +303,7 @@ class ESView : View {
     // 文字滚动完毕的时机（通过最后一个字的位置来判定）。0：最后一个字进入屏幕时；0.5：最后一个字到达屏幕中央时；1：最后一个字离开屏幕时。
     var finishPositionOfLastWord = 0.5F
 
-    fun showText(textNew: String) {
+    fun nextText(textNew: String) {
         stopAnimation()
         post {
             scrollX = width - paddingEnd

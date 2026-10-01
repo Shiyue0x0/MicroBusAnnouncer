@@ -263,11 +263,13 @@ class LineAdapter(
                 switchDirection(holder)
             }
 
+            val lp = holder.lineCard.layoutParams as RecyclerView.LayoutParams
             if (position + 1 == itemCount - 1) {
-                val lp = holder.lineCard.layoutParams as RecyclerView.LayoutParams
                 lp.bottomMargin = utils.dp2px(96f)
-                holder.lineCard.layoutParams = lp
+            } else {
+                lp.bottomMargin = utils.dp2px(8f)
             }
+            holder.lineCard.layoutParams = lp
 
         }
     }

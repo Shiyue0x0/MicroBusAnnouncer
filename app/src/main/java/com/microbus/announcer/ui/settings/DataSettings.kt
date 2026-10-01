@@ -344,7 +344,11 @@ class DataSettings : Fragment() {
 
 
 //            requireActivity().recreate()
-            restartActivityStack(requireContext())
+//            restartActivityStack(requireContext())
+
+            android.os.Process.killProcess(android.os.Process.myPid())
+            kotlin.system.exitProcess(0)
+
         }
     }
 
@@ -510,13 +514,11 @@ class DataSettings : Fragment() {
                 fileOutputStream.write(buffer, 0, length)
             }
 
-            fileOutputStream.close()
-            fileInputStream.close()
-
             utils.showMsg("原${outputFileCnName}已备份至\nAnnouncer/Backups")
             utils.showMsg("${outputFileCnName}还原成功，再次打开应用生效")
 
-            requireActivity().finish()
+            android.os.Process.killProcess(android.os.Process.myPid())
+            kotlin.system.exitProcess(0)
         }
     }
 

@@ -406,7 +406,7 @@ class ESSettings : Fragment() {
 
                 binding.es.pixelMovePerSecond = eSSpeed.toFloat()
                 binding.es.finishPositionOfLastWord = utils.getEsFinishPositionOfLastWord()
-                binding.es.showText(esDemoText)
+                binding.es.nextText(esDemoText)
 
 
                 binding.text.visibility = ViewGroup.VISIBLE
@@ -461,7 +461,7 @@ class ESSettings : Fragment() {
 
                 binding.es.finishPositionOfLastWord = esFinishPositionOfLastWord
                 binding.es.pixelMovePerSecond = utils.getEsSpeed().toFloat()
-                binding.es.showText(esDemoText)
+                binding.es.nextText(esDemoText)
 
                 binding.text.visibility = ViewGroup.VISIBLE
                 binding.text.text = text

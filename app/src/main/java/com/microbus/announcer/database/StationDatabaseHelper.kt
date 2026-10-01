@@ -3,6 +3,7 @@ package com.microbus.announcer.database
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
+import android.database.SQLException
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import com.microbus.announcer.bean.Station
@@ -11,7 +12,7 @@ class StationDatabaseHelper private constructor(
     context: Context?,
     dbName: String = context?.getExternalFilesDir("")?.path + "/database/station.db"
 ) :
-    DatabaseHelper(context, dbName) {
+    DatabaseHelper(context, dbName, 2) {
 
     private val tableName = "station"
 
@@ -35,9 +36,26 @@ class StationDatabaseHelper private constructor(
                 "enName VARCHAR NOT NULL," +
                 "longitude DOUBLE NOT NULL," +
                 "latitude DOUBLE NOT NULL," +
-                "type VARCHAR DEFAULT 'B');"
+                "type VARCHAR DEFAULT 'B'," +
+                "bearing DOUBLE DEFAULT -1.0);"
         db!!.execSQL(sql)
         Log.d(tag, "已创建表 $tableName")
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+
+        // 自 Version 2 起，新增bearing
+        if (oldVersion < 2) {
+            try {
+                val alterSql = "ALTER TABLE $tableName ADD COLUMN bearing DOUBLE DEFAULT 0.0;"
+                db?.execSQL(alterSql)
+                Log.d(tag, "数据库升级：已添加列 bearing")
+            } catch (e: SQLException) {
+                // 列已存在时忽略异常（保证向下兼容）
+                Log.d(tag, "列 bearing 已存在，跳过添加")
+            }
+        }
+
     }
 
     fun insert(station: Station): Long {
@@ -47,6 +65,7 @@ class StationDatabaseHelper private constructor(
         values.put("longitude", station.longitude)
         values.put("latitude", station.latitude)
         values.put("type", station.type)
+        values.put("bearing", station.bearing)
 
         val result = readableDatabase.insert(tableName, null, values)
         if (result > 0)
@@ -139,16 +158,25 @@ class StationDatabaseHelper private constructor(
         var cursorCount = 0
         val station = Station(null, "MicroBus 欢迎您", "MicroBus", 0.0, 0.0)
 
+        val idxId = cursor.getColumnIndexOrThrow("id")
+        val idxCnName = cursor.getColumnIndexOrThrow("cnName")
+        val idxEnName = cursor.getColumnIndexOrThrow("enName")
+        val idxLongitude = cursor.getColumnIndexOrThrow("longitude")
+        val idxLatitude = cursor.getColumnIndexOrThrow("latitude")
+        val idxType = cursor.getColumnIndexOrThrow("type")
+        val idxBearing = cursor.getColumnIndexOrThrow("bearing")
+
         while (cursor.moveToNext()) {
             if (count == cursorCount) {
-                station.id = cursor.getInt(0)
-                station.cnName = cursor.getString(1)
-                station.enName = cursor.getString(2)
-                station.longitude = cursor.getDouble(3)
-                station.latitude = cursor.getDouble(4)
-                if (!cursor.isNull(5))
-                    station.type = cursor.getString(5)
-                return station
+                return Station(
+                    id = cursor.getInt(idxId),
+                    cnName = cursor.getString(idxCnName) ?: "",
+                    enName = cursor.getString(idxEnName) ?: "",
+                    longitude = cursor.getDouble(idxLongitude),
+                    latitude = cursor.getDouble(idxLatitude),
+                    type = if (cursor.isNull(idxType)) "B" else cursor.getString(idxType) ?: "B",
+                    bearing = if (cursor.isNull(idxBearing)) -1.0 else cursor.getDouble(idxBearing)
+                )
             }
             cursorCount++
         }
@@ -194,6 +222,7 @@ class StationDatabaseHelper private constructor(
             put("longitude", station.longitude)
             put("latitude", station.latitude)
             put("type", station.type)
+            put("bearing", station.bearing)
         }
         db.update(tableName, values, "id=?", arrayOf(id.toString()))
     }
@@ -248,6 +277,7 @@ class StationDatabaseHelper private constructor(
         val idxLongitude = cursor.getColumnIndexOrThrow("longitude")
         val idxLatitude = cursor.getColumnIndexOrThrow("latitude")
         val idxType = cursor.getColumnIndexOrThrow("type")
+        val idxBearing = cursor.getColumnIndexOrThrow("bearing")
 
         val list = ArrayList<Station>(cursor.count)
         while (cursor.moveToNext()) {
@@ -258,7 +288,8 @@ class StationDatabaseHelper private constructor(
                     enName = cursor.getString(idxEnName) ?: "",
                     longitude = cursor.getDouble(idxLongitude),
                     latitude = cursor.getDouble(idxLatitude),
-                    type = if (cursor.isNull(idxType)) "B" else cursor.getString(idxType) ?: "B"
+                    type = if (cursor.isNull(idxType)) "B" else cursor.getString(idxType) ?: "B",
+                    bearing = if (cursor.isNull(idxBearing)) -1.0 else cursor.getDouble(idxBearing)
                 )
             )
         }

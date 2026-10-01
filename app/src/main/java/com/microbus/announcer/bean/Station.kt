@@ -11,5 +11,8 @@ data class Station(
     var enName: String = "",
     var longitude: Double = 0.0,
     var latitude: Double = 0.0,
-    var type: String = "B"
+    var type: String = "B",
+    var bearing: Double = -1.0,   //自 dbVersion 2 起
+
+
 ) : Serializable, Parcelable

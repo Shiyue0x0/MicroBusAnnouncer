@@ -23,8 +23,10 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.drawable.Icon
+import android.location.Location
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -48,21 +50,24 @@ import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
@@ -126,6 +131,7 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
+import com.microbus.announcer.LineTrajectoryCorrection
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
@@ -136,7 +142,6 @@ import com.microbus.announcer.adapter.StationOfRunningInfoAdapter
 import com.microbus.announcer.announce.AnnouncementContext
 import com.microbus.announcer.announce.AnnouncementPlayer
 import com.microbus.announcer.announce.AnnouncementResolver
-import com.microbus.announcer.bean.EsItem
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.RunningInfo
 import com.microbus.announcer.bean.Station
@@ -149,7 +154,6 @@ import com.microbus.announcer.model.LineDirection
 import com.microbus.announcer.model.StationStatus
 import com.microbus.announcer.model.TabPage
 import com.microbus.announcer.ui.compose.EsHeaderCompose
-import com.qmdeve.liquidglass.widget.LiquidGlassView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -166,17 +170,18 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
+import java.io.File
+import java.io.OutputStreamWriter
 import java.net.UnknownHostException
-import java.time.LocalDate
+import java.text.SimpleDateFormat
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Date
 import java.util.Locale
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 
 class MainFragment : Fragment() {
 
@@ -218,6 +223,8 @@ class MainFragment : Fragment() {
     private var lastLngLat = LatLng(25.278617, 110.295833)
     var currentLngLat = lastLngLat
 
+    private var currentBearing = 0.0
+
     private var currentDistanceToCurrentStation = 100.0
     private var lastDistanceToCurrentStation = 100.0
 
@@ -229,6 +236,7 @@ class MainFragment : Fragment() {
     var currentLineDirection = LineDirection.ON_UP
 
     /**当前路线运行方向站点列表*/
+    @get:SuppressLint("MutableCollectionMutableState")
     private var currentLineStationList by mutableStateOf(ArrayList<Station>())
 
     /**当前路线站点*/
@@ -294,9 +302,6 @@ class MainFragment : Fragment() {
 
     var matchCount = 0
 
-    var esList = ArrayList<EsItem>()
-    var esPlayIndex = -1
-
     var userLocationOpen = false
     var userMapOpen = false
 
@@ -332,11 +337,26 @@ class MainFragment : Fragment() {
                             return@registerForActivityResult
                         }
                         setLine(lineDatabaseHelper.queryById(lineId).first())
-                        utils.haptic(binding.headerMiddleNew)
+
+                        val sharedPreferences =
+                            requireContext().getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
+                        sharedPreferences.edit {
+                            remove("onlineLineUpId")
+                            remove("onlineLineDownId")
+                        }
+
+                        utils.haptic(binding.root)
                     }
 
                     utils.LOAD_LINE_ALL -> {
                         loadLineAll(true)
+
+                        val sharedPreferences =
+                            requireContext().getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
+                        sharedPreferences.edit {
+                            remove("onlineLineUpId")
+                            remove("onlineLineDownId")
+                        }
                     }
 
                     utils.LOAD_CLOUD_LINE -> {
@@ -370,7 +390,7 @@ class MainFragment : Fragment() {
                         this.cloudStationList = cloudStationList
 
                         setLine(line)
-                        utils.haptic(binding.headerMiddleNew)
+                        utils.haptic(binding.root)
 
                     }
 
@@ -378,8 +398,9 @@ class MainFragment : Fragment() {
                         val lineName =
                             data.getStringExtra("lineName") ?: return@registerForActivityResult
                         currentLine.name = lineName
-                        binding.headerMiddleNew.showText(currentLine.name)
-                        binding.headerMiddleNew.requestLayout()
+                        // TODO
+//                        binding.headerMiddleNew.showText(currentLine.name)
+//                        binding.headerMiddleNew.requestLayout()
                     }
 
 
@@ -418,6 +439,8 @@ class MainFragment : Fragment() {
 
         val controller = remember { ThemeController(ColorSchemeMode.System) }
 
+        var hideBottomBar = false
+
         MiuixTheme(
             controller = controller
         ) {
@@ -425,70 +448,112 @@ class MainFragment : Fragment() {
 
             Scaffold(content = { paddingValues ->
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                ) {
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 
-                    AndroidView(
-                        factory = { binding.root }, modifier = Modifier
+                    val isLandscape = maxWidth > maxHeight
+
+                    Box(
+                        modifier = Modifier
                             .fillMaxSize()
-                            .then(
-                                if (utils.getIsLiquidGlass()) {
-                                    Modifier.layerBackdrop(backdrop)
-                                } else {
-                                    Modifier
-                                }
-                            )
-                    )
+                    ) {
 
-                    Box(modifier = Modifier.padding(top = paddingValues.calculateTopPadding())) {
-                        // 顶部电显
-                        EsHeaderCompose(
-
-                            line = currentLine,
-                            currentSpeedKmH = currentSpeedKmH,
-                            currentLineStation = currentLineStation,
-                            currentLineStationList = currentLineStationList,
-                            currentLineStationCount = currentLineStationCount,
-                            currentLineStationState = currentLineStationState,
-
-                            isAnimating = esIsAnimating.value,
-                            onHeaderClick = {
-                                if (isOperationLock) {
-                                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                                    return@EsHeaderCompose
-                                }
-
-                                val intent =
-                                    Intent(requireContext(), LineSwitcherActivity::class.java)
-                                intent.putExtra("currentLineId", currentLine.id)
-                                startLineSwitcherForResult.launch(intent)
-
-                                return@EsHeaderCompose
-                            },
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .fillMaxWidth()
+                        AndroidView(
+                            factory = { binding.root }, modifier = Modifier
+                                .fillMaxSize()
                                 .then(
                                     if (utils.getIsLiquidGlass()) {
-                                        Modifier.drawBackdrop(
-                                            backdrop = backdrop,
-                                            shape = { CircleShape },
-                                            effects = {
-                                                vibrancy()
-                                                blur(2f.dp.toPx())
-                                                lens(
-                                                    refractionHeight = 2f.dp.toPx(),
-                                                    refractionAmount = 4f.dp.toPx()
-                                                )
-                                            }
-                                        )
+                                        Modifier.layerBackdrop(backdrop)
                                     } else {
                                         Modifier
                                     }
                                 )
                         )
+
+                        Box(
+                            modifier = Modifier
+                                .then(
+                                    // 竖屏
+                                    if (!isLandscape) {
+                                        Modifier.fillMaxWidth()
+                                    } else {
+                                        Modifier.width(floatingViewWidthDpWhenLand.dp)
+                                    }
+                                )
+                                .padding(
+                                    top = paddingValues.calculateTopPadding(),
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    bottom = 0.dp
+                                )
+                                .align(Alignment.TopEnd)
+                        ) {
+                            // 顶部电显
+                            EsHeaderCompose(
+
+                                line = currentLine,
+                                currentSpeedKmH = currentSpeedKmH,
+                                currentLineStation = currentLineStation,
+                                currentLineStationList = currentLineStationList,
+                                currentLineStationCount = currentLineStationCount,
+                                currentLineStationState = currentLineStationState,
+
+                                isAnimating = esIsAnimating.value,
+                                onHeaderClick = {
+                                    if (isOperationLock) {
+                                        utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+                                        return@EsHeaderCompose
+                                    }
+
+                                    val intent =
+                                        Intent(requireContext(), LineSwitcherActivity::class.java)
+                                    intent.putExtra("currentLineId", currentLine.id)
+                                    startLineSwitcherForResult.launch(intent)
+
+                                    return@EsHeaderCompose
+                                },
+                                onHeaderLongClick = {
+
+                                    with(binding) {
+                                        val visibility = if (hideBottomBar) VISIBLE else GONE
+                                        leftButtonGroup.visibility = visibility
+                                        rightButtonGroup.visibility = visibility
+                                        mainSwitchGroup.visibility = visibility
+                                        lineStationController.visibility = visibility
+                                    }
+
+                                    val actionText = if (hideBottomBar)
+                                        "展开"
+                                    else
+                                        "收起"
+
+                                    utils.showMsg("已${actionText}控制栏", true)
+
+                                    hideBottomBar = !hideBottomBar
+
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .then(
+                                        if (utils.getIsLiquidGlass()) {
+                                            Modifier.drawBackdrop(
+                                                backdrop = backdrop,
+                                                shape = { CircleShape },
+                                                effects = {
+                                                    vibrancy()
+                                                    blur(2f.dp.toPx())
+                                                    lens(
+                                                        refractionHeight = 2f.dp.toPx(),
+                                                        refractionAmount = 4f.dp.toPx()
+                                                    )
+                                                }
+                                            )
+                                        } else {
+                                            Modifier
+                                        }
+                                    ),
+                            )
+                        }
+
                     }
 
                 }
@@ -593,9 +658,6 @@ class MainFragment : Fragment() {
         // 初始化地图
         initMap(savedInstanceState)
 
-        // 初始化液态玻璃UI
-        initLiquidGlass()
-
         //初始化通知
         if (utils.getNotice()) {
             initNotification()
@@ -606,9 +668,6 @@ class MainFragment : Fragment() {
 
         // 初始化按钮回调
         initButton()
-
-        // 初始化电显
-        initEs()
 
         // 初始化报站
         initAnnouncement()
@@ -635,8 +694,6 @@ class MainFragment : Fragment() {
 
     private var isVisible = false
 
-    private var enableEs = true
-
 
     /* 与用户交互时 */
     override fun onResume() {
@@ -659,9 +716,9 @@ class MainFragment : Fragment() {
 
         (binding.lineStationList.adapter as StationOfLineAdapter).isShown = true
 
-        binding.headerLeftNew.startAnimation()
-        binding.headerMiddleNew.startAnimation()
-        binding.headerRightNew.startAnimation()
+//        binding.headerLeftNew.startAnimation()
+//        binding.headerMiddleNew.startAnimation()
+//        binding.headerRightNew.startAnimation()
         binding.navStationName.startAnimation()
 
         esIsAnimating.value = true
@@ -708,9 +765,9 @@ class MainFragment : Fragment() {
 
         isVisible = false
 
-        binding.headerLeftNew.stopAnimation()
-        binding.headerMiddleNew.stopAnimation()
-        binding.headerRightNew.stopAnimation()
+//        binding.headerLeftNew.stopAnimation()
+//        binding.headerMiddleNew.stopAnimation()
+//        binding.headerRightNew.stopAnimation()
         binding.navStationName.stopAnimation()
 
         esIsAnimating.value = false
@@ -769,7 +826,7 @@ class MainFragment : Fragment() {
 //        binding.headerMiddle.text = currentLine.name
 //        binding.headerMiddleNew.showText(currentLine.name)
         binding.lineName = currentLine.name
-        binding.headerMiddleNew.showText(binding.lineName!!)
+//        binding.headerMiddleNew.showText(binding.lineName!!)
 
 
         //获取当前方向路线站点下标（String形式）序列
@@ -795,6 +852,10 @@ class MainFragment : Fragment() {
                             enName = "unknown"
                         )
                     )
+                Log.d(
+                    "L855",
+                    "${currentLineStationList.last().cnName} ${currentLineStationList.last().bearing}"
+                )
             }
             // 云端路线
             else if (strIndex.toIntOrNull() != null) {
@@ -856,7 +917,7 @@ class MainFragment : Fragment() {
         viewList.add(binding.nextStation)
         viewList.add(binding.terminal)
         viewList.add(binding.terminalCard)
-        if (!enableLowPowerMode) {
+        if (!enableLowPowerMode && utils.getIsNavMode()) {
             viewList.add(binding.navCard)
         }
         //显示|隐藏路线站点框和全站点路线按钮（渐出动画）
@@ -924,6 +985,48 @@ class MainFragment : Fragment() {
         @SuppressLint("NotifyDataSetChanged")
         adapter.notifyDataSetChanged()
 
+        // TODO 轨迹纠偏
+        if (utils.getIsLineTrajectoryCorrection() &&
+            currentLine.name != resources.getString(
+                R.string.line_all
+            )
+        ) {
+            CoroutineScope(Dispatchers.IO).launch {
+
+                val lineTrajectoryCorrection = LineTrajectoryCorrection
+
+                lineTrajectoryCorrection.init(requireContext())
+                pointGroup = lineTrajectoryCorrection.getTrack(currentLineStationList)
+                Log.d("L973", "${pointGroup.size}")
+//                drawPointIndex(pointGroup)
+
+                withContext(Dispatchers.Main) {
+                    if (!isAdded || view == null) return@withContext
+
+                    //移除所有轨迹
+                    for (line in polylineList) {
+                        line.remove()
+                    }
+                    polylineList.clear()
+                    lineWithTypeMap.clear()
+
+                    //移除所有站点范围圆
+                    for (circle in circleList) {
+                        circle.remove()
+                    }
+                    circleList.clear()
+                    circleWithStationMap.clear()
+
+                    refreshUI()
+                }
+
+
+            }
+
+        }
+
+        return
+
         getLineTrajectoryCorrection {
 
             if (!isAdded || view == null) return@getLineTrajectoryCorrection
@@ -942,11 +1045,56 @@ class MainFragment : Fragment() {
             circleList.clear()
             circleWithStationMap.clear()
 
-            refreshUI(isRefreshEs = false)
-            refreshEsToStaringAndTerminal()
+            refreshUI()
         }
 
     }
+
+    private var pointGroup: MutableList<MutableList<Triple<Double, Double, Int?>>> = mutableListOf()
+
+    private suspend fun drawPointIndex(pointGroup: MutableList<MutableList<Triple<Double, Double, Int?>>>) {
+        withContext(Dispatchers.Main) {
+            aMap.clear()
+
+            pointGroup.forEachIndexed { stationIndex, point ->
+
+                point.forEachIndexed { index, (lng, lat) ->
+
+                    val latLng = LatLng(lat, lng)
+
+                    // 1) 画点
+                    aMap.addMarker(
+                        MarkerOptions()
+                            .position(latLng)
+                            .title("index = $index")
+                    )
+
+                    // 2) 在点旁边画 index 数字
+                    aMap.addText(
+                        TextOptions()
+                            .position(latLng)
+                            .text("${stationIndex + 1}-${index}")
+                            .fontSize(30)          // 单位 px
+                            .fontColor(Color.RED)
+                            .backgroundColor(Color.argb(120, 255, 255, 255))
+                    )
+
+                    // 画线
+
+
+                }
+            }
+        }
+    }
+
+
+    private val mockLocation = false
+    lateinit var mockLocationList: List<Pair<Date, Location>>
+
+    var baseMillis: Long = 0
+
+    val mockLocationMarkerList = ArrayList<MarkerOptions>()
+
 
     /**
      * 初始化定位
@@ -971,14 +1119,176 @@ class MainFragment : Fragment() {
         option.isNeedAddress = true
         locationClient.setLocationOption(option)
 
-        locationClient.setLocationListener { location ->
-            if (location.errorCode == 0)
-                onMyLocationChange(location)
+        // todo MOCK 定位
+        if (mockLocation) {
+            mockLocationList = readLocationLog()
+            Log.d("L1116", "${mockLocationList.size}")
+            mockLocationList = normalizeTimes(mockLocationList)
+            Log.d("L1117", "${mockLocationList.size}")
+
+            // 40倍时间段
+            val x40Range = listOf(
+                168150L..195383L,
+                237300L..318117L,
+                360017L..423200L,
+                692250L..702450L,
+                981150L..1116200L,
+                1326133L..1387000L,
+                1480450L..1611317L,
+                1737100L..1758267L,
+                1980183L..2059917L,
+                2306017L..2353967L,
+                2947333L..3158383L
+            )
+
+            fun isInX40Ranges(ms: Long): Boolean = x40Range.any { ms in it }
+
+            mockLocationList.forEachIndexed { index, item ->
+
+
+                // 变速处理，全局x10
+                item.first.time /= 10
+
+            }
+
+            val mockLocationListGet40pers =
+                mockLocationList.filterIndexed { index, _ -> index % 4 == 0 }
+
+
+            val replayer = LocationReplayer(baseMillis, mockLocationListGet40pers) { location ->
+                // 在这里处理，比如更新地图
+                val aMapLocation = AMapLocation(location)
+                onMyLocationChange(aMapLocation)
+            }
+
+
+            replayer.start()
+
         }
 
-        locationClient.startLocation()
+        if (!mockLocation) {
+            locationClient.setLocationListener { location ->
+                if (location.errorCode == 0)
+                    onMyLocationChange(location)
+            }
+            locationClient.startLocation()
+        }
 
 
+    }
+
+    data class LogEntry(
+        val time: Date,
+        val location: Location
+    )
+
+
+    fun readLocationLog(): List<Pair<Date, Location>> {
+        val path = Environment.getExternalStorageDirectory().absolutePath + "/Announcer"
+        val file = File(path, "location_log.txt")
+
+        if (!file.exists()) return emptyList()
+
+        val fullFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val today = dateFormat.format(Date())
+
+        val result = mutableListOf<Pair<Date, Location>>()
+
+        file.forEachLine { line ->
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) return@forEachLine
+
+            // 按空白字符（一个或多个空格/制表符）分割
+            val parts = trimmed.split(Regex("\\s+"))
+            if (parts.size < 3) return@forEachLine
+
+            // parts[0] = "[17:30:58]"  -> 去掉方括号
+            val timeStr = parts[0].removePrefix("[").removeSuffix("]")
+            val latStr = parts[1]
+            val lonStr = parts[2]
+
+            try {
+                val time = fullFormat.parse("$today $timeStr") ?: return@forEachLine
+                val latitude = latStr.toDouble()
+                val longitude = lonStr.toDouble()
+
+                val location = Location("").apply {
+                    this.latitude = latitude
+                    this.longitude = longitude
+                    this.time = time.time
+                }
+
+                result.add(time to location)
+            } catch (e: Exception) {
+                // 忽略无法解析的行
+            }
+        }
+
+        return result
+    }
+
+    fun normalizeTimes(entries: List<Pair<Date, Location>>): List<Pair<Date, Location>> {
+        if (entries.isEmpty()) return emptyList()
+
+        baseMillis = entries.first().first.time
+
+        return entries.map { (time, location) ->
+            val shifted = Date(time.time - baseMillis)
+            // 可选：同步更新 Location.time
+            location.time = shifted.time
+
+            Log.d("L1201", "normalizeTimes: $shifted")
+
+            shifted to location
+
+        }
+    }
+
+
+    class LocationReplayer(
+        private val baseMillis: Long = 0,
+        private val entries: List<Pair<Date, Location>>,   // normalizeTimes 后的列表
+        private val onMyLocationChange: (Location) -> Unit
+    ) {
+        private val handler = Handler(Looper.getMainLooper())
+        private var index = 0
+        private var running = false
+
+        fun start() {
+            if (running || entries.isEmpty()) return
+            running = true
+            index = 0
+            scheduleNext()
+        }
+
+        fun stop() {
+            running = false
+            handler.removeCallbacksAndMessages(null)
+        }
+
+        private fun scheduleNext() {
+            if (!running || index >= entries.size) {
+                running = false
+                return
+            }
+
+            val (time, location) = entries[index]
+            var delay = time.time
+//            Log.d("L1230", "scheduleNext: $delay")
+            if (index > 0) {
+                delay -= entries[index - 1].first.time
+            }
+
+
+            handler.postDelayed({
+                if (!running) return@postDelayed
+                onMyLocationChange(location)
+                index++
+                scheduleNext()
+                Log.d("L1243", "$index $delay")
+            }, if (index == 0) 10000 else delay)
+        }
     }
 
     /**
@@ -990,21 +1300,6 @@ class MainFragment : Fragment() {
         binding.locationBtnGroup.uncheck(binding.locationBtn.id)
 //        binding.lineDirectionBtnGroup.check(binding.lineDirectionBtnUp.id)
 
-
-        //单击电显切换路线
-        binding.headerNew.setOnClickListener {
-            if (isOperationLock) {
-                utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                return@setOnClickListener
-            }
-
-            val intent = Intent(requireContext(), LineSwitcherActivity::class.java)
-            // 可以传递参数给目标 Activity
-            intent.putExtra("currentLineId", currentLine.id)
-            startLineSwitcherForResult.launch(intent)
-
-            return@setOnClickListener
-        }
 
         //单击地图定位按钮，地图移动到当前位置
         binding.mapLocation.setOnClickListener {
@@ -1108,6 +1403,8 @@ class MainFragment : Fragment() {
                 currentSpeedKmH = -1.0
                 binding.speedValue.text =
                     getString(R.string.main_speed_value)
+                binding.currentDistanceToCurrentStationValue.text =
+                    getString(R.string.main_distance_value)
                 binding.navStationCard.visibility = GONE
                 binding.navSpeedCard.visibility = GONE
 //                val myLocationStyle = MyLocationStyle()
@@ -1609,108 +1906,6 @@ class MainFragment : Fragment() {
         }
     }
 
-    /**
-     * 初始化电显
-     */
-    private fun initEs() {
-
-        binding.headerLeftNew.visibility =
-            if (utils.getIsOpenLeftEs())
-                VISIBLE
-            else
-                GONE
-
-        binding.headerMiddleNew.visibility =
-            if (utils.getIsOpenMidEs())
-                VISIBLE
-            else
-                GONE
-
-        esList = utils.getEsList(utils.getEsText())
-
-        var isRefreshing = false
-        var esRefreshCount = 0
-
-
-        binding.headerLeftNew.minShowTimeMs = 500
-        binding.headerRightNew.minShowTimeMs = 500
-
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                while (isActive) {
-
-//                    Log.d(tag, "L1498")
-
-                    if (!isAdded || !isVisible || !enableEs)
-                        return@repeatOnLifecycle
-
-                    val esSpeed = utils.getEsSpeed()
-                    binding.headerLeftNew.pixelMovePerSecond = esSpeed.toFloat()
-                    binding.headerRightNew.pixelMovePerSecond = esSpeed.toFloat()
-                    binding.headerMiddleNew.pixelMovePerSecond = esSpeed.toFloat()
-                    binding.navStationName.pixelMovePerSecond = esSpeed.toFloat()
-
-                    val pos = utils.getEsFinishPositionOfLastWord()
-                    binding.headerLeftNew.finishPositionOfLastWord = pos
-                    binding.headerRightNew.finishPositionOfLastWord = pos
-                    binding.headerMiddleNew.finishPositionOfLastWord = pos
-                    binding.navStationName.finishPositionOfLastWord = pos
-
-                    binding.headerLeftNew.visibility = if (utils.getIsOpenLeftEs())
-                        VISIBLE
-                    else
-                        GONE
-
-                    binding.headerMiddleNew.visibility = if (utils.getIsOpenMidEs())
-                        VISIBLE
-                    else
-                        GONE
-
-                    if (esPlayIndex >= 0 && esPlayIndex < esList.size &&
-                        esList[esPlayIndex].type.contains("R") && esRefreshCount % 10 == 0
-                    ) {
-                        refreshEsOnlyText(true)
-                    }
-
-
-                    val isLeftFinish =
-                        binding.headerLeftNew.isShowFinish || !utils.getIsOpenLeftEs()
-                    val isRightFinish = binding.headerRightNew.isShowFinish
-//                Log.d(tag, "Finished: $isLeftFinish $isRightFinish")
-
-                    if (!isRefreshing && isLeftFinish && isRightFinish) {
-                        isRefreshing = true
-                        esPlayNext()
-                        refreshEs()
-                        isRefreshing = false
-                    }
-                    if (binding.headerMiddleNew.isShowFinish) {
-                        binding.headerMiddleNew.showText(currentLine.name)
-                    }
-
-                    esRefreshCount++
-
-                    val navCardVisibility =
-                        if (utils.getIsNavMode() &&
-                            !(currentLine.name == resources.getString(R.string.line_all) && utils.getIsMapEditLineMode()
-                                    )
-                        )
-                            VISIBLE
-                        else
-                            GONE
-
-                    if (binding.navCard.visibility != navCardVisibility) {
-                        binding.navCard.visibility = navCardVisibility
-                        binding.fill3.visibility = navCardVisibility
-                    }
-                    delay(100.milliseconds)
-                }
-            }
-        }
-
-        binding.navStationName.finishPositionOfLastWord = 0.0F
-
-    }
 
     private lateinit var anResolver: AnnouncementResolver
     private lateinit var anPlayer: AnnouncementPlayer
@@ -2120,6 +2315,7 @@ class MainFragment : Fragment() {
                 while (isActive) {
 //                    Log.d(tag, "L2115")
 
+//                    Log.d("L2017", "${currentLineStationCount} ${currentLineStation.cnName}")
 
                     withContext(Dispatchers.Main) {
                         if (binding.locationBtn.isChecked && binding.mapBtn.isChecked) {
@@ -2134,7 +2330,9 @@ class MainFragment : Fragment() {
 //                            Log.d(tag, "L2112 ${rotation}")
 
 
-                            var rotateAngle = (sensorHelper.getAzimuth().toFloat() + 360f) % 360f
+//                            var rotateAngle = (sensorHelper.getAzimuth().toFloat() + 360f) % 360f
+                            var rotateAngle = currentBearing.toFloat()
+
 //                            Log.d("L2108", "${rotateAngle}")
                             lastRotateAngle = curRotateAngle
                             curRotateAngle = rotateAngle
@@ -2179,7 +2377,8 @@ class MainFragment : Fragment() {
                             if (System.currentTimeMillis() - lastTouchMapTime >= 10_000) {
                                 val cameraPosition = CameraPosition.builder()
                                     .target(getMapFinalLngLat(currentLngLat))
-                                    .bearing(if (updRotate) rotateAngle else aMap.cameraPosition.bearing)
+//                                    .bearing(if (updRotate) rotateAngle else aMap.cameraPosition.bearing)
+                                    .bearing(if (updRotate) rotateAngle else currentBearing.toFloat())
                                     .zoom(aMap.cameraPosition.zoom)
                                     .tilt(aMap.cameraPosition.tilt)
                                     .build()
@@ -2219,6 +2418,8 @@ class MainFragment : Fragment() {
             }
         }
 
+
+//0
 
     }
 
@@ -2304,8 +2505,6 @@ class MainFragment : Fragment() {
             requireContext().getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
 
         val lastRunningLineName = sharedPreferences.getString("lineName", "") ?: ""
-        val onlineLineUpId = sharedPreferences.getString("onlineLineUpId", "") ?: ""
-        val onlineLineDownId = sharedPreferences.getString("onlineLineDownId", "") ?: ""
 
 
         val lastLineDirection =
@@ -2330,73 +2529,73 @@ class MainFragment : Fragment() {
             return
         }
 
-        val localLineList = lineDatabaseHelper.queryByName(lastRunningLineName).toMutableList()
-//        Log.d(tag, onlineLineUpId)
-//        Log.d(tag, onlineLineDownId)
 
-        // 获取云端路线
-        if (localLineList.isEmpty()) {
-            if (onlineLineUpId != "" && onlineLineDownId != "") {
-                var hasLoad = false
-                val onlineLine = Line()
-                onlineLine.id = -1
-                onlineLine.isUpAndDownInvert = false
-                cloudStationList.clear()
-                CoroutineScope(Dispatchers.IO).launch {
-                    for (i in 0..1) {
-                        // 在线搜索路线
-                        val lineQuery = BusLineQuery(
-                            if (i == 0) onlineLineUpId else onlineLineDownId,
-                            BusLineQuery.SearchType.BY_LINE_ID,
-                            utils.getCity()
-                        )
-                        lineQuery.pageNumber = 0
-                        lineQuery.extensions = "all"
-                        val busLineSearch = BusLineSearch(requireContext(), lineQuery)
-                        busLineSearch.setOnBusLineSearchListener { res, _ ->
+        // 云端路线
+        val onlineLineUpId = sharedPreferences.getString("onlineLineUpId", "") ?: ""
+        val onlineLineDownId = sharedPreferences.getString("onlineLineDownId", "") ?: ""
+        if (onlineLineUpId != "" && onlineLineDownId != "") {
+            var hasLoad = false
+            val onlineLine = Line()
+            onlineLine.id = -1
+            onlineLine.isUpAndDownInvert = false
+            cloudStationList.clear()
+            CoroutineScope(Dispatchers.IO).launch {
+                for (i in 0..1) {
+                    // 在线搜索路线
+                    val lineQuery = BusLineQuery(
+                        if (i == 0) onlineLineUpId else onlineLineDownId,
+                        BusLineQuery.SearchType.BY_LINE_ID,
+                        utils.getCity()
+                    )
+                    lineQuery.pageNumber = 0
+                    lineQuery.extensions = "all"
+                    val busLineSearch = BusLineSearch(requireContext(), lineQuery)
+                    busLineSearch.setOnBusLineSearchListener { res, _ ->
 //                utils.showMsg("setOnBusLineSearchListener${res.busLines.size}")
-                            if (res.busLines.isNotEmpty()) {
+                        if (res.busLines.isNotEmpty()) {
 //                            Log.d(tag, res.query.queryString)
-                                // 上行
-                                if (i == 0) {
-                                    val line = getOnlineLine(res, 0, 0)
-                                    onlineLine.upLineStation = line.upLineStation
-                                    onlineLine.name = line.name
+                            // 上行
+                            if (i == 0) {
+                                val line = getOnlineLine(res, 0, 0)
+                                onlineLine.upLineStation = line.upLineStation
+                                onlineLine.name = line.name
+                            }
+                            // 下行（如果有）
+                            else {
+                                // 下行
+                                if (onlineLineUpId != onlineLineDownId) {
+                                    onlineLine.downLineStation =
+                                        getOnlineLine(res, 0, 0).upLineStation
                                 }
-                                // 下行（如果有）
+                                // 单向路线
                                 else {
-                                    // 下行
-                                    if (onlineLineUpId != onlineLineDownId) {
-                                        onlineLine.downLineStation =
-                                            getOnlineLine(res, 0, 0).upLineStation
-                                    }
-                                    // 单向路线
-                                    else {
-                                        onlineLine.downLineStation = onlineLine.upLineStation
-                                    }
-
+                                    onlineLine.downLineStation = onlineLine.upLineStation
                                 }
 
-                                requireActivity().runOnUiThread {
-                                    if (!hasLoad && onlineLine.upLineStation != "" && onlineLine.downLineStation != "") {
-                                        setLine(onlineLine, false)
-                                        utils.haptic(binding.headerMiddleNew)
-                                        hasLoad = true
-                                    }
+                            }
+
+                            requireActivity().runOnUiThread {
+                                if (!hasLoad && onlineLine.upLineStation != "" && onlineLine.downLineStation != "") {
+                                    setLine(onlineLine, false)
+                                    utils.haptic(binding.root)
+                                    hasLoad = true
                                 }
                             }
                         }
-                        busLineSearch.searchBusLineAsyn()
                     }
+                    busLineSearch.searchBusLineAsyn()
                 }
             }
             return
         }
 
+
         // 本地路线
-//            utils.showMsg(localLineList.first().name)
-        setLine(localLineList.first(), false)
-        utils.haptic(binding.headerMiddleNew)
+        val localLineList = lineDatabaseHelper.queryByName(lastRunningLineName).toMutableList()
+        if (localLineList.isNotEmpty()) {
+            setLine(localLineList.first(), false)
+            utils.haptic(binding.root)
+        }
 
     }
 
@@ -2404,18 +2603,20 @@ class MainFragment : Fragment() {
     fun onMyLocationChange(location: AMapLocation) {
 
 //        utils.showMsg(location.city)
+        Log.d("L2546", "")
 
         currentCityName = location.city
 
         val latStr = String.format(Locale.CHINA, "%.8f", location.latitude)
         val longStr = String.format(Locale.CHINA, "%.8f", location.longitude)
 
-        locationInfoList.add(
-            0,
-            "[${
-                LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
-            }] $latStr $longStr"
-        )
+        val locationInfoStr = "[${
+            LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+        }] $latStr $longStr"
+
+        locationInfoList.add(0, locationInfoStr)
+//        appendLocationToFile(requireContext(), locationInfoStr)
+
 
         binding.locationBtnGroup.check(binding.locationBtn.id)
 
@@ -2440,11 +2641,24 @@ class MainFragment : Fragment() {
         currentSpeedKmH = if (currentSpeedKmH < 0) 0.0
         else (distance / 1000.0) / ((currentTimeMillis - lastTimeMillis) / 1000.0 / 60.0 / 60.0)
 
+        if (mockLocation) {
+            currentSpeedKmH /= 10
+        }
+
         binding.speedValue.text =
             String.format(Locale.CHINA, "%.1f", currentSpeedKmH)
 
         binding.navStationSpeedValue.text =
             String.format(Locale.CHINA, "%.0f", currentSpeedKmH)
+
+        // 计算方位角[0-360)
+        if (currentSpeedKmH >= 5.0) {
+            currentBearing = utils.calculateBearing(
+                lastLngLat.latitude, lastLngLat.longitude,
+                currentLngLat.latitude, currentLngLat.longitude
+            )
+            Log.d("L2662", "${currentBearing}")
+        }
 
 
         // 计算当前定位距离所有路线站点的距离
@@ -2464,6 +2678,26 @@ class MainFragment : Fragment() {
 
         findMatchStation()
 
+    }
+
+    private val LOCATION_FILE_NAME = "location_log.txt"
+
+    /**
+     * 追加一条定位记录到应用私有文件
+     * 文件位置：/data/data/<包名>/files/location_log.txt
+     */
+    fun appendLocationToFile(context: Context, line: String) {
+        try {
+            // MODE_APPEND：追加模式；MODE_PRIVATE：私有模式
+            context.openFileOutput(LOCATION_FILE_NAME, Context.MODE_APPEND).use { fos ->
+                OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
+                    writer.write(line)
+                    writer.write("\n")   // 每条一行
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun updCurrentDistance() {
@@ -2517,10 +2751,10 @@ class MainFragment : Fragment() {
      * 遍历站点列表，检查是否符合进站、出站、即将到站条件，并切换站点然后报站
      * @return 当前站点是否更改
      */
-    private fun findMatchStation(): Boolean {
+    private fun findMatchStation() {
 
         matchCount = (matchCount + 1) % Int.MAX_VALUE
-        if (matchCount < 2) return false
+        if (matchCount < 2) return
 
         val willInStationDistance =
             utils.getStationRangeByLineType(currentLine.type, "WillIn")     // 即将进站临界距离
@@ -2538,14 +2772,21 @@ class MainFragment : Fragment() {
         val rangeBefore = currentLineStationCount - 1 downTo 0
         for (i in rangeAfter + rangeBefore) {
 //            Log.d(tag, "find station $i")
-            //进站条件：现在定位在这个站点内
-            if (currentDistanceToStationList[i] <= inStationDistance &&
+            //进站条件：上次定位在这个站点外，现在定位在这个站点内
+            if (lastDistanceToStationList[i] > inStationDistance &&
+                currentDistanceToStationList[i] <= inStationDistance &&
                 utils.getAutoSwitchStationState("In")
             ) {
 
+
                 //当前站点及状态相同，直接返回
                 if ((lineStationList[i].id == currentLineStation.id && currentLineStationState == StationStatus.ON_ARRIVE)) {
-                    return true
+                    return
+                }
+
+                // 判断方位角
+                if (!isStationBearingOK(lineStationList[i])) {
+                    return
                 }
 
                 Log.d(
@@ -2573,7 +2814,7 @@ class MainFragment : Fragment() {
                 announce()
 
                 utils.longHaptic()
-                return true
+                return
             }
             //即将进站条件：现在位于即将进站范围内，且现在不位于进站进站内
             else if (currentDistanceToStationList[i] <= willInStationDistance &&
@@ -2585,7 +2826,12 @@ class MainFragment : Fragment() {
                 if (((currentLineStationState == StationStatus.ON_WILL_ARRIVE || currentLineStationState == StationStatus.ON_ARRIVE))
                     && lineStationList[i].id == currentLineStation.id
                 ) {
-                    return true
+                    return
+                }
+
+                // 判断方位角
+                if (!isStationBearingOK(lineStationList[i])) {
+                    return
                 }
 
                 Log.d(
@@ -2598,7 +2844,7 @@ class MainFragment : Fragment() {
 
                 announce()
                 utils.longHaptic()
-                return true
+                return
             }
             //出站条件：上次位于某站点内，现在位于这个站点外（出站临界距离）
             else if (lastDistanceToStationList[i] < outStationDistance &&
@@ -2608,6 +2854,12 @@ class MainFragment : Fragment() {
                 ) &&
                 utils.getAutoSwitchStationState("Out")
             ) {
+
+
+                // 判断方位角
+                if (!isStationBearingOK(lineStationList[i])) {
+                    return
+                }
 
                 Log.d(
                     tag,
@@ -2623,16 +2875,18 @@ class MainFragment : Fragment() {
                     setStationAndState(1, StationStatus.ON_NEXT)
                     announce()
                     utils.longHaptic()
-                } else if (i < lineStationList.size - 1) {
+                    return
+                }
+
+                if (i < lineStationList.size - 1) {
                     setStationAndState(i + 1, StationStatus.ON_NEXT)
                     announce()
                     utils.longHaptic()
                 }
 
-                return true
+                return
             }
         }
-        return false
     }
 
 
@@ -2787,6 +3041,7 @@ class MainFragment : Fragment() {
             ) {
 
                 when (i) {
+
                     in 0 until currentLineStationCount - 1 -> {
                         mPolylineLatLngLists[0].add(latLngList[i])
                     }
@@ -2828,7 +3083,8 @@ class MainFragment : Fragment() {
         if (currentLine.name != resources.getString(R.string.line_all)) {
             // 纠偏
             if (utils.getIsLineTrajectoryCorrection())
-                drawLineTrace(traceResJsonStr)
+//                drawLineTrace(traceResJsonStr)
+                drawTrajectoryCorrectionLine(pointGroup)
             // 不纠偏
             else
                 addMapLine()
@@ -2851,29 +3107,6 @@ class MainFragment : Fragment() {
             }
         }
 
-
-//        if (utils.getIsMapEditLineMode() && currentLine.name == resources.getString(R.string.line_all)) {
-//            for (station in lineEditorStationList) {
-//                val latLng = LatLng(
-//                    station.latitude, station.longitude
-//                )
-//                mPolylineLatLngLists[2].add(latLng)
-//            }
-//            addMapLine()
-//        }
-//
-//        if (utils.getIsLineTrajectoryCorrection() && currentLine.name != resources.getString(
-//                R.string.line_all
-//            )
-//        ) {
-//            drawLineTrace(traceResJsonStr)
-//        }
-//
-//        if (!utils.getIsLineTrajectoryCorrection() &&
-//            (currentLine.name != resources.getString(R.string.line_all) || utils.getIsMapEditLineMode())
-//        ) {
-//            addMapLine()
-//        }
 
         // 绘制站点序号与名称
         for (i in currentLineStationList.indices) {
@@ -3059,7 +3292,8 @@ class MainFragment : Fragment() {
         else
             currentLineStation.enName
         binding.currentStationName.text = stationName
-        binding.navStationName.showText(stationName)
+
+        binding.navStationName.nextText(stationName)
         binding.navStationName.requestLayout()
 
         binding.navStationSign.text = when (currentLineStationState) {
@@ -3068,7 +3302,6 @@ class MainFragment : Fragment() {
             StationStatus.ON_ARRIVE -> "↓"
             else -> ""
         }
-
 
         //路线卡片滚动到当前站点
         binding.lineStationList.post {
@@ -3250,19 +3483,6 @@ class MainFragment : Fragment() {
 
     }
 
-    /**
-     * 立即刷新电显，并切换到站点状态和位置（如果有）
-     */
-    private fun refreshEsToStation() {
-        refreshEs(toStation = true)
-    }
-
-    /**
-     * 立即刷新电显，并切换到首末站显示（如果有）
-     */
-    private fun refreshEsToStaringAndTerminal() {
-        refreshEs(toStaringAndTerminal = true)
-    }
 
     var filePathList = ArrayList<String>()
 
@@ -3308,8 +3528,11 @@ class MainFragment : Fragment() {
      * 刷新地图站点标记文本
      */
     private fun refreshMapStationText() {
+
         aMapView.onPause()
+
         for (i in aMapStationTextList.indices) {
+
             // 文本颜色
             val fontColor = getFontColor(i)
 
@@ -3428,194 +3651,6 @@ class MainFragment : Fragment() {
             audioStreamScope.cancel()
     }
 
-    fun refreshEs(toStation: Boolean = false, toStaringAndTerminal: Boolean = false) {
-
-        if (!isAdded)
-            return
-
-//        speedRefreshHandler.removeCallbacksAndMessages(null)
-
-
-//        if (esPlayIndex >= 0 && esPlayIndex < esList.size)
-//            Log.d(tag, "refreshEs: $esPlayIndex / ${esList.size} ${esList[esPlayIndex].leftText}")
-//        else
-//            Log.d(tag, "refreshEs: $esPlayIndex / ${esList.size}")
-
-
-        if (esPlayIndex == -1 && esList.isNotEmpty()) {
-            esPlayIndex = 0
-        }
-
-
-        if (esList.isNotEmpty()) {
-            // 切换到首末站显示
-            if (toStaringAndTerminal) {
-                var frontDefaultItemIndex = -1
-                var hasB = false
-                for ((i, element) in esList.withIndex()) {
-                    // 寻找非特定状态显示内容
-                    if (utils.extractNWA(
-                            Regex("[NWASCT]"),
-                            element.type
-                        ) == "" && frontDefaultItemIndex == -1
-                    ) {
-                        frontDefaultItemIndex = i
-                    }
-                    // 寻找首末站内容
-                    if (element.type.contains("B")) {
-                        esPlayIndex = i
-                        hasB = true
-                        break
-                    }
-                }
-                if (!hasB) {
-                    esPlayIndex = if (frontDefaultItemIndex >= 0) {
-                        frontDefaultItemIndex
-                    } else {
-                        -1
-                    }
-                }
-            }
-            // 仅某状态显示，或切换到当前状态显示
-            else if (esList[esPlayIndex].type.contains(Regex("[NWASCT]")) || toStation) {
-
-                var hasMatchCurrentState = false
-                var hasMatchCurrentPos = false
-                var frontDefaultItemIndex = -1
-
-                val start = if (toStation)
-                    0
-                else
-                    esPlayIndex
-
-                for (i in start until esList.size) {
-
-                    // 寻找非特定状态显示内容（从之后的内容）
-                    if (utils.extractNWA(
-                            Regex("[NWASCT]"),
-                            esList[i].type
-                        ) == "" && frontDefaultItemIndex == -1
-                    ) {
-                        frontDefaultItemIndex = i
-                    }
-
-                    // 寻找当前运行站点状态及位置对应内容
-                    val currentMatchType = utils.extractNWA(Regex("[NWA]"), esList[i].type)
-                    val currentPosType = utils.extractNWA(Regex("[SCT]"), esList[i].type)
-
-                    // 状态及位置类型都有
-                    if (currentMatchType != "" && currentPosType != "") {
-                        if (getStationStateTypeMap()[currentMatchType] == currentLineStationState &&
-                            getStationPositionTypeMap()[currentPosType] == currentLineStationCount
-                        ) {
-                            // C：即不是`起点站`也不是`终点站`
-                            if (currentPosType == "C" &&
-                                (currentLineStationCount == 0 || currentLineStationCount == currentLineStationList.size - 1)
-                            ) {
-                                continue
-                            }
-                            esPlayIndex = i
-                            hasMatchCurrentState = true
-                            hasMatchCurrentPos = true
-                            break
-                        }
-                        // 只有状态类型
-                    } else if (currentMatchType != "") {
-                        if (getStationStateTypeMap()[currentMatchType] == currentLineStationState) {
-                            esPlayIndex = i
-                            hasMatchCurrentState = true
-                            break
-                        }
-                        // 只有位置类型
-                    } else if (currentPosType != "") {
-                        // C：即不是`起点站`也不是`终点站`
-                        if (currentPosType == "C" &&
-                            (currentLineStationCount == 0 || currentLineStationCount == currentLineStationList.size - 1)
-                        ) {
-                            continue
-                        }
-                        if (getStationPositionTypeMap()[currentPosType] == currentLineStationCount) {
-                            esPlayIndex = i
-                            hasMatchCurrentPos = true
-                            break
-                        }
-                    }
-                }
-                if (!hasMatchCurrentState && !hasMatchCurrentPos) {
-                    if (frontDefaultItemIndex >= 0) {
-                        esPlayIndex = frontDefaultItemIndex
-                    } else {
-                        var resIndex = -1
-                        for ((i, element) in esList.withIndex()) {
-                            // 寻找非特定状态显示内容（从所有的内容）
-                            if (utils.extractNWA(Regex("[NWASCT]"), element.type) == ""
-                            ) {
-                                resIndex = i
-                                break
-                            }
-                        }
-                        esPlayIndex = resIndex
-                    }
-                }
-            }
-
-
-        }
-
-        val minTimeS =
-            if (esPlayIndex >= 0 && esPlayIndex < esList.size) esList[esPlayIndex].minTimeS else 5
-        binding.headerLeftNew.minShowTimeMs = minTimeS * 1000
-        binding.headerRightNew.minShowTimeMs = minTimeS * 1000
-
-        refreshEsOnlyText()
-
-    }
-
-    fun refreshEsOnlyText(isUseSet: Boolean = false) {
-
-//        Log.d(tag, "refreshEsOnlyText S")
-
-        var leftText: String
-        var rightText: String
-
-        if (esPlayIndex >= 0 && esPlayIndex < esList.size) {
-            leftText = esList[esPlayIndex].leftText
-            rightText = esList[esPlayIndex].rightText
-        } else {
-            leftText = getString(R.string.main_staring_station_name)
-            rightText = getString(R.string.main_terminal_name)
-        }
-
-        if (binding.headerMiddleNew.isShowFinish) {
-            binding.headerMiddleNew.showText(currentLine.name)
-        }
-
-        for (keyword in utils.getDefaultKeywordList()) {
-            leftText = leftText.replace(keyword, getValueMapValue(keyword), true)
-            rightText = rightText.replace(keyword, getValueMapValue(keyword), true)
-        }
-
-        if (!utils.getIsOpenLeftEs()) {
-            rightText = "$leftText $rightText"
-            leftText = ""
-        }
-
-        if (isUseSet) {
-            if (binding.headerLeftNew.getText() != leftText)
-                binding.headerLeftNew.setText(leftText)
-            if (binding.headerRightNew.getText() != rightText)
-                binding.headerRightNew.setText(rightText)
-        } else {
-            binding.headerLeftNew.showText(leftText)
-            binding.headerRightNew.showText(rightText)
-        }
-
-
-//        Log.d(tag, "refreshEsOnlyText E")
-
-
-    }
-
     fun loadLineAll(acceptStationTypeEnableSetting: Boolean = false) {
 
         utils.showMsg("全站路线加载中")
@@ -3662,17 +3697,13 @@ class MainFragment : Fragment() {
 
     }
 
-    fun refreshUI(isRefreshEs: Boolean = true) {
+    fun refreshUI() {
 
         //更新路线站点显示、小卡片和通知
         refreshLineStationListAndNotice()
 
         //更新路线站点更新信息和系统通知
         refreshLineStationChangeInfo()
-
-        //刷新电显
-        if (isRefreshEs)
-            refreshEsToStation()
 
         //刷新地图标点和轨迹
         refreshMarkerAndTrack()
@@ -3754,35 +3785,6 @@ class MainFragment : Fragment() {
         binding.lineDirectionBtnGroup.check(checkedId)
     }
 
-    fun esPlayNext() {
-        if (esPlayIndex < esList.size - 1) {
-            esPlayIndex++
-        } else {
-            esList = utils.getEsList(utils.getEsText())
-            esPlayIndex = if (esList.isNotEmpty())
-                0
-            else
-                -1
-        }
-    }
-
-
-    fun getStationStateTypeMap(): HashMap<String, Int> {
-        val typeMap = HashMap<String, Int>()
-        typeMap["N"] = StationStatus.ON_NEXT
-        typeMap["W"] = StationStatus.ON_WILL_ARRIVE
-        typeMap["A"] = StationStatus.ON_ARRIVE
-        return typeMap
-    }
-
-
-    fun getStationPositionTypeMap(): HashMap<String, Int> {
-        val typeMap = HashMap<String, Int>()
-        typeMap["S"] = 0
-        typeMap["C"] = currentLineStationCount
-        typeMap["T"] = currentLineStationList.size - 1
-        return typeMap
-    }
 
     fun initLocalBroadcast() {
 
@@ -3809,6 +3811,15 @@ class MainFragment : Fragment() {
                         }
 
                         utils.switchLineActionName -> {
+                            val sharedPreferences =
+                                requireContext().getSharedPreferences(
+                                    "lastRunningInfo",
+                                    MODE_PRIVATE
+                                )
+                            sharedPreferences.edit {
+                                remove("onlineLineUpId")
+                                remove("onlineLineDownId")
+                            }
                             switchLine(id = intent.getIntExtra("id", -1))
                         }
 
@@ -3986,75 +3997,6 @@ class MainFragment : Fragment() {
                 }
             }
         }, 1000)
-    }
-
-    fun getValueMapValue(key: String): String {
-        return when (key) {
-
-            // 站点占位符
-            "<next>" -> utils.getEsNextWord()
-            "<will>" -> utils.getEsWillArriveWord()
-            "<arrive>" -> utils.getEsArriveWord()
-
-            // 其他占位符
-            "<line>" -> currentLine.name
-
-            "<year>" -> LocalDate.now().year.toString()
-            "<years>" -> (LocalDate.now().year % 100).toString()
-            "<month>" -> LocalDate.now().monthValue.toString()
-            "<date>" -> LocalDate.now().dayOfMonth.toString()
-
-            "<hour>" -> String.format(Locale.CHINA, "%02d", LocalTime.now().hour)
-            "<minute>" -> String.format(Locale.CHINA, "%02d", LocalTime.now().minute)
-            "<second>" -> String.format(Locale.CHINA, "%02d", LocalTime.now().second)
-
-            "<time>" ->
-                String.format(Locale.CHINA, "%02d", LocalTime.now().hour) + ":" +
-                        String.format(Locale.CHINA, "%02d", LocalTime.now().minute)
-
-            "<speed>" ->
-                if (currentSpeedKmH >= 0) String.format(
-                    Locale.CHINA,
-                    "%.1f",
-                    currentSpeedKmH
-                ) else "-"
-
-            else -> {
-                if (key.startsWith("<blank") && key.endsWith(">")) {
-                    ""
-                } else {
-                    val station = when (key.substring(1, 3)) {
-                        "ns" -> currentLineStation
-
-                        "ss" -> if (currentLineStationList.isEmpty())
-                            Station(
-                                cnName = getString(R.string.starting_station),
-                                enName = getString(R.string.starting_station)
-                            )
-                        else currentLineStationList.first()
-
-                        "ts" -> if (currentLineStationList.isEmpty())
-                            Station(
-                                cnName = getString(R.string.terminal),
-                                enName = getString(R.string.terminal)
-                            )
-                        else currentLineStationList.last()
-
-                        else -> currentLineStation
-                    }
-                    val lang = if (key.substring(1, 3) == "ms") {
-                        key.substring(3, 5)
-                    } else
-                        key.drop(3).dropLast(1)
-                    when (lang) {
-                        "cn" -> station.cnName
-                        "en" -> station.enName
-                        else -> utils.getStationNameFromCn(station.cnName, lang)
-                    }
-                }
-
-            }
-        }
     }
 
     fun getCityFromLocation(): String {
@@ -4256,6 +4198,37 @@ class MainFragment : Fragment() {
 
     }
 
+    private fun drawTrajectoryCorrectionLine(pointGroup: MutableList<MutableList<Triple<Double, Double, Int?>>>) {
+
+        pointGroup.forEachIndexed { stationIndex, points ->
+
+
+            val lineColorId = when (stationIndex) {
+                //已经过的路径（灰）
+                in 0 until currentLineStationCount - 1 -> R.mipmap.line_gray
+
+                //当前处在的路径（蓝）
+                currentLineStationCount - 1 -> R.mipmap.line_blue
+
+                //还未经过的路径（绿）
+                else -> R.mipmap.line_green    //还未经过的路径（绿）
+            }
+
+            val latLngList: ArrayList<LatLng> = points.map { (lng, lat, _) ->
+                LatLng(lat, lng)
+            } as ArrayList<LatLng>
+
+            val mPolyline = aMap.addPolyline(
+                PolylineOptions().addAll(latLngList)
+                    .width(16f)
+                    .setCustomTexture((BitmapDescriptorFactory.fromResource(lineColorId)))
+                    .zIndex(-90F)
+            )
+            polylineList.add(mPolyline)
+
+        }
+    }
+
     fun getFontColor(i: Int): Int {
         return if (currentLine.name == resources.getString(R.string.line_all)) {
 
@@ -4346,7 +4319,7 @@ class MainFragment : Fragment() {
 
         loadLine(newLine)
 
-        utils.haptic(binding.headerMiddleNew)
+        utils.haptic(binding.root)
     }
 
     fun switchPowerSavingMode(enable: Boolean) {
@@ -4381,7 +4354,9 @@ class MainFragment : Fragment() {
 //                    binding.headerLeftNew.visibility = VISIBLE
 //                }
 //                binding.headerRightNew.visibility = VISIBLE
-            binding.navCard.visibility = VISIBLE
+            if (utils.getIsNavMode()) {
+                binding.navCard.visibility = VISIBLE
+            }
         }
 
         prefs.edit {
@@ -4405,6 +4380,7 @@ class MainFragment : Fragment() {
         }
         loadLine(line)
     }
+
 
     fun getLineTrajectoryCorrection(onFinish: () -> Unit) {
         try {
@@ -4655,37 +4631,25 @@ class MainFragment : Fragment() {
         }
     }
 
-    fun initLiquidGlass() {
+    fun isStationBearingOK(currentLineStation: Station): Boolean {
 
-        var cardBackgroundColor: Int
-
-        // liquidGlassView
-        if (utils.getIsLiquidGlass()) {
-
-            binding.liquidGlassViewOfHeaderNew.applyGlassConfig()
-//            binding.liquidGlassViewOfNavCard.applyGlassConfig()
-//            binding.liquidGlassViewOfLineStationCard.applyGlassConfig()
-
-            cardBackgroundColor = Color.TRANSPARENT
-        } else {
-            cardBackgroundColor =
-                ContextCompat.getColor(requireContext(), R.color.an_contain_bg_tran)
+        // bearing < 0表示未设置方位角，始终判断为有效
+        if (currentLineStation.bearing < 0) {
+            return true
         }
 
-        binding.headerNew.setCardBackgroundColor(cardBackgroundColor)
-//        binding.navCard.setCardBackgroundColor(cardBackgroundColor)
-//        binding.lineStationCard.setCardBackgroundColor(cardBackgroundColor)
 
+        // 已设置方位角，判断夹角22.5度内即为有效
+        val angle = (utils.angleBetween(
+            currentBearing,
+            currentLineStation.bearing
+        ))
+        Log.d(
+            "L4643",
+            "match with ${currentLineStation.cnName}, ${currentLineStation.bearing} to ${currentBearing}, angle: ${angle}"
+        )
 
+        return angle <= 22.5
     }
-
-    private fun LiquidGlassView.applyGlassConfig() {
-        setBlurRadius(6f)
-        setRefractionHeight(0f)
-        setRefractionOffset(0f)
-        setCornerRadius(utils.dp2px(24f).toFloat())
-        bind(binding.mapContainer)
-    }
-
 
 }

@@ -33,7 +33,6 @@ import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.Locale
-import kotlin.text.contains
 import kotlin.time.Duration.Companion.milliseconds
 
 
@@ -43,6 +42,7 @@ fun EsHeaderCompose(
     modifier: Modifier = Modifier,
     isAnimating: Boolean = false,
     onHeaderClick: (() -> Unit)? = null,
+    onHeaderLongClick: (() -> Unit)? = null,
 
     line: Line,
     currentSpeedKmH: Double,
@@ -80,9 +80,6 @@ fun EsHeaderCompose(
         mutableStateOf(utils.getIsOpenMidEs())
     }
 
-    val (leftText, setLeftText) = remember { mutableStateOf(context.getString(R.string.main_staring_station_name)) }
-    val (middleText, setMiddleText) = remember { mutableStateOf(context.getString(R.string.main_line_0)) }
-    val (rightText, setRightText) = remember { mutableStateOf(context.getString(R.string.main_terminal_name)) }
 
     val (isLeftShowFinish, setIsLeftShowFinish) = remember { mutableStateOf(false) }
     val (isMiddleShowFinish, setIsMiddleShowFinish) = remember { mutableStateOf(false) }
@@ -91,6 +88,8 @@ fun EsHeaderCompose(
     val currentIsLeftShowFinish by rememberUpdatedState(isLeftShowFinish)
     val currentIsMiddleShowFinish by rememberUpdatedState(isMiddleShowFinish)
     val currentIsRightShowFinish by rememberUpdatedState(isRightShowFinish)
+
+    var esHeaderBinding by remember { mutableStateOf<ViewEsHeaderBinding?>(null) }
 
     DisposableEffect(prefs) {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
@@ -186,6 +185,8 @@ fun EsHeaderCompose(
 
     fun refreshEsOnlyText(isUseSet: Boolean = false) {
 
+//        Log.d("L187", "${currentLineStationCount} ${currentLineStation.cnName}")
+
 //        Log.d(tag, "refreshEsOnlyText S")
 
         var leftText: String
@@ -200,11 +201,6 @@ fun EsHeaderCompose(
             rightText = context.getString(R.string.main_terminal_name)
         }
 
-        if (isMiddleShowFinish) {
-//            binding.headerMiddleNew.showText(lineName)
-            setMiddleText(line.name)
-        }
-
         for (keyword in utils.getDefaultKeywordList()) {
             leftText = leftText.replace(keyword, getValueMapValue(keyword), true)
             rightText = rightText.replace(keyword, getValueMapValue(keyword), true)
@@ -215,28 +211,37 @@ fun EsHeaderCompose(
             leftText = ""
         }
 
-//        if (isUseSet) {
-//            if (binding.headerLeftNew.getText() != leftText)
-//                binding.headerLeftNew.setText(leftText)
-//            if (binding.headerRightNew.getText() != rightText)
-//                binding.headerRightNew.setText(rightText)
-//        } else {
-//            binding.headerLeftNew.showText(leftText)
-//            binding.headerRightNew.showText(rightText)
-//        }
+//        Log.d("L218", "${esHeaderBinding == null}")
+
+        esHeaderBinding?.let { binding ->
+
+            fun setText(view: ESView, text: String) {
+                if (isUseSet) {
+                    if (view.getText() != text) {
+                        view.setText(text)
+                    }
+                } else {
+                    view.nextText(text)
+                }
+            }
+
+            setText(binding.headerLeftNew, leftText)
+            setText(binding.headerMiddleNew, line.name)
+            setText(binding.headerRightNew, rightText)
+        }
 
 
 //        Log.d(tag, "refreshEsOnlyText E")
 
         // TODO
-        Log.d("L221", "${leftText} ${rightText}")
-        setLeftText(leftText)
-        setRightText(rightText)
+//        Log.d("L221", "${leftText} ${rightText}")
+//        setLeftText(leftText)
+//        setRightText(rightText)
 
     }
 
     fun esPlayNext() {
-        Log.d("L237", "${esPlayIndex}")
+//        Log.d("L237", "${esPlayIndex}")
         if (esPlayIndex.intValue < esList.size - 1) {
             esPlayIndex.intValue++
         } else {
@@ -401,57 +406,42 @@ fun EsHeaderCompose(
 
     var isRunning by remember { mutableStateOf(false) }
     LifecycleResumeEffect(Unit) {
-        Log.d("L80", "onResume")
+//        Log.d("L80", "onResume")
         isRunning = true
 
 
         onPauseOrDispose {
-            Log.d("L80", "onPause")
+//            Log.d("L80", "onPause")
             isRunning = false
 
         }
     }
 
-    var isRefreshing = false
-    var esRefreshCount = 0
-
-    LaunchedEffect(isRunning) {
+    LaunchedEffect(
+        isRunning,
+        esPlayIndex.intValue,
+        esList
+    ) {
+        if (!isRunning) return@LaunchedEffect
 
         while (isRunning) {
-
-            Log.d("L80", "repeat")
-            Log.d("L412", "${esPlayIndex}")
-            if (esPlayIndex.intValue >= 0 && esPlayIndex.intValue < esList.size &&
-                esList[esPlayIndex.intValue].type.contains("R") && esRefreshCount % 10 == 0
+            val idx = esPlayIndex.intValue
+            if (idx >= 0 && idx < esList.size &&
+                esList[idx].type.contains("R")
             ) {
                 refreshEsOnlyText(true)
             }
-
-            val isLeftFinish =
-                currentIsLeftShowFinish || !utils.getIsOpenLeftEs()
-
-            val isRightFinish = currentIsRightShowFinish
-
-            Log.d("L431", "${isRefreshing} ${isLeftShowFinish} ${isRightShowFinish}")
-
-            if (!isRefreshing && isLeftFinish && isRightFinish) {
-                isRefreshing = true
-                esPlayNext()
-                Log.d("L438", "${esPlayIndex}")
-                refreshEs()
-                isRefreshing = false
-            }
-
-            if (isMiddleShowFinish) {
-//            binding.headerMiddleNew.showText(lineName)
-                setMiddleText(line.name)
-            }
-
-            esRefreshCount++
-
-
             delay(100L.milliseconds)
-            // 每 100ms 执行一次的任务
+        }
+    }
+
+    LaunchedEffect(isLeftShowFinish, isRightShowFinish, isRunning) {
+        if (!isRunning) return@LaunchedEffect
+        val isLeftFinish = isLeftShowFinish || !utils.getIsOpenLeftEs()
+        val isRightFinish = isRightShowFinish
+        if (isLeftFinish && isRightFinish) {
+            esPlayNext()
+            refreshEs()
         }
     }
 
@@ -469,24 +459,14 @@ fun EsHeaderCompose(
         refreshEs(toStaringAndTerminal = true)
     }
 
-    LaunchedEffect(currentLineStation, currentLineStationState) {
+    LaunchedEffect(currentLineStation, currentLineStationCount, currentLineStationState) {
         refreshEsToStation()
     }
 
-    LaunchedEffect(line) {
-        setMiddleText(line.name)
+    LaunchedEffect(line, currentLineStationList) {
         refreshEsToStaringAndTerminal()
     }
 
-    fun updateText(view: ESView, text: String) {
-        if (view.getText() != text) {
-            if (esPlayIndex.intValue > 0 && esList[esPlayIndex.intValue].type.contains("R")) {
-                view.setText(text)
-            } else {
-                view.showText(text)
-            }
-        }
-    }
 
     AndroidView(
         modifier = modifier,
@@ -495,7 +475,9 @@ fun EsHeaderCompose(
             val binding = ViewEsHeaderBinding.inflate(
                 LayoutInflater.from(context), null, false
             )
+
             binding.root.tag = binding
+            esHeaderBinding = binding
 
             binding.headerLeftNew.minShowTimeMs = 500
             binding.headerRightNew.minShowTimeMs = 500
@@ -503,16 +485,12 @@ fun EsHeaderCompose(
             // 监听IsShowFinish
             binding.headerLeftNew.setOnShowFinishChangedListener { finish ->
                 setIsLeftShowFinish(finish)
-                Log.d("L466", "${leftText} ${finish}")
             }
-//            binding.headerMiddleNew.setOnShowFinishChangedListener { finish ->
-//                setIsMiddleShowFinish(finish)
-//                Log.d("L466", "${middleText} ${finish}")
-//            }
-
+            binding.headerMiddleNew.setOnShowFinishChangedListener { finish ->
+                setIsMiddleShowFinish(finish)
+            }
             binding.headerRightNew.setOnShowFinishChangedListener { finish ->
                 setIsRightShowFinish(finish)
-                Log.d("L466", "${rightText} ${finish}")
             }
 
             binding.root
@@ -520,21 +498,16 @@ fun EsHeaderCompose(
         update = { view ->
             val binding = view.tag as? ViewEsHeaderBinding ?: return@AndroidView
 
-            Log.d("L32", "update ${leftText} ${rightText}")
+//            Log.d("L32", "update ${leftText} ${rightText}")
 
-            binding.headerLeftNew.minShowTimeMs = minShowTimeMs.intValue
-            binding.headerRightNew.minShowTimeMs = minShowTimeMs.intValue
-
-            // 更新Text
-            updateText(binding.headerLeftNew, leftText)
-            updateText(binding.headerMiddleNew, middleText)
-            updateText(binding.headerRightNew, rightText)
 
             listOf(
                 binding.headerLeftNew,
                 binding.headerMiddleNew,
                 binding.headerRightNew
             ).forEach {
+
+                it.minShowTimeMs = minShowTimeMs.intValue
 
                 if (isAnimating)
                     it.startAnimation()
@@ -558,9 +531,10 @@ fun EsHeaderCompose(
                 else
                     GONE
 
-//            refreshEsOnlyText(true)
-
             view.setOnClickListener { onHeaderClick?.invoke() }
+            view.setOnLongClickListener {
+                onHeaderLongClick?.invoke()
+                true}
         }
     )
 

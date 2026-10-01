@@ -343,7 +343,7 @@ class AnnouncementResolver(private val context: Context) {
 
         for (media in mediaList) {
 
-            Log.d("L3770", media)
+//            Log.d("L3770", media)
 
             // 1. 空白占位音频
             if (media.startsWith("/blank")) {
@@ -462,7 +462,7 @@ class AnnouncementResolver(private val context: Context) {
     }
 
     fun hasTTSDone(filePath: String): Boolean {
-        Log.d("L481", "${ttsFileDoneList.contains(filePath)}")
+//        Log.d("L481", "${ttsFileDoneList.contains(filePath)}")
         return ttsFileDoneList.contains(filePath)
     }
 
