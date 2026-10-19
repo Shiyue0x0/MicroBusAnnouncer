@@ -14,15 +14,19 @@ import androidx.media3.common.C.USAGE_MEDIA
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Player.STATE_ENDED
+import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import com.microbus.announcer.Utils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.collections.forEachIndexed
@@ -106,13 +110,13 @@ class AnnouncementPlayer
 
                     // 播放完成
                     Player.STATE_ENDED -> {
-                        if (player.currentMediaItemIndex >= filePathList.size) {
-                            //                        Log.d("L1946", "STATE_ENDED")
-                            val intent = Intent()
-                                .setAction(utils.ON_PLAYER_STATE_ENDED)
-                            LocalBroadcastManager.getInstance(context)
-                                .sendBroadcast(intent)
-                        }
+//                        if (player.currentMediaItemIndex >= filePathList.size) {
+                        Log.d("L1946", "STATE_ENDED")
+                        val intent = Intent()
+                            .setAction(utils.ON_PLAYER_STATE_ENDED)
+                        LocalBroadcastManager.getInstance(context)
+                            .sendBroadcast(intent)
+//                        }
                     }
 
                     Player.STATE_BUFFERING -> {
@@ -155,15 +159,17 @@ class AnnouncementPlayer
     }
 
     var filePathList = ArrayList<AnnouncementResolver.MediaItem>()
+    lateinit var playJob: Job
 
     fun play(
         mediaItemList: ArrayList<AnnouncementResolver.MediaItem>,
         anResolver: AnnouncementResolver
     ) {
 
-        CoroutineScope(Dispatchers.IO).launch {
+        playJob = CoroutineScope(Dispatchers.IO).launch {
 
-            pauseAnnounce()
+            pauseAnnounce(cancelPlayJob = false).join()
+
             filePathList = mediaItemList
             filePathList.forEachIndexed { i, mediaItem ->
 
@@ -171,11 +177,18 @@ class AnnouncementPlayer
 
                 // 等待TTS合成/Network下载完成
                 if (mediaItem.source == AnnouncementResolver.AudioSource.TTS) {
+
+                    if (!isActive) {
+                        pauseAnnounce()
+                        return@launch
+                    }
+
                     val start = SystemClock.elapsedRealtime()
                     while (!anResolver.hasTTSDone(mediaItem.filePath)) {
                         currentCoroutineContext().ensureActive()
                         if (SystemClock.elapsedRealtime() - start > timeoutMs) {
                             withContext(Dispatchers.Main) { utils.showMsg("TTS合成超时") }
+                            pauseAnnounce()
                             return@launch
                         }
                         delay(50.milliseconds)
@@ -184,8 +197,14 @@ class AnnouncementPlayer
 
                 // 等待HTTP下载完成
                 if (mediaItem.source == AnnouncementResolver.AudioSource.NETWORK) {
+
+                    if (!isActive) {
+                        pauseAnnounce()
+                        return@launch
+                    }
+
                     val start = SystemClock.elapsedRealtime()
-                    while (!anResolver.hasNetworkDone(mediaItem.text ?: "")) {
+                    while (!anResolver.hasNetworkDone(mediaItem.filePath)) {
                         currentCoroutineContext().ensureActive()
                         if (SystemClock.elapsedRealtime() - start > timeoutMs) {
                             withContext(Dispatchers.Main) { utils.showMsg("GET音频超时") }
@@ -196,22 +215,27 @@ class AnnouncementPlayer
                 }
 
                 withContext(Dispatchers.Main) {
+
+                    Log.d("L3863", "ok ${mediaItem.filePath}")
+                    Log.d("L201", "play ${player.playbackState}")
+
                     val mediaItem = MediaItem.Builder()
                         .setUri(mediaItem.filePath)
                         .setMediaId(mediaItem.filePath)
                         .build()
-                    player.addMediaItem(i, mediaItem)
-//                    Log.d("L3863", filePath)
 
-//                    if (i == 0) {
+                    player.addMediaItem(i, mediaItem)
+
+                    if (player.playbackState == STATE_ENDED) {
+                        player.seekTo(i, 0L)
+                    }
+
                     player.prepare()
                     player.play()
-//                    }
                 }
 
             }
         }
-
     }
 
     fun showAnSubtitle() {
@@ -229,12 +253,15 @@ class AnnouncementPlayer
         )
     }
 
-    fun pauseAnnounce() {
-        CoroutineScope(Dispatchers.Main).launch {
+    fun pauseAnnounce(cancelPlayJob: Boolean = true): Job {
+        return CoroutineScope(Dispatchers.Main).launch {
             audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
 
             player.stop()
             player.clearMediaItems()
+            if (this@AnnouncementPlayer::playJob.isInitialized && cancelPlayJob) {
+                playJob.cancel()
+            }
 
             val intent = Intent()
                 .setAction(utils.ON_PLAYER_PAUSE)

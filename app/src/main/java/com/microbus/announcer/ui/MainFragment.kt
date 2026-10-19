@@ -2603,7 +2603,7 @@ class MainFragment : Fragment() {
     fun onMyLocationChange(location: AMapLocation) {
 
 //        utils.showMsg(location.city)
-        Log.d("L2546", "")
+//        Log.d("L2546", "")
 
         currentCityName = location.city
 
