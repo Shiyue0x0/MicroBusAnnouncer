@@ -3484,7 +3484,7 @@ class MainFragment : Fragment() {
     }
 
 
-    var filePathList = ArrayList<String>()
+    var filePathList = ArrayList<AnnouncementResolver.MediaItem>()
 
     /**
      * 语音播报

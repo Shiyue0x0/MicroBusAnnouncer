@@ -1,5 +1,6 @@
 package com.microbus.announcer.announce
 
+import java.util.Base64
 import android.content.Context
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -13,11 +14,17 @@ import com.microbus.announcer.util.WavSilenceGenerator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okio.IOException
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.Locale
-import kotlin.collections.addAll
+import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
 
@@ -38,6 +45,26 @@ class AnnouncementResolver(private val context: Context) {
     init {
         initTTS()
     }
+
+    enum class AudioSource {
+        /** 空白间隔（例如100ms） */
+        BLANK,
+
+        /** 网络请求获取 */
+        NETWORK,
+
+        /** 本地文件 */
+        LOCAL,
+
+        /** 文字转语音 */
+        TTS
+    }
+
+    class MediaItem(
+        val source: AudioSource,
+        val filePath: String,
+        val text: String?
+    )
 
     private fun initTTS() {
         tts = TextToSpeech(context) { status ->
@@ -83,13 +110,15 @@ class AnnouncementResolver(private val context: Context) {
     fun resolveAndBuild(
         format: String = "",
         anContext: AnnouncementContext
-    ): ArrayList<String> {
+    ): java.util.ArrayList<MediaItem> {
 
         this.format = format
         this.anContext = anContext
 
         val mediaList = resolve()
         val filePathList = build(mediaList)
+
+        Log.d("L94", filePathList.toString())
 
         return filePathList
     }
@@ -317,7 +346,7 @@ class AnnouncementResolver(private val context: Context) {
         return "/blank/${blankDurationMs}.pcm"
     }
 
-    fun build(mediaList: ArrayList<String>): ArrayList<String> {
+    fun build(mediaList: ArrayList<String>): java.util.ArrayList<MediaItem> {
 
         if (mediaList.isEmpty()) {
             return arrayListOf()
@@ -340,6 +369,7 @@ class AnnouncementResolver(private val context: Context) {
 
         // 查找本地音频/合成TTS音频
         val filePathList = ArrayList<String>()
+        val mediaItemList = ArrayList<MediaItem>()
 
         for (media in mediaList) {
 
@@ -349,27 +379,43 @@ class AnnouncementResolver(private val context: Context) {
             if (media.startsWith("/blank")) {
                 val blankFilePath = buildBlankMedia(media)
                 filePathList.add(blankFilePath)
+                mediaItemList.add(MediaItem(AudioSource.BLANK, blankFilePath, null))
                 continue
             }
 
-            // 2. 本地音频
+            val text = media.split('/').last()
+
+            // 2. 通过GET请求获取音频
+            val url = utils.getHTTPGetVoiceURL()
+            if (utils.getEnableHTTPGetVoiceItem()) {
+                if (url.isNotEmpty() && url.contains("{{text}}")) {
+                    val httpGetMediaPath = buildHttpGetMedia(text)
+                    filePathList.add(text)
+                    mediaItemList.add(MediaItem(AudioSource.NETWORK, httpGetMediaPath, text))
+                    continue
+                }
+            }
+
+            // 3. 本地音频
             val localFilePath = buildLocalMedia(media)
             if (localFilePath != "") {
                 filePathList.add(localFilePath)
+                mediaItemList.add(MediaItem(AudioSource.LOCAL, localFilePath, text))
                 continue
             }
 
-            // 3. 不存在本地音频
+            // 4. 不存在本地音频
             // 启用TTS，合成TTS音频
-            val ttsFilePath = buildTTSMedia(media)
+            val ttsFilePath = buildTTSMedia(text)
             if (ttsFilePath != "") {
                 filePathList.add(ttsFilePath)
+                mediaItemList.add(MediaItem(AudioSource.TTS, ttsFilePath, text))
                 continue
             }
 
         }
 
-        return filePathList
+        return mediaItemList
     }
 
     fun buildBlankMedia(media: String): String {
@@ -392,6 +438,108 @@ class AnnouncementResolver(private val context: Context) {
         return outputPath
     }
 
+    enum class AudioFileStatus(val description: String) {
+        LOADING("加载中"),
+        COMPLETED("已完成")
+    }
+
+    data class FileItem(
+        val text: String,
+        var status: AudioFileStatus
+    )
+
+    val networkMediaFileList: MutableList<FileItem> = mutableListOf()
+    fun MutableList<FileItem>.removeByText(text: String) {
+        removeAll { it.text == text }
+    }
+
+    fun List<FileItem>.findByText(text: String): FileItem? =
+        find { it.text == text }
+
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)   // TTS 合成可能较慢，读超时给长一点
+        .build()
+
+
+    fun buildHttpGetMedia(text: String): String {
+
+        val baseUrl = utils.getHTTPGetVoiceURL()
+        val urlKey = urlToDirName(baseUrl)
+        val networkFileName = "${text}.wav"
+        val networkDir = File("${utils.appRootPath}/networkMedia/$urlKey/")
+        if (!networkDir.exists()) {
+            networkDir.mkdirs()
+        }
+        val networkFile = File(networkDir, networkFileName)
+
+        // TODO 缓存：相同urlKey且text相同的请求，直接返回，需要判断文件是否下载完成
+        val fileItem = networkMediaFileList.findByText(text)
+        if (fileItem != null) {
+            return networkFile.path
+        }
+
+        // 构建URL
+        val url = baseUrl.replace("{{text}}", text)
+        val request: Request
+        try {
+            request = Request.Builder().url(url).build()
+        } catch (e: Exception) {
+            CoroutineScope(Dispatchers.Main).launch {
+                utils.showMsg("GET URL格式错误")
+            }
+            return ""
+        }
+
+        // 发起请求
+        networkMediaFileList.add(FileItem(text, AudioFileStatus.LOADING))
+        Log.e("HttpGetMedia", "download start: $url")
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                networkMediaFileList.removeByText(text)
+                Log.e("HttpGetMedia", "download failed: $url", e)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use { resp ->
+                    if (!resp.isSuccessful) {
+                        Log.e("HttpGetMedia", "HTTP ${resp.code} for $url")
+                        val errorBody = resp.body.string()   // 只读取一次，保存下来
+                        Log.e("HttpGetMedia", errorBody)
+                        networkMediaFileList.removeByText(text)
+                        CoroutineScope(Dispatchers.Main).launch {
+                            utils.showMsg(errorBody)         // 使用保存的字符串
+                        }
+                        return
+                    }
+                    val body = resp.body
+                    try {
+                        body.byteStream().use { input ->
+                            networkFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        if (networkFile.length() == 0L) {
+                            networkFile.delete()
+                            networkMediaFileList.removeByText(text)
+                            Log.e("HttpGetMedia", "empty body for $url")
+                            return
+                        }
+                        networkMediaFileList.findByText(text)?.status = AudioFileStatus.COMPLETED
+                        Log.d("HttpGetMedia", "saved ${networkFile.path}")
+                    } catch (e: IOException) {
+                        networkMediaFileList.removeByText(text)
+                        Log.e("HttpGetMedia", "write failed", e)
+                        networkFile.delete()
+                    }
+                }
+            }
+        })
+
+        return networkFile.path
+    }
+
+
     fun buildLocalMedia(media: String): String {
 
         val supportMediaFormatList =
@@ -410,13 +558,12 @@ class AnnouncementResolver(private val context: Context) {
         return ""
     }
 
-    fun buildTTSMedia(media: String): String {
+    fun buildTTSMedia(text: String): String {
 
         if (!(utils.getIsUseTTS() && ttsReady)) {
             return ""
         }
 
-        val text = media.split('/').last()
         val ttsFileName = "${text}.wav"
         val ttsFile = File("$tempFilePath/tts/", ttsFileName)
 
@@ -464,6 +611,22 @@ class AnnouncementResolver(private val context: Context) {
     fun hasTTSDone(filePath: String): Boolean {
 //        Log.d("L481", "${ttsFileDoneList.contains(filePath)}")
         return ttsFileDoneList.contains(filePath)
+    }
+
+    fun hasNetworkDone(text: String): Boolean {
+        if (text.isEmpty()) {
+            return false
+        }
+
+        val mediaFile = networkMediaFileList.findByText(text) ?: return false
+        return mediaFile.status == AudioFileStatus.COMPLETED
+    }
+
+    fun urlToDirName(url: String): String {
+        val bytes = url.toByteArray(Charsets.UTF_8)
+        return Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString(bytes)
     }
 
 }

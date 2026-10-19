@@ -387,11 +387,19 @@ class Utils(private val context: Context) {
         return prefs.getBoolean("isMapTrafficEnabled", false)
     }
 
+    fun getEnableHTTPGetVoiceItem(): Boolean {
+        return prefs.getBoolean("enableHTTPGetVoiceItem", true)
+    }
+
     /**
      * 从设置中获取是否使用TTS
      */
     fun getIsUseTTS(): Boolean {
         return prefs.getBoolean("useTTS", true)
+    }
+
+    fun getHTTPGetVoiceURL(): String {
+        return prefs.getString("httpGetVoiceURL", "") ?: ""
     }
 
     fun getIsStationChangeVibrator(): Boolean {

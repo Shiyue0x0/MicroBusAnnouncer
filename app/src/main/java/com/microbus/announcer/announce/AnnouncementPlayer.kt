@@ -7,7 +7,6 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.audiofx.LoudnessEnhancer
 import android.os.SystemClock
-import android.util.Log
 import androidx.annotation.OptIn
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC
@@ -107,11 +106,13 @@ class AnnouncementPlayer
 
                     // 播放完成
                     Player.STATE_ENDED -> {
-//                        Log.d("L1946", "STATE_ENDED")
-                        val intent = Intent()
-                            .setAction(utils.ON_PLAYER_STATE_ENDED)
-                        LocalBroadcastManager.getInstance(context)
-                            .sendBroadcast(intent)
+                        if (player.currentMediaItemIndex >= filePathList.size) {
+                            //                        Log.d("L1946", "STATE_ENDED")
+                            val intent = Intent()
+                                .setAction(utils.ON_PLAYER_STATE_ENDED)
+                            LocalBroadcastManager.getInstance(context)
+                                .sendBroadcast(intent)
+                        }
                     }
 
                     Player.STATE_BUFFERING -> {
@@ -153,19 +154,25 @@ class AnnouncementPlayer
 
     }
 
-    fun play(filePathList: ArrayList<String>, anResolver: AnnouncementResolver) {
+    var filePathList = ArrayList<AnnouncementResolver.MediaItem>()
+
+    fun play(
+        mediaItemList: ArrayList<AnnouncementResolver.MediaItem>,
+        anResolver: AnnouncementResolver
+    ) {
 
         CoroutineScope(Dispatchers.IO).launch {
 
             pauseAnnounce()
+            filePathList = mediaItemList
+            filePathList.forEachIndexed { i, mediaItem ->
 
-            filePathList.forEachIndexed { i, filePath ->
+                val timeoutMs = 15_000L
 
-                // 等待TTS合成完成
-                if (filePath.split("/").reversed()[1] == "tts") {
-                    val timeoutMs = 15_000L
+                // 等待TTS合成/Network下载完成
+                if (mediaItem.source == AnnouncementResolver.AudioSource.TTS) {
                     val start = SystemClock.elapsedRealtime()
-                    while (!anResolver.hasTTSDone(filePath)) {
+                    while (!anResolver.hasTTSDone(mediaItem.filePath)) {
                         currentCoroutineContext().ensureActive()
                         if (SystemClock.elapsedRealtime() - start > timeoutMs) {
                             withContext(Dispatchers.Main) { utils.showMsg("TTS合成超时") }
@@ -175,18 +182,31 @@ class AnnouncementPlayer
                     }
                 }
 
+                // 等待HTTP下载完成
+                if (mediaItem.source == AnnouncementResolver.AudioSource.NETWORK) {
+                    val start = SystemClock.elapsedRealtime()
+                    while (!anResolver.hasNetworkDone(mediaItem.text ?: "")) {
+                        currentCoroutineContext().ensureActive()
+                        if (SystemClock.elapsedRealtime() - start > timeoutMs) {
+                            withContext(Dispatchers.Main) { utils.showMsg("GET音频超时") }
+                            return@launch
+                        }
+                        delay(50.milliseconds)
+                    }
+                }
+
                 withContext(Dispatchers.Main) {
                     val mediaItem = MediaItem.Builder()
-                        .setUri(filePath)
-                        .setMediaId(filePath)
+                        .setUri(mediaItem.filePath)
+                        .setMediaId(mediaItem.filePath)
                         .build()
                     player.addMediaItem(i, mediaItem)
 //                    Log.d("L3863", filePath)
 
-                    if (i == 0) {
-                        player.prepare()
-                        player.play()
-                    }
+//                    if (i == 0) {
+                    player.prepare()
+                    player.play()
+//                    }
                 }
 
             }
