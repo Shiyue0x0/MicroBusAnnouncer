@@ -812,7 +812,7 @@ class Utils(private val context: Context) {
 
     /**
      * 从设置中获取报站表达式
-     * @param stationState （Next：下一站）（WillArrive：即将到站）（Arrive：进站
+     * @param stationState （Next：下一站）（WillArrive：即将到站）（Arrive：进站）
      * @param stationType （Default：常规站）（Second：第二站）（Starting：起点站）（Terminal：终点站）
      * @return 相应的报站表达式。如果stationType不为Default，且没有查询到填写值，则返回Default的值
      */
@@ -1564,6 +1564,7 @@ class Utils(private val context: Context) {
         val diff = abs(bearing1 - bearing2) % 360
         return if (diff > 180) 360 - diff else diff
     }
+
 
 }
 

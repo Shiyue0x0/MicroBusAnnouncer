@@ -663,14 +663,14 @@ class MainFragment : Fragment() {
             initNotification()
         }
 
+        // 初始化报站
+        initAnnouncement()
+
         //初始化路线
         initLine()
 
         // 初始化按钮回调
         initButton()
-
-        // 初始化报站
-        initAnnouncement()
 
         // 初始化路线规划
         initLinePlan()
@@ -1024,6 +1024,38 @@ class MainFragment : Fragment() {
             }
 
         }
+
+
+        // TODO network common语句
+        val stationStateList = listOf("Next", "WillArrive", "Arrive")
+        val stationTypeList = listOf("Default", "Second", "Starting", "Terminal")
+
+        val commonAndStationTextSet = mutableSetOf<String>()
+
+        stationStateList.forEach { stationState ->
+            stationTypeList.forEach { stationType ->
+                val format = utils.getAnnouncementFormat(stationState, stationType)
+                val anList = utils.getAnnouncements(format)
+                val commonTextList = anList.filter { !(it.first() == '<' && it.last() == '>') }
+                commonAndStationTextSet.addAll(commonTextList)
+            }
+        }
+
+        // 预加载站点名称
+        currentLineStationList.forEachByDistance(currentLineStationCount) { index, station ->
+            commonAndStationTextSet.add(station.cnName)
+            commonAndStationTextSet.add(station.enName)
+        }
+
+        val allCommonTextList = commonAndStationTextSet.toList()
+        Log.d("L1035", allCommonTextList.toString())
+
+        // TODO 删除列表
+
+        allCommonTextList.forEach { item ->
+            anResolver.preloadingNetworkMedia(item)
+        }
+
 
         return
 
@@ -4651,5 +4683,30 @@ class MainFragment : Fragment() {
 
         return angle <= 22.5
     }
+
+    fun <T> List<T>.forEachByDistance(i: Int, action: (index: Int, value: T) -> Unit) {
+        if (isEmpty()) return
+        require(i in indices) { "index $i out of bounds for size $size" }
+
+        action(i, this[i])
+        var distance = 1
+        while (true) {
+            var hasItem = false
+            val left = i - distance
+            val right = i + distance
+
+            if (left >= 0) {
+                action(left, this[left])
+                hasItem = true
+            }
+            if (right < size) {
+                action(right, this[right])
+                hasItem = true
+            }
+            if (!hasItem) break
+            distance++
+        }
+    }
+
 
 }
