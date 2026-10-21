@@ -1,7 +1,6 @@
 package com.microbus.announcer.announce
 
 import android.annotation.SuppressLint
-import java.util.Base64
 import android.content.Context
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -28,10 +27,8 @@ import java.time.LocalTime
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
-import kotlin.uuid.Uuid
-import androidx.core.content.edit
-import java.io.FileOutputStream
-import java.io.RandomAccessFile
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 
 class AnnouncementResolver(private val context: Context) {
@@ -453,7 +450,7 @@ class AnnouncementResolver(private val context: Context) {
 
     data class FileItem(
         val path: String,
-        val text: String,
+        val voiceText: String,
         var priority: PriorityLevel = PriorityLevel.IMMEDIATE
     )
 
@@ -479,41 +476,52 @@ class AnnouncementResolver(private val context: Context) {
 
     private var httpGetJob: Job? = null
 
-    fun buildHttpGetMedia(text: String, priority: PriorityLevel = PriorityLevel.IMMEDIATE): String {
+    fun buildHttpGetMedia(
+        sourceText: String,
+        priority: PriorityLevel = PriorityLevel.IMMEDIATE
+    ): String {
 
         val baseUrl = utils.getHTTPGetVoiceURL()
-        val urlKey = getUrlKey(baseUrl)
-        val networkFileName = "${text}.wav"
+        val urlKey = utils.getVoiceUrlKey(baseUrl)
+        // 移除url前的名称部分
+        val url = baseUrl.replaceFirst(Regex("\\[.*?]"), "")
+
+        val voiceText = utils.getVoiceText(sourceText)
+        val networkFileName = "${voiceText}.wav"
         val networkDir = File("${utils.appRootPath}/networkMedia/$urlKey/")
         if (!networkDir.exists()) {
             networkDir.mkdirs()
         }
         val networkFile = File(networkDir, networkFileName)
 
-        val fileItem = networkMediaFileList.findByPath(networkFile.path)
 
         // 本地缓存：相同urlKey且text相同的请求，直接返回
         if (networkFile.exists() && networkFile.length() > 0L) {
             return networkFile.path
         }
 
-        // 正在合成，直接返回
+        val fileItem = networkMediaFileList.findByPath(networkFile.path)
+        // 已在队列中加载，更新优先级，直接返回
         if (fileItem != null) {
+            fileItem.priority = priority
             return networkFile.path
         }
-
 
         // 发起请求
         networkMediaFileList.add(
             FileItem(
                 networkFile.path,
-                text,
+                voiceText,
                 priority
             )
         )
 
+        Log.d("L516", "networkMediaFile: ${networkMediaFileList.last()}")
         // 依次发起请求
         if (httpGetJob == null) {
+            CoroutineScope(Dispatchers.Main).launch {
+                utils.showMsg("音频URL请求名称：$urlKey")
+            }
             httpGetJob = CoroutineScope(Dispatchers.IO.limitedParallelism(1)).launch {
                 while (isActive) {
 
@@ -527,7 +535,7 @@ class AnnouncementResolver(private val context: Context) {
                         return@launch
                     }
 
-                    Log.d("L506", "httpGetJob")
+//                    Log.d("L506", "httpGetJob")
 
                     val loadingMediaFile = File(loadingMediaItem.path)
 
@@ -538,7 +546,7 @@ class AnnouncementResolver(private val context: Context) {
 
                     try {
                         // 构建URL
-                        val url = baseUrl.replace("{{text}}", loadingMediaItem.text)
+                        val url = url.replace("{{text}}", loadingMediaItem.voiceText)
                         val request: Request
                         try {
                             request = Request
@@ -553,25 +561,23 @@ class AnnouncementResolver(private val context: Context) {
                         }
 
                         // execute() 是同步阻塞的，必须放在 IO 线程（这里已经在 IO 协程里）
-                        Log.e("HttpGetMedia", "get start: ${loadingMediaItem.text}")
+                        Log.e("HttpGetMedia", "get start: ${loadingMediaItem.voiceText}")
+                        val startTime = System.currentTimeMillis()
                         client.newCall(request).execute().use { resp ->
                             if (!resp.isSuccessful) {
                                 val errorBody = resp.body.string()
                                 Log.e(
                                     "HttpGetMedia",
-                                    "HTTP ${resp.code} for ${loadingMediaItem.text}"
+                                    "HTTP ${resp.code} for ${loadingMediaItem.voiceText}"
                                 )
-                                Log.e("HttpGetMedia", errorBody)
-                                networkMediaFileList.removeByPath(loadingMediaItem.path)
-                                tempFile.delete()
+                                Log.e("HttpGetMedia 请求失败：", errorBody)
                                 withContext(Dispatchers.Main) {
-                                    utils.showMsg(errorBody)
+                                    utils.showMsg("请求失败：$errorBody")
                                 }
-                                continue
+                                return@launch
                             }
 
                             val body = resp.body
-
 
                             body.byteStream().use { input ->
                                 tempFile.outputStream().use { output ->
@@ -582,10 +588,11 @@ class AnnouncementResolver(private val context: Context) {
                             }
 
                             if (tempFile.length() == 0L) {
-                                tempFile.delete()
-                                networkMediaFileList.removeByPath(loadingMediaItem.path)
-                                Log.e("HttpGetMedia", "empty body for ${loadingMediaItem.text}")
-                                continue
+                                Log.e(
+                                    "HttpGetMedia",
+                                    "empty body for ${loadingMediaItem.voiceText}"
+                                )
+                                return@launch
                             }
 
                             // 下载完成，移动到最终文件
@@ -594,14 +601,23 @@ class AnnouncementResolver(private val context: Context) {
 
                             networkMediaFileList.removeByPath(loadingMediaItem.path)
 
-                            Log.d("HttpGetMedia", "get saved ${loadingMediaItem.text}")
-                            Log.d("HttpGetMedia", "剩余 ${networkMediaFileList.size} 个")
+                            val elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000.0
+                            Log.d("HttpGetMedia", "get done: ${loadingMediaItem.voiceText}")
+
+                            Log.d(
+                                "HttpGetMedia",
+                                "耗时 $elapsedSeconds 秒，剩余 ${networkMediaFileList.size} 个"
+                            )
+                            CoroutineScope(Dispatchers.Main).launch {
+                                utils.showMsg("下载完成：${loadingMediaItem.voiceText}")
+                            }
                         }
                     } catch (e: IOException) {
-                        networkMediaFileList.removeByPath(loadingMediaItem.path)
                         Log.e("HttpGetMedia", "write failed", e)
-                        tempFile.delete()
+                        return@launch
                     }
+
+                    delay(100L.milliseconds)
 
                 }
             }
@@ -683,7 +699,7 @@ class AnnouncementResolver(private val context: Context) {
         return ttsFileDoneList.contains(filePath)
     }
 
-    fun hasNetworkDone(filePath: String): Boolean {
+    fun hasNetworkVoice(filePath: String): Boolean {
         if (filePath.isEmpty()) {
             return false
         }
@@ -692,60 +708,19 @@ class AnnouncementResolver(private val context: Context) {
         return file.exists() && file.length() > 0L
     }
 
-    @SuppressLint("UseKtx")
-    fun getUrlKey(url: String): String {
 
-        val sharedPref = context.getSharedPreferences("url_key", Context.MODE_PRIVATE)
-
-        var key = sharedPref.getString(url, "")
-        if (key.isNullOrBlank()) {
-            key = Uuid.random().toString().split("-").last()
-            sharedPref.edit {
-                putString(url, key)
-            }
-        }
-
-        return key;
-    }
-
-    fun preloadingNetworkMedia(text: String) {
+    fun preloadingNetworkMedia(sourceText: String) {
         val url = utils.getHTTPGetVoiceURL()
         if (utils.getEnableHTTPGetVoiceItem()) {
             if (url.isNotEmpty() && url.contains("{{text}}")) {
-                buildHttpGetMedia(text, PriorityLevel.PRELOAD)
+                buildHttpGetMedia(sourceText, PriorityLevel.PRELOAD)
             }
         }
     }
 
-
-    // 解析 WAV fmt chunk
-    fun dumpWavInfo(f: File) {
-        try {
-            RandomAccessFile(f, "r").use { raf ->
-                val riff = ByteArray(4); raf.read(riff)
-                raf.skipBytes(4) // size
-                val wave = ByteArray(4); raf.read(wave)
-                val fmt = ByteArray(4); raf.read(fmt)
-                val fmtSize = ByteArray(4).also { raf.read(it) }.let {
-                    (it[0].toInt() and 0xff) or ((it[1].toInt() and 0xff) shl 8) or
-                            ((it[2].toInt() and 0xff) shl 16) or ((it[3].toInt() and 0xff) shl 24)
-                }
-                val b = ByteArray(fmtSize); raf.read(b)
-                val audioFormat = (b[0].toInt() and 0xff) or ((b[1].toInt() and 0xff) shl 8)
-                val channels = (b[2].toInt() and 0xff) or ((b[3].toInt() and 0xff) shl 8)
-                val sampleRate = (b[4].toInt() and 0xff) or ((b[5].toInt() and 0xff) shl 8) or
-                        ((b[6].toInt() and 0xff) shl 16) or ((b[7].toInt() and 0xff) shl 24)
-                val bits = (b[14].toInt() and 0xff) or ((b[15].toInt() and 0xff) shl 8)
-                Log.d("WavInfo", "riff=${String(riff)} wave=${String(wave)} fmt=${String(fmt)}")
-                Log.d(
-                    "WavInfo",
-                    "audioFormat=$audioFormat channels=$channels sampleRate=$sampleRate bits=$bits"
-                )
-                Log.d("WavInfo", "fileSize=${f.length()}")
-            }
-        } catch (e: Exception) {
-            Log.e("WavInfo", "parse fail", e)
-        }
+    fun clearNetworkMediaFileList() {
+        networkMediaFileList.clear()
     }
+
 
 }

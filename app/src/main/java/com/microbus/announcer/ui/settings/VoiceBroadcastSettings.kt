@@ -315,13 +315,13 @@ class VoiceBroadcastSettings : Fragment() {
     @Composable
     fun HTTPGetVoiceURLItem(value: String) {
         BaseSettingItem(
-            "GET请求获取音频URL", value, painterResource(id = R.drawable.tts),
+            "GET请求获取音频[名称]含{{text}}的URL", "例如：[流萤]https://www.getFireFlyVoice.com/{{text}}", painterResource(id = R.drawable.tts),
             {
                 val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
-                ).setTitle("设置GET请求获取音频URL").setView(binding.root)
+                ).setTitle("设置GET请求获取音频[名称]URL").setView(binding.root)
                     .setPositiveButton("保存", null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
@@ -335,6 +335,16 @@ class VoiceBroadcastSettings : Fragment() {
 
                     if (newValue == "") {
                         utils.showMsg("请输入GET请求获取音频URL")
+                        return@setOnClickListener
+                    }
+
+                    if(utils.getVoiceUrlKey(newValue) == "default"){
+                        utils.showMsg("请在url前添加名称，格式为[名称]url")
+                        return@setOnClickListener
+                    }
+
+                    if(!newValue.contains("{{text}}")){
+                        utils.showMsg("请将url中要获取的文本替换为{{text}}")
                         return@setOnClickListener
                     }
 

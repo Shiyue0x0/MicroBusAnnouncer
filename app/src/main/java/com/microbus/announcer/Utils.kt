@@ -1332,6 +1332,7 @@ class Utils(private val context: Context) {
             return if (lang == "en") enName else cnName
         }
 
+        // TableList 仅加载一次
         if (!this::stationLangTableList.isInitialized) {
 
             val langTableFile = File("$appRootPath/stationLangTable.json")
@@ -1378,6 +1379,52 @@ class Utils(private val context: Context) {
             cnName
         }
 
+    }
+
+    lateinit var voiceTextList: JsonArray
+
+
+    /**
+     * 根据[sourceText]从[voiceTextList]中查找播报使用的文本
+     * jsonObject格式：{"sourceText":"Xinyi Market","voiceText":"信义 Market"}
+     * @param sourceText 要查找的中文名
+     * @return 对应的播报文本
+     * 查找失败，则返回文本
+     * */
+    fun getVoiceText(sourceText: String): String {
+
+        // TableList 仅加载一次
+        if (!this::voiceTextList.isInitialized) {
+
+            val tableFile = File("$appRootPath/voiceTextList.json")
+
+            // 表文件不存在，返回原值
+            if (!tableFile.exists()) {
+                return sourceText
+            }
+
+            val element = JsonParser.parseString(tableFile.readText())
+            if (!element.isJsonArray)
+                return sourceText
+
+            voiceTextList = element.asJsonArray
+
+        }
+
+        val voiceList = voiceTextList
+
+        for (voice in voiceList) {
+
+            val obj = voice.asJsonObject
+
+
+            if (obj.get("sourceText") == null || obj.get("sourceText").asString != sourceText)
+                continue
+
+            return obj.get("voiceText").asString
+        }
+
+        return sourceText
     }
 
     fun calculateBearing(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
@@ -1563,6 +1610,16 @@ class Utils(private val context: Context) {
     fun angleBetween(bearing1: Double, bearing2: Double): Double {
         val diff = abs(bearing1 - bearing2) % 360
         return if (diff > 180) 360 - diff else diff
+    }
+
+    @SuppressLint("UseKtx")
+    fun getVoiceUrlKey(url: String): String {
+
+        val regex = Regex("\\[(.*?)]")
+        val match = regex.find(url)
+        val key = match?.groupValues?.get(1) ?: "default"
+
+        return key;
     }
 
 

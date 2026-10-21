@@ -907,8 +907,34 @@ class MainFragment : Fragment() {
 
         lineArriveStationIdList.clear()
 
+
+        // 删除加载列表
+        anResolver.clearNetworkMediaFileList()
+
+        // network 预加载 common语句
+        val stationStateList = listOf("Next", "WillArrive", "Arrive")
+        val stationTypeList = listOf("Default", "Second", "Starting", "Terminal")
+
+        val commonTextSet = mutableSetOf<String>()
+
+        stationStateList.forEach { stationState ->
+            stationTypeList.forEach { stationType ->
+                val format = utils.getAnnouncementFormat(stationState, stationType)
+                val anList = utils.getAnnouncements(format)
+                val commonTextList = anList.filter { !(it.first() == '<' && it.last() == '>') }
+                commonTextSet.addAll(commonTextList)
+            }
+        }
+
+        val allCommonTextList = commonTextSet.toList()
+        allCommonTextList.forEach { item ->
+            anResolver.preloadingNetworkMedia(item)
+        }
+
         //切换当前站点为最近站点
         switchToNearestStation()
+
+        preloadingStation()
 
         val viewList = ArrayList<View>()
         viewList.add(binding.lineDirectionBtnGroup)
@@ -1017,43 +1043,12 @@ class MainFragment : Fragment() {
                     circleList.clear()
                     circleWithStationMap.clear()
 
-                    refreshUI()
+                    refreshUIAndPreloadingStationVoice()
                 }
 
 
             }
 
-        }
-
-
-        // TODO network common语句
-        val stationStateList = listOf("Next", "WillArrive", "Arrive")
-        val stationTypeList = listOf("Default", "Second", "Starting", "Terminal")
-
-        val commonAndStationTextSet = mutableSetOf<String>()
-
-        stationStateList.forEach { stationState ->
-            stationTypeList.forEach { stationType ->
-                val format = utils.getAnnouncementFormat(stationState, stationType)
-                val anList = utils.getAnnouncements(format)
-                val commonTextList = anList.filter { !(it.first() == '<' && it.last() == '>') }
-                commonAndStationTextSet.addAll(commonTextList)
-            }
-        }
-
-        // 预加载站点名称
-        currentLineStationList.forEachByDistance(currentLineStationCount) { index, station ->
-            commonAndStationTextSet.add(station.cnName)
-            commonAndStationTextSet.add(station.enName)
-        }
-
-        val allCommonTextList = commonAndStationTextSet.toList()
-        Log.d("L1035", allCommonTextList.toString())
-
-        // TODO 删除列表
-
-        allCommonTextList.forEach { item ->
-            anResolver.preloadingNetworkMedia(item)
         }
 
 
@@ -1077,7 +1072,7 @@ class MainFragment : Fragment() {
             circleList.clear()
             circleWithStationMap.clear()
 
-            refreshUI()
+            refreshUIAndPreloadingStationVoice()
         }
 
     }
@@ -1524,7 +1519,7 @@ class MainFragment : Fragment() {
                 utils.showMsg("注意：该线是单向路线，上下行相同")
             }
 
-            refreshUI()
+            refreshUIAndPreloadingStationVoice()
         }
 
 
@@ -3173,19 +3168,19 @@ class MainFragment : Fragment() {
                 currentLineStationCount--
                 currentLineStation = currentLineStationList[currentLineStationCount]
                 currentLineStationState = StationStatus.ON_ARRIVE
-                refreshUI()
+                refreshUIAndPreloadingStationVoice()
                 return true
             }
 
             StationStatus.ON_WILL_ARRIVE -> {
                 currentLineStationState = StationStatus.ON_NEXT
-                refreshUI()
+                refreshUIAndPreloadingStationVoice()
                 return true
             }
 
             StationStatus.ON_ARRIVE -> {
                 currentLineStationState = StationStatus.ON_WILL_ARRIVE
-                refreshUI()
+                refreshUIAndPreloadingStationVoice()
                 return true
             }
 
@@ -3206,13 +3201,13 @@ class MainFragment : Fragment() {
             StationStatus.ON_NEXT -> {
 //                currentLineStationState = StationStatus.ON_WILL_ARRIVE
                 currentLineStationState = StationStatus.ON_ARRIVE
-                refreshUI()
+                refreshUIAndPreloadingStationVoice()
                 return true
             }
 
             StationStatus.ON_WILL_ARRIVE -> {
                 currentLineStationState = StationStatus.ON_ARRIVE
-                refreshUI()
+                refreshUIAndPreloadingStationVoice()
                 return true
             }
 
@@ -3221,7 +3216,7 @@ class MainFragment : Fragment() {
                 currentLineStationCount++
                 currentLineStation = currentLineStationList[currentLineStationCount]
                 currentLineStationState = StationStatus.ON_NEXT
-                refreshUI()
+                refreshUIAndPreloadingStationVoice()
                 return true
             }
 
@@ -3272,10 +3267,14 @@ class MainFragment : Fragment() {
         currentLineStation = currentLineStationList[stationCount]
         currentLineStationCount = stationCount
 
-        refreshUI()
+        refreshUIAndPreloadingStationVoice()
 
         //设置高亮度15s屏幕唤醒锁
         wakeLock.acquire(15 * 1000L)
+
+
+
+
     }
 
     /**
@@ -3729,7 +3728,7 @@ class MainFragment : Fragment() {
 
     }
 
-    fun refreshUI() {
+    fun refreshUIAndPreloadingStationVoice() {
 
         //更新路线站点显示、小卡片和通知
         refreshLineStationListAndNotice()
@@ -3742,6 +3741,8 @@ class MainFragment : Fragment() {
 
         //更新当前站点距离
         updCurrentDistance()
+
+        preloadingStation()
     }
 
     fun getOnlineLine(
@@ -4708,5 +4709,20 @@ class MainFragment : Fragment() {
         }
     }
 
+    fun preloadingStation(){
+        // network 预加载站点名称
+
+        val stationTextSet = mutableSetOf<String>()
+
+        currentLineStationList.forEachByDistance(currentLineStationCount) { index, station ->
+            stationTextSet.add(station.cnName)
+            stationTextSet.add(station.enName)
+        }
+
+        val allStationTextList = stationTextSet.toList()
+        allStationTextList.forEach { item ->
+            anResolver.preloadingNetworkMedia(item)
+        }
+    }
 
 }

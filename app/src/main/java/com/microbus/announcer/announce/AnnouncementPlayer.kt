@@ -204,7 +204,7 @@ class AnnouncementPlayer
                     }
 
                     val start = SystemClock.elapsedRealtime()
-                    while (!anResolver.hasNetworkDone(mediaItem.filePath)) {
+                    while (!anResolver.hasNetworkVoice(mediaItem.filePath)) {
                         currentCoroutineContext().ensureActive()
                         if (SystemClock.elapsedRealtime() - start > timeoutMs) {
                             withContext(Dispatchers.Main) { utils.showMsg("GET音频超时") }
