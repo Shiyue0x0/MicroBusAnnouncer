@@ -1,11 +1,11 @@
 package com.microbus.announcer.announce
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import com.microbus.announcer.HTTPRequest
 import com.microbus.announcer.Utils
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.StationDatabaseHelper
@@ -28,6 +28,9 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 import kotlinx.coroutines.delay
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration.Companion.milliseconds
 
 
@@ -46,27 +49,47 @@ class AnnouncementResolver(private val context: Context) {
 
 
     init {
+
+        // 新建缓存文件目录
+        File(tempFilePath).mkdirs()
+
         initTTS()
+
     }
 
-    enum class AudioSource {
+    enum class AudioSourceType {
         /** 空白间隔（例如100ms） */
         BLANK,
 
-        /** 网络请求获取 */
-        NETWORK,
-
         /** 本地文件 */
         LOCAL,
+
+        /** 网络请求获取 */
+        NETWORK,
 
         /** 文字转语音 */
         TTS
     }
 
+    enum class MediaItemStatus {
+        /** 加载中 */
+        LOADING,
+
+        /** 加载完成 */
+        COMPLETED,
+
+        /** 加载失败 */
+        FAILED
+    }
+
     class MediaItem(
-        val source: AudioSource,
-        val filePath: String,
-        val text: String?
+        var source: AudioSourceType,
+        var filePath: String,
+        val text: String?,
+        var status: MediaItemStatus = MediaItemStatus.LOADING,
+        var networkInfo: NetworkInfo = NetworkInfo(
+            voiceText = ""
+        )
     )
 
     private fun initTTS() {
@@ -84,15 +107,22 @@ class AnnouncementResolver(private val context: Context) {
 
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
 
-            override fun onStart(utteranceId: String?) {
+            override fun onStart(utteranceId: String) {
             }
 
             override fun onDone(utteranceId: String) {
+                Log.d("L102", "onDone: $utteranceId")
                 ttsFileDoneList.add(utteranceId)
+                mediaItemList.findAllTTSByPath(utteranceId).forEach {
+                    it.status = MediaItemStatus.COMPLETED
+                }
             }
 
             @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) {
+            override fun onError(utteranceId: String) {
+                mediaItemList.findAllTTSByPath(utteranceId).forEach {
+                    it.status = MediaItemStatus.FAILED
+                }
                 CoroutineScope(Dispatchers.Main).launch {
                     utils.showMsg("TTS合成异常，请检查系统设置")
                 }
@@ -108,12 +138,20 @@ class AnnouncementResolver(private val context: Context) {
             }
         }
 
+        // 清空TTS生成目录
+        if (utils.getIsUseTTS() && ttsReady) {
+            // 清空TTS
+            File("$tempFilePath/tts").walkTopDown().forEach {
+                it.delete()
+            }
+            File("$tempFilePath/tts").mkdirs()
+        }
+
     }
 
     fun resolveAndBuild(
-        format: String = "",
-        anContext: AnnouncementContext
-    ): java.util.ArrayList<MediaItem> {
+        format: String = "", anContext: AnnouncementContext
+    ): MutableList<MediaItem> {
 
         this.format = format
         this.anContext = anContext
@@ -172,8 +210,7 @@ class AnnouncementResolver(private val context: Context) {
 
                     "<speed>" -> {
                         val lineMediaList = utils.intOrLetterToCnReading(
-                            anContext.speedKmh.toInt().toString(),
-                            "cn/number/"
+                            anContext.speedKmh.toInt().toString(), "cn/number/"
                         )
                         mediaList.addAll(lineMediaList)
                         continue
@@ -181,7 +218,7 @@ class AnnouncementResolver(private val context: Context) {
 
                     "<line>" -> {
                         // 寻找lineName音频
-                        val lineMediaList = resolveLineNameKey(item)
+                        val lineMediaList = resolveLineNameKey()
                         mediaList.addAll(lineMediaList)
                         continue
                     }
@@ -236,19 +273,14 @@ class AnnouncementResolver(private val context: Context) {
             "ss" -> anContext.stationList.first()
             "ts" -> anContext.stationList.last()
             "ms" -> {
-                val stationList =
-                    stationDatabaseHelper.queryById(
-                        (item.substring(
-                            5,
-                            item.length - 1
-                        )).toInt()
-                    )
-                if (stationList.isNotEmpty())
-                    stationList.first()
+                val stationList = stationDatabaseHelper.queryById(
+                    (item.substring(
+                        5, item.length - 1
+                    )).toInt()
+                )
+                if (stationList.isNotEmpty()) stationList.first()
                 else Station(
-                    id = Int.MAX_VALUE,
-                    cnName = "未知站点",
-                    enName = "unknown"
+                    id = Int.MAX_VALUE, cnName = "未知站点", enName = "unknown"
                 )
             }
 
@@ -257,15 +289,13 @@ class AnnouncementResolver(private val context: Context) {
 
         val lang = if (item.substring(1, 3) == "ms") {
             item.substring(3, 5)
-        } else
-            item.drop(3).dropLast(1)
+        } else item.drop(3).dropLast(1)
 
         val stationName = when (lang) {
             "cn" -> station.cnName
             "en" -> station.enName
             else -> utils.getStationNameFromCn(
-                station.cnName,
-                lang
+                station.cnName, lang
             )
         }
 
@@ -279,9 +309,8 @@ class AnnouncementResolver(private val context: Context) {
             val file =
                 File("${utils.appRootPath}/Media/${utils.getAnnouncementLibrary()}/${lang}/common")
 
-            val fileList = file.walk()
-                .filter { it.isFile && it.nameWithoutExtension == item }
-                .toList()
+            val fileList =
+                file.walk().filter { it.isFile && it.nameWithoutExtension == item }.toList()
 
             if (fileList.isNotEmpty()) {
                 return "/${lang}/common/$item"
@@ -298,10 +327,10 @@ class AnnouncementResolver(private val context: Context) {
         val voiceList = ArrayList<String>()
 
         strList.forEach { result ->
-            if ("\\d+".toRegex().findAll(result.value).toList().isNotEmpty())
-                voiceList.addAll(utils.intOrLetterToCnReading(result.value, "/cn/number/"))
-            else
-                voiceList.addAll(utils.intOrLetterToCnReading(result.value, "/en/letter/"))
+            if ("\\d+".toRegex().findAll(result.value).toList()
+                    .isNotEmpty()
+            ) voiceList.addAll(utils.intOrLetterToCnReading(result.value, "/cn/number/"))
+            else voiceList.addAll(utils.intOrLetterToCnReading(result.value, "/en/letter/"))
 
         }
 
@@ -316,9 +345,7 @@ class AnnouncementResolver(private val context: Context) {
         voiceList.add("/cn/common/点")
         voiceList.addAll(
             utils.intOrLetterToCnReading(
-                currentTime.minute.toString(),
-                "/cn/number/",
-                true
+                currentTime.minute.toString(), "/cn/number/", true
             )
         )
         voiceList.add("/cn/common/分")
@@ -326,14 +353,14 @@ class AnnouncementResolver(private val context: Context) {
         return voiceList
     }
 
-    fun resolveLineNameKey(item: String): ArrayList<String> {
+    fun resolveLineNameKey(): ArrayList<String> {
 
         for (lang in anContext.announcementLangList) {
             val file =
                 File("${utils.appRootPath}/Media/${utils.getAnnouncementLibrary()}/${lang}/line")
-            val fileList = file.walk()
-                .filter { it.isFile && it.nameWithoutExtension == anContext.lineName }
-                .toList()
+            val fileList =
+                file.walk().filter { it.isFile && it.nameWithoutExtension == anContext.lineName }
+                    .toList()
             if (fileList.isNotEmpty()) {
                 return arrayListOf("/${lang}/line/" + anContext.lineName)
             }
@@ -344,75 +371,65 @@ class AnnouncementResolver(private val context: Context) {
 
     fun resolveBlankKey(item: String): String {
         val matchResult = Regex("<blank(\\d+)>").find(item)
-        val blankDurationMs =
-            matchResult?.groupValues?.get(1)?.toIntOrNull() ?: return ""
+        val blankDurationMs = matchResult?.groupValues?.get(1)?.toIntOrNull() ?: return ""
         return "/blank/${blankDurationMs}.pcm"
     }
 
-    fun build(mediaList: ArrayList<String>): java.util.ArrayList<MediaItem> {
+    var mediaItemList = CopyOnWriteArrayList<MediaItem>()
+
+    fun build(mediaList: ArrayList<String>): MutableList<MediaItem> {
 
         if (mediaList.isEmpty()) {
-            return arrayListOf()
+            return mutableListOf()
         }
 
-        // 新建缓存文件目录
-        File(tempFilePath).mkdirs()
+        mediaItemList = CopyOnWriteArrayList<MediaItem>()
 
-        ttsFileDoneList = arrayListOf()
-        ttsTextList = arrayListOf()
+        for (mediaWithPath in mediaList) {
 
-        // 清空TTS生成目录
-        if (utils.getIsUseTTS() && ttsReady) {
-            // 清空TTS
-            File("$tempFilePath/tts").walkTopDown().forEach {
-                it.delete()
-            }
-            File("$tempFilePath/tts").mkdirs()
-        }
-
-        // 查找本地音频/合成TTS音频
-        val filePathList = ArrayList<String>()
-        val mediaItemList = ArrayList<MediaItem>()
-
-        for (media in mediaList) {
-
-//            Log.d("L3770", media)
+            Log.d("L3770", mediaWithPath)
 
             // 1. 空白占位音频
-            if (media.startsWith("/blank")) {
-                val blankFilePath = buildBlankMedia(media)
-                filePathList.add(blankFilePath)
-                mediaItemList.add(MediaItem(AudioSource.BLANK, blankFilePath, null))
+            if (mediaWithPath.startsWith("/blank")) {
+                val blankFilePath = buildBlankMedia(mediaWithPath)
+                mediaItemList.add(
+                    MediaItem(
+                        AudioSourceType.BLANK, blankFilePath, null, MediaItemStatus.COMPLETED
+                    )
+                )
                 continue
             }
 
-            val text = media.split('/').last()
+            val text = mediaWithPath.split('/').last()
 
 
             // 2. 本地音频
-            val localFilePath = buildLocalMedia(media)
+            val localFilePath = buildLocalMedia(mediaWithPath)
             if (localFilePath != "") {
-                filePathList.add(localFilePath)
-                mediaItemList.add(MediaItem(AudioSource.LOCAL, localFilePath, text))
+                mediaItemList.add(
+                    MediaItem(
+                        AudioSourceType.LOCAL, localFilePath, text, MediaItemStatus.COMPLETED
+                    )
+                )
                 continue
             }
 
-            // 3. 通过GET请求获取音频
-            val url = utils.getHTTPGetVoiceURL()
-            if (utils.getEnableHTTPGetVoiceItem()) {
-                if (url.isNotEmpty() && url.contains("{{text}}")) {
-                    val httpGetMediaPath = buildHttpGetMedia(text)
-                    filePathList.add(text)
-                    mediaItemList.add(MediaItem(AudioSource.NETWORK, httpGetMediaPath, text))
-                    continue
-                }
+            // 3. 通过GET/POST请求获取音频
+            if (toBuildHttpGetMedia(text, PriorityLevel.IMMEDIATE)) {
+                continue
             }
 
             // 4. TTS合成音频
-            val ttsFilePath = buildTTSMedia(text)
+            val ttsText = utils.getVoiceText(text)
+            val ttsFilePath = buildTTSMedia(ttsText)
             if (ttsFilePath != "") {
-                filePathList.add(ttsFilePath)
-                mediaItemList.add(MediaItem(AudioSource.TTS, ttsFilePath, text))
+                val mediaItem = MediaItem(
+                    AudioSourceType.TTS, ttsFilePath, ttsText, MediaItemStatus.LOADING
+                )
+                if (ttsFileDoneList.contains(ttsFilePath)) {
+                    mediaItem.status = MediaItemStatus.COMPLETED
+                }
+                mediaItemList.add(mediaItem)
                 continue
             }
 
@@ -423,18 +440,17 @@ class AnnouncementResolver(private val context: Context) {
 
     fun buildBlankMedia(media: String): String {
 
+        Log.d("L426", media)
+
         val matchResult = Regex("/blank/(\\d+).pcm").find(media)
-        val blankDurationMs =
-            matchResult?.groupValues?.get(1)?.toIntOrNull() ?: return ""
+        val blankDurationMs = matchResult?.groupValues?.get(1)?.toIntOrNull() ?: return ""
 
         val outputPath = "$tempFilePath/blank/${blankDurationMs}.pcm"
 
         if (!File(outputPath).exists()) {
-            val wavSilenceGeneratorRes =
-                WavSilenceGenerator.generateSilenceWav(
-                    blankDurationMs.toLong(),
-                    outputPath
-                )
+            val wavSilenceGeneratorRes = WavSilenceGenerator.generateSilenceWav(
+                blankDurationMs.toLong(), outputPath
+            )
             if (!wavSilenceGeneratorRes) return ""
         }
 
@@ -443,50 +459,59 @@ class AnnouncementResolver(private val context: Context) {
 
 
     enum class PriorityLevel(val description: String) {
-        IMMEDIATE("立即加载"),
-        PRELOAD("预加载"),
+        IMMEDIATE("立即加载"), PRELOAD("预加载"),
     }
 
 
-    data class FileItem(
-        val path: String,
-        val voiceText: String,
+    data class NetworkInfo(
+        var voiceText: String,
+//        val mediaItem: MediaItem,
         var priority: PriorityLevel = PriorityLevel.IMMEDIATE
     )
 
     // 正在下载或排队等待的网络音频文件
-    val networkMediaFileList: MutableList<FileItem> = mutableListOf()
-    fun MutableList<FileItem>.removeByPath(path: String) {
-        removeAll { it.path == path }
+//    val networkMediaFileList: MutableList<NetworkInfo> = mutableListOf()
+
+    fun MutableList<MediaItem>.removeNetworkByPath(path: String) {
+        removeAll { it.source == AudioSourceType.NETWORK && it.filePath == path }
     }
 
-    fun List<FileItem>.findByPath(path: String): FileItem? =
-        find { it.path == path }
+    fun List<MediaItem>.findTTSByPath(path: String): MediaItem? =
+        find { it.source == AudioSourceType.TTS && it.filePath == path }
 
-    fun List<FileItem>.findFirstImmediateLoading(): FileItem? =
-        find { it.priority == PriorityLevel.IMMEDIATE }
+    fun List<MediaItem>.findAllTTSByPath(path: String): List<MediaItem> =
+        filter { it.source == AudioSourceType.TTS && it.filePath == path }
 
-    fun List<FileItem>.findFirstPreloadLoading(): FileItem? =
-        find { it.priority == PriorityLevel.PRELOAD }
+    fun List<MediaItem>.findNetworkByPath(path: String): MediaItem? =
+        find { it.source == AudioSourceType.NETWORK && it.filePath == path }
+
+    fun List<MediaItem>.findFirstImmediateNetworkLoading(): MediaItem? =
+        find { it.source == AudioSourceType.NETWORK && it.status == MediaItemStatus.LOADING && it.networkInfo.priority == PriorityLevel.IMMEDIATE }
+
+    fun List<MediaItem>.findFirstPreloadNetworkLoading(): MediaItem? =
+        find { it.source == AudioSourceType.NETWORK && it.status == MediaItemStatus.LOADING && it.networkInfo.priority == PriorityLevel.PRELOAD }
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)   // TTS 合成可能较慢，读超时给长一点
+        .readTimeout(15, TimeUnit.SECONDS)   // TTS 合成可能较慢，读超时给长一点
         .build()
+
+    private var call: Job? = null
 
     private var httpGetJob: Job? = null
 
-    fun buildHttpGetMedia(
-        sourceText: String,
-        priority: PriorityLevel = PriorityLevel.IMMEDIATE
-    ): String {
+    fun buildHttpGetMedia(mediaItem: MediaItem): String {
+
+        if (mediaItem.text == null) return ""
 
         val baseUrl = utils.getHTTPGetVoiceURL()
         val urlKey = utils.getVoiceUrlKey(baseUrl)
         // 移除url前的名称部分
-        val url = baseUrl.replaceFirst(Regex("\\[.*?]"), "")
+//        val url = baseUrl.replaceFirst(Regex("\\[.*?]"), "")
+        val parseRequest = HTTPRequest().parseRequest(baseUrl)
 
-        val voiceText = utils.getVoiceText(sourceText)
+        val voiceText = utils.getVoiceText(mediaItem.text)
+        mediaItem.networkInfo.voiceText = voiceText
         val networkFileName = "${voiceText}.wav"
         val networkDir = File("${utils.appRootPath}/networkMedia/$urlKey/")
         if (!networkDir.exists()) {
@@ -497,37 +522,31 @@ class AnnouncementResolver(private val context: Context) {
 
         // 本地缓存：相同urlKey且text相同的请求，直接返回
         if (networkFile.exists() && networkFile.length() > 0L) {
+            mediaItem.status = MediaItemStatus.COMPLETED
+            Log.d("L546", "本地缓存：$networkFile.path")
             return networkFile.path
         }
 
-        val fileItem = networkMediaFileList.findByPath(networkFile.path)
-        // 已在队列中加载，更新优先级，直接返回
-        if (fileItem != null) {
-            fileItem.priority = priority
+        val theMediaItem = mediaItemList.findNetworkByPath(networkFile.path)
+        // 已在队列中加载，直接返回
+        if (theMediaItem != null) {
+//            theMediaItem.networkInfo.priority = priority
             return networkFile.path
         }
 
         // 发起请求
-        networkMediaFileList.add(
-            FileItem(
-                networkFile.path,
-                voiceText,
-                priority
-            )
-        )
+        mediaItem.filePath = networkFile.path
 
-        Log.d("L516", "networkMediaFile: ${networkMediaFileList.last()}")
+//        Log.d("L516", "${mediaItemList.last()}")
+        Log.d("L517", "${mediaItemList}")
         // 依次发起请求
         if (httpGetJob == null) {
-            CoroutineScope(Dispatchers.Main).launch {
-                utils.showMsg("音频URL请求名称：$urlKey")
-            }
             httpGetJob = CoroutineScope(Dispatchers.IO.limitedParallelism(1)).launch {
                 while (isActive) {
 
                     // 找到第一个正在加载的立即加载项
-                    val loadingMediaItem = networkMediaFileList.findFirstImmediateLoading()
-                        ?: networkMediaFileList.findFirstPreloadLoading()
+                    val loadingMediaItem = mediaItemList.findFirstImmediateNetworkLoading()
+                        ?: mediaItemList.findFirstPreloadNetworkLoading()
 
                     if (loadingMediaItem == null) {
                         cancel()
@@ -536,8 +555,7 @@ class AnnouncementResolver(private val context: Context) {
                     }
 
 //                    Log.d("L506", "httpGetJob")
-
-                    val loadingMediaFile = File(loadingMediaItem.path)
+                    val loadingMediaFile = File(loadingMediaItem.filePath)
 
                     val tempFile = File("${loadingMediaFile.path}.tmp")
                     if (tempFile.exists()) {
@@ -545,36 +563,77 @@ class AnnouncementResolver(private val context: Context) {
                     }
 
                     try {
-                        // 构建URL
-                        val url = url.replace("{{text}}", loadingMediaItem.voiceText)
-                        val request: Request
+                        val builder: Request.Builder
                         try {
-                            request = Request
-                                .Builder()
-                                .url(url).header("Accept-Encoding", "identity")   // 禁用压缩，拿原始字节
-                                .build()
+
+                            // 构建URL
+                            val url = parseRequest.url.replace(
+                                "{{text}}",
+                                loadingMediaItem.networkInfo.voiceText
+                            )
+
+                            val body = parseRequest.body?.replace(
+                                "{{text}}",
+                                loadingMediaItem.networkInfo.voiceText
+                            )
+
+                            builder = Request.Builder().url(url)
+
+                            // 添加 headers
+                            parseRequest.headers.forEach { (k, v) -> builder.addHeader(k, v) }
+
+                            when (parseRequest.method) {
+                                "GET" -> builder.get()
+                                "POST" -> {
+                                    val contentType =
+                                        parseRequest.headers["Content-Type"]?.toMediaTypeOrNull()
+                                            ?: "application/json".toMediaTypeOrNull()
+                                    val body = (body ?: "").toRequestBody(contentType)
+                                    builder.post(body)
+                                }
+
+                                else -> {
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        utils.showMsg("不支持的方法")
+                                    }
+                                    continue
+                                }
+                            }
+
                         } catch (e: Exception) {
                             CoroutineScope(Dispatchers.Main).launch {
                                 utils.showMsg("GET URL格式错误")
                             }
-                            return@launch
+                            loadingMediaItem.status = MediaItemStatus.FAILED
+//                            cancel()
+//                            httpGetJob = null
+//                            return@launch
+                            continue
                         }
 
                         // execute() 是同步阻塞的，必须放在 IO 线程（这里已经在 IO 协程里）
-                        Log.e("HttpGetMedia", "get start: ${loadingMediaItem.voiceText}")
+                        Log.e(
+                            "HttpGetMedia",
+                            "get start: ${loadingMediaItem.networkInfo.voiceText} ${loadingMediaItem.networkInfo.priority}"
+                        )
                         val startTime = System.currentTimeMillis()
-                        client.newCall(request).execute().use { resp ->
+                        call = client.newCall(builder.build()).execute().use { resp ->
                             if (!resp.isSuccessful) {
                                 val errorBody = resp.body.string()
                                 Log.e(
                                     "HttpGetMedia",
-                                    "HTTP ${resp.code} for ${loadingMediaItem.voiceText}"
+                                    "HTTP ${resp.code} for ${loadingMediaItem.networkInfo.voiceText}"
                                 )
                                 Log.e("HttpGetMedia 请求失败：", errorBody)
                                 withContext(Dispatchers.Main) {
                                     utils.showMsg("请求失败：$errorBody")
                                 }
-                                return@launch
+                                Log.d("L627", "${loadingMediaItem}")
+                                loadingMediaItem.status = MediaItemStatus.FAILED
+//                                cancel()
+//                                httpGetJob = null
+//                                return@launch
+                                continue
                             }
 
                             val body = resp.body
@@ -590,31 +649,50 @@ class AnnouncementResolver(private val context: Context) {
                             if (tempFile.length() == 0L) {
                                 Log.e(
                                     "HttpGetMedia",
-                                    "empty body for ${loadingMediaItem.voiceText}"
+                                    "empty body for ${loadingMediaItem.networkInfo.voiceText}"
                                 )
-                                return@launch
+                                loadingMediaItem.status = MediaItemStatus.FAILED
+//                                cancel()
+//                                httpGetJob = null
+//                                return@launch
+                                continue
                             }
 
                             // 下载完成，移动到最终文件
                             tempFile.copyTo(loadingMediaFile, overwrite = true)
                             tempFile.delete()
 
-                            networkMediaFileList.removeByPath(loadingMediaItem.path)
+                            mediaItemList.removeNetworkByPath(loadingMediaItem.filePath)
 
                             val elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000.0
-                            Log.d("HttpGetMedia", "get done: ${loadingMediaItem.voiceText}")
+                            Log.d(
+                                "HttpGetMedia",
+                                "get done: ${loadingMediaItem.networkInfo.voiceText}"
+                            )
+                            loadingMediaItem.status = MediaItemStatus.COMPLETED
 
                             Log.d(
                                 "HttpGetMedia",
-                                "耗时 $elapsedSeconds 秒，剩余 ${networkMediaFileList.size} 个"
+                                "耗时 $elapsedSeconds 秒，剩余 ${mediaItemList.size} 个"
                             )
                             CoroutineScope(Dispatchers.Main).launch {
-                                utils.showMsg("下载完成：${loadingMediaItem.voiceText}")
+                                utils.showMsg(
+                                    "下载完成：${loadingMediaItem.networkInfo.voiceText}",
+                                    true
+                                )
                             }
                         }
                     } catch (e: IOException) {
-                        Log.e("HttpGetMedia", "write failed", e)
-                        return@launch
+                        Log.e(
+                            "HttpGetMedia",
+                            "get failed ${loadingMediaItem.networkInfo.voiceText}",
+                            e
+                        )
+                        loadingMediaItem.status = MediaItemStatus.FAILED
+//                        cancel()
+//                        httpGetJob = null
+//                        return@launch
+                        continue
                     }
 
                     delay(100L.milliseconds)
@@ -628,8 +706,7 @@ class AnnouncementResolver(private val context: Context) {
 
     fun buildLocalMedia(media: String): String {
 
-        val supportMediaFormatList =
-            listOf("mp3", "wav", "ogg", "aac", "flac", "m4a", "pcm")
+        val supportMediaFormatList = listOf("mp3", "wav", "ogg", "aac", "flac", "m4a", "pcm")
 
         for (format in supportMediaFormatList) {
             val filePathName =
@@ -654,22 +731,20 @@ class AnnouncementResolver(private val context: Context) {
         val ttsFile = File("$tempFilePath/tts/", ttsFileName)
 
         if (!ttsTextList.contains(text)) {
+            Log.d("L716", "buildTTSMedia: $text")
             ttsFile.getParentFile()?.mkdirs()
             ttsFile.createNewFile()
             val params = Bundle().apply {
                 putString(
-                    TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID,
-                    ttsFileName
+                    TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, ttsFileName
                 )
             }
             tts.synthesizeToFile(
-                text,
-                params,
-                ttsFile,
-                ttsFile.path
+                text, params, ttsFile, ttsFile.path
             )
             ttsTextList.add(text)
         }
+
         return ttsFile.path
 
 
@@ -695,31 +770,81 @@ class AnnouncementResolver(private val context: Context) {
     }
 
     fun hasTTSDone(filePath: String): Boolean {
-//        Log.d("L481", "${ttsFileDoneList.contains(filePath)}")
+//        Log.d("L481", "${ttsFileDoneList}, $filePath")
         return ttsFileDoneList.contains(filePath)
     }
 
-    fun hasNetworkVoice(filePath: String): Boolean {
-        if (filePath.isEmpty()) {
+    /**
+     * 完成或失败返回true，加载中返回false
+     */
+    fun hasNetworkVoiceDone(filePath: String): Boolean {
+        val file = File(filePath)
+        if (file.exists() && file.length() > 0L) {
+            return true
+        }
+
+//        mediaItemList.forEach { item ->
+//            Log.d("L770", "${item.networkInfo.voiceText}, ${item.status}")
+//        }
+
+        val mediaItem = mediaItemList.findNetworkByPath(filePath)
+        if (mediaItem == null) {
             return false
         }
 
-        val file = File(filePath)
-        return file.exists() && file.length() > 0L
+        Log.d(
+            "L782", "${mediaItem.networkInfo.voiceText} ${mediaItem.status}"
+        )
+
+
+        return mediaItemList.find { it.filePath == filePath && it.status != MediaItemStatus.LOADING } != null
     }
 
-
     fun preloadingNetworkMedia(sourceText: String) {
-        val url = utils.getHTTPGetVoiceURL()
-        if (utils.getEnableHTTPGetVoiceItem()) {
-            if (url.isNotEmpty() && url.contains("{{text}}")) {
-                buildHttpGetMedia(sourceText, PriorityLevel.PRELOAD)
-            }
+        toBuildHttpGetMedia(sourceText, PriorityLevel.PRELOAD)
+    }
+
+    fun clearPreloadingNetworkMediaFileList() {
+        mediaItemList.removeAll {
+            it.source == AudioSourceType.NETWORK &&
+                    it.networkInfo.priority == PriorityLevel.PRELOAD
         }
     }
 
-    fun clearNetworkMediaFileList() {
-        networkMediaFileList.clear()
+    fun clearImmediateNetworkMediaFileList() {
+        mediaItemList.removeAll {
+            it.source == AudioSourceType.NETWORK &&
+                    it.networkInfo.priority == PriorityLevel.IMMEDIATE
+        }
+    }
+
+
+    fun toBuildHttpGetMedia(
+        text: String,
+        priority: PriorityLevel = PriorityLevel.IMMEDIATE
+    ): Boolean {
+        if (!utils.getEnableHTTPGetVoiceItem()) {
+            return false
+        }
+
+        val url = utils.getHTTPGetVoiceURL()
+
+        if (url.isEmpty() || !url.contains("{{text}}")) {
+            return false
+        }
+
+//        Log.d("L813", "toBuildHttpGetMedia: $url")
+
+        val mediaItem = MediaItem(
+            AudioSourceType.NETWORK, "", text, MediaItemStatus.LOADING
+        )
+        mediaItem.networkInfo.priority = priority
+        val httpGetMediaPath = buildHttpGetMedia(mediaItem)
+        mediaItem.filePath = httpGetMediaPath
+        mediaItemList.add(
+            mediaItem
+        )
+        return true
     }
 
 

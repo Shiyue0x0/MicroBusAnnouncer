@@ -54,7 +54,6 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileWriter
 import java.io.InputStreamReader
-import java.time.LocalTime
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -107,11 +106,11 @@ class Utils(private val context: Context) {
     /**
      * Toast提示
      * @param msg 提示内容
-     * @param isCannel 是否取消之前的Toast，立即显示当前的Toast
+     * @param isCannelLast 是否取消之前的Toast，立即显示当前的Toast
      */
-    fun showMsg(msg: String, isCannel: Boolean = false) {
+    fun showMsg(msg: String, isCannelLast: Boolean = false) {
 
-        if (isCannel && ::toast.isInitialized)
+        if (isCannelLast && ::toast.isInitialized)
             toast.cancel()
 
         toast = Toast.makeText(context, msg, Toast.LENGTH_LONG)
@@ -1614,12 +1613,8 @@ class Utils(private val context: Context) {
 
     @SuppressLint("UseKtx")
     fun getVoiceUrlKey(url: String): String {
+        return url.lineSequence().firstOrNull() ?: "default"
 
-        val regex = Regex("\\[(.*?)]")
-        val match = regex.find(url)
-        val key = match?.groupValues?.get(1) ?: "default"
-
-        return key;
     }
 
 

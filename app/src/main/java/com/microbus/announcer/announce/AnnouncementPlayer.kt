@@ -33,10 +33,12 @@ import kotlin.collections.forEachIndexed
 import kotlin.time.Duration.Companion.milliseconds
 
 class AnnouncementPlayer
-@OptIn(UnstableApi::class) constructor(val context: Context) {
+@OptIn(UnstableApi::class) constructor(
+    val context: Context,
+    private val anResolver: AnnouncementResolver
+) {
 
     private var utils = Utils(context)
-
 
     private var audioFocusRequest: AudioFocusRequest? = null
     private var audioManager: AudioManager? = null
@@ -141,8 +143,8 @@ class AnnouncementPlayer
 
 
             override fun onPlayerError(error: PlaybackException) {
+                Log.e("L1946", "播放异常: ${error.message}", error.cause)
                 utils.showMsg("播放异常: ${error.message}")
-                player.release()
                 pauseAnnounce()
             }
 
@@ -158,83 +160,133 @@ class AnnouncementPlayer
 
     }
 
-    var filePathList = ArrayList<AnnouncementResolver.MediaItem>()
-    lateinit var playJob: Job
+    var playJob: Job? = null
 
+    val ttsTimeoutMs = 30_000L
+
+    val netWorkTimeoutMs = 15_000L
+
+    @OptIn(UnstableApi::class)
     fun play(
-        mediaItemList: ArrayList<AnnouncementResolver.MediaItem>,
+        mediaItemList: MutableList<AnnouncementResolver.MediaItem>,
         anResolver: AnnouncementResolver
     ) {
 
+        mediaItemList.forEach {
+            Log.d("L176", it.text ?: "")
+        }
+
+        if (playJob != null) {
+            playJob?.cancel()
+        }
         playJob = CoroutineScope(Dispatchers.IO).launch {
 
             pauseAnnounce(cancelPlayJob = false).join()
 
-            filePathList = mediaItemList
-            filePathList.forEachIndexed { i, mediaItem ->
+            mediaItemList.forEachIndexed { i, mediaItem ->
 
-                val timeoutMs = 15_000L
-
-                // 等待TTS合成/Network下载完成
-                if (mediaItem.source == AnnouncementResolver.AudioSource.TTS) {
+                // 等待TTS合成完成
+                if (mediaItem.source == AnnouncementResolver.AudioSourceType.TTS) {
 
                     if (!isActive) {
                         pauseAnnounce()
+                        playJob?.cancel()
+                        playJob = null
                         return@launch
                     }
 
-                    val start = SystemClock.elapsedRealtime()
-                    while (!anResolver.hasTTSDone(mediaItem.filePath)) {
-                        currentCoroutineContext().ensureActive()
-                        if (SystemClock.elapsedRealtime() - start > timeoutMs) {
-                            withContext(Dispatchers.Main) { utils.showMsg("TTS合成超时") }
-                            pauseAnnounce()
-                            return@launch
-                        }
-                        delay(50.milliseconds)
-                    }
-                }
+                    waitTTSDoneWithTimeoutToBlank(mediaItem)
 
+                }
                 // 等待HTTP下载完成
-                if (mediaItem.source == AnnouncementResolver.AudioSource.NETWORK) {
+                if (mediaItem.source == AnnouncementResolver.AudioSourceType.NETWORK) {
 
                     if (!isActive) {
                         pauseAnnounce()
+                        playJob?.cancel()
+                        playJob = null
                         return@launch
                     }
 
                     val start = SystemClock.elapsedRealtime()
-                    while (!anResolver.hasNetworkVoice(mediaItem.filePath)) {
+                    var isTimeout = false
+                    while (!anResolver.hasNetworkVoiceDone(mediaItem.filePath)) {
                         currentCoroutineContext().ensureActive()
-                        if (SystemClock.elapsedRealtime() - start > timeoutMs) {
-                            withContext(Dispatchers.Main) { utils.showMsg("GET音频超时") }
-                            return@launch
+                        if (SystemClock.elapsedRealtime() - start > netWorkTimeoutMs) {
+                            withContext(Dispatchers.Main) { utils.showMsg("GET音频超时：${mediaItem.text}") }
+                            isTimeout = true
                         }
                         delay(50.milliseconds)
                     }
-                }
 
-                withContext(Dispatchers.Main) {
-
-                    Log.d("L3863", "ok ${mediaItem.filePath}")
-                    Log.d("L201", "play ${player.playbackState}")
-
-                    val mediaItem = MediaItem.Builder()
-                        .setUri(mediaItem.filePath)
-                        .setMediaId(mediaItem.filePath)
-                        .build()
-
-                    player.addMediaItem(i, mediaItem)
-
-                    if (player.playbackState == STATE_ENDED) {
-                        player.seekTo(i, 0L)
+                    // TODO 超时或失败回退
+                    Log.d(
+                        "L222",
+                        "${System.identityHashCode(mediaItem)} ${mediaItem.text} ${mediaItem.status}"
+                    )
+                    if (isTimeout || mediaItem.status == AnnouncementResolver.MediaItemStatus.FAILED) {
+                        Log.d("L223", "GET音频超时或失败回退")
+                        mediaItem.source = AnnouncementResolver.AudioSourceType.TTS
+                        mediaItem.status = AnnouncementResolver.MediaItemStatus.LOADING
+                        val ttsFilePath = anResolver.buildTTSMedia(mediaItem.text ?: "")
+                        mediaItem.filePath = ttsFilePath
+                        if (anResolver.hasTTSDone(ttsFilePath)) {
+                            mediaItem.status = AnnouncementResolver.MediaItemStatus.COMPLETED
+                        }
+                        waitTTSDoneWithTimeoutToBlank(mediaItem)
                     }
 
-                    player.prepare()
-                    player.play()
                 }
+
+                Log.d("L201", "play ${mediaItem.filePath}")
+
+                val mediaItem = MediaItem.Builder()
+                    .setUri(mediaItem.filePath)
+                    .setMediaId(mediaItem.filePath)
+                    .build()
+
+                addMediaItemAndPlay(mediaItem, i)
 
             }
+        }
+    }
+
+    private suspend fun waitTTSDoneWithTimeoutToBlank(
+        mediaItem: AnnouncementResolver.MediaItem
+    ) {
+        val start = SystemClock.elapsedRealtime()
+//        while (!anResolver.hasTTSDone(mediaItem.filePath)) {
+        while (mediaItem.status != AnnouncementResolver.MediaItemStatus.COMPLETED) {
+            currentCoroutineContext().ensureActive()
+            if (SystemClock.elapsedRealtime() - start > ttsTimeoutMs) {
+                withContext(Dispatchers.Main) { utils.showMsg("TTS合成超时") }
+                // 超时回退
+                mediaItem.source = AnnouncementResolver.AudioSourceType.BLANK
+                val blankFilePath = anResolver.buildBlankMedia("/blank/10.pcm")
+                mediaItem.filePath = blankFilePath
+                mediaItem.status = AnnouncementResolver.MediaItemStatus.COMPLETED
+                return
+            }
+            delay(50.milliseconds)
+        }
+        return
+    }
+
+
+    @OptIn(UnstableApi::class)
+    private suspend fun addMediaItemAndPlay(mediaItem: MediaItem, i: Int) {
+        withContext(Dispatchers.Main) {
+
+            Log.d("L201", "play ${player.playbackState}")
+
+            player.addMediaItem(i, mediaItem)
+
+            if (player.playbackState == STATE_ENDED) {
+                player.seekTo(i, 0L)
+            }
+
+            player.prepare()
+            player.play()
         }
     }
 
@@ -259,8 +311,8 @@ class AnnouncementPlayer
 
             player.stop()
             player.clearMediaItems()
-            if (this@AnnouncementPlayer::playJob.isInitialized && cancelPlayJob) {
-                playJob.cancel()
+            if (playJob != null && cancelPlayJob) {
+                playJob?.cancel()
             }
 
             val intent = Intent()

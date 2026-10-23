@@ -106,17 +106,6 @@ class VoiceBroadcastSettings : Fragment() {
     @Preview
     fun MainView() {
 
-        val (useTTS, setUseTTS) = remember {
-            mutableStateOf(utils.getIsUseTTS())
-        }
-
-        val (enableHTTPGetVoiceItem, setEnableHTTPGetVoiceItem) = remember {
-            mutableStateOf(utils.getEnableHTTPGetVoiceItem())
-        }
-
-        val (httpGetVoiceURL, setHTTPGetVoiceURL) = remember {
-            mutableStateOf(utils.getHTTPGetVoiceURL())
-        }
 
         val (stationChangeVibrator, setStationChangeVibrator) = remember {
             mutableStateOf(utils.getIsStationChangeVibrator())
@@ -159,13 +148,6 @@ class VoiceBroadcastSettings : Fragment() {
 //                utils.showMsg(key ?: "")
                 when (key) {
 
-                    "useTTS" -> {
-                        setUseTTS(utils.getIsUseTTS())
-                    }
-
-                    "httpGetVoiceURL" -> {
-                        setHTTPGetVoiceURL(utils.getHTTPGetVoiceURL())
-                    }
 
                     "stationChangeVibrator" -> {
                         setStationChangeVibrator(utils.getIsStationChangeVibrator())
@@ -219,18 +201,6 @@ class VoiceBroadcastSettings : Fragment() {
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                // TTS
-                                TTSItem(useTTS, setUseTTS)
-                                TTSSetting()
-
-                                // HTTP GET
-                                EnableHTTPGetVoiceItem(
-                                    enableHTTPGetVoiceItem,
-                                    setEnableHTTPGetVoiceItem
-                                )
-                                if (enableHTTPGetVoiceItem) {
-                                    HTTPGetVoiceURLItem(httpGetVoiceURL)
-                                }
 
                                 StationChangeVibratorItem(
                                     stationChangeVibrator,
@@ -249,122 +219,6 @@ class VoiceBroadcastSettings : Fragment() {
         }
     }
 
-    @Composable
-    fun TTSItem(tts: Boolean, setTTS: (Boolean) -> Unit) {
-        BaseSettingItem(
-            "使用系统文字转语音",
-            "找不到对应音频文件时使用TTS播报",
-            painterResource(id = R.drawable.tts),
-            {
-                toggleTTS(setTTS, !tts)
-            },
-            rightContain = {
-                SwitchSettingItem(tts) {
-                    toggleTTS(setTTS, it)
-                }
-            },
-        )
-    }
-
-    @Composable
-    fun TTSSetting() {
-        BaseSettingItem(
-            "系统文字转语音设置",
-            "TTS设置",
-            painterResource(id = R.drawable.tts),
-            {
-                val intent = Intent()
-                intent.setAction("com.android.settings.TTS_SETTINGS")
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                requireContext().startActivity(intent);
-            },
-        )
-    }
-
-    fun toggleTTS(setTTS: (Boolean) -> Unit, it: Boolean) {
-        setTTS(it)
-        prefs.edit {
-            putBoolean("useTTS", it)
-        }
-    }
-
-    @Composable
-    fun EnableHTTPGetVoiceItem(value: Boolean, setValue: (Boolean) -> Unit) {
-        BaseSettingItem(
-            "通过GET请求获取音频",
-            "",
-            painterResource(id = R.drawable.tts),
-            {
-                toggleEnableHTTPGetVoiceItem(setValue, !value)
-            },
-            rightContain = {
-                SwitchSettingItem(value) {
-                    toggleEnableHTTPGetVoiceItem(setValue, it)
-                }
-            },
-        )
-    }
-
-    fun toggleEnableHTTPGetVoiceItem(setValue: (Boolean) -> Unit, it: Boolean) {
-        setValue(it)
-        prefs.edit {
-            putBoolean("enableHTTPGetVoiceItem", it)
-        }
-    }
-
-    @Composable
-    fun HTTPGetVoiceURLItem(value: String) {
-        BaseSettingItem(
-            "GET请求获取音频[名称]含{{text}}的URL", "例如：[流萤]https://www.getFireFlyVoice.com/{{text}}", painterResource(id = R.drawable.tts),
-            {
-                val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
-                val dialog = MaterialAlertDialogBuilder(
-                    requireContext(),
-                    R.style.CustomAlertDialogStyle
-                ).setTitle("设置GET请求获取音频[名称]URL").setView(binding.root)
-                    .setPositiveButton("保存", null)
-                    .setNegativeButton(getString(android.R.string.cancel), null).show()
-
-                binding.editText.isSingleLine = true
-                binding.editText.setText(value)
-
-                dialog.setCanceledOnTouchOutside(false)
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-
-                    val newValue = binding.editText.text.toString()
-
-                    if (newValue == "") {
-                        utils.showMsg("请输入GET请求获取音频URL")
-                        return@setOnClickListener
-                    }
-
-                    if(utils.getVoiceUrlKey(newValue) == "default"){
-                        utils.showMsg("请在url前添加名称，格式为[名称]url")
-                        return@setOnClickListener
-                    }
-
-                    if(!newValue.contains("{{text}}")){
-                        utils.showMsg("请将url中要获取的文本替换为{{text}}")
-                        return@setOnClickListener
-                    }
-
-                    prefs.edit {
-                        putString("httpGetVoiceURL", newValue)
-                    }
-                    utils.showMsg("GET请求获取音频URL设置成功")
-                    dialog.dismiss()
-
-
-                }
-
-                binding.editText.isSingleLine = false
-                binding.textInputLayout.hint = "请输入URL"
-                binding.textInputLayout.requestFocus()
-                WindowCompat.getInsetsController(requireActivity().window, binding.editText)
-                    .show(WindowInsetsCompat.Type.ime())
-            },
-        )
-    }
 
     @Composable
     fun StationChangeVibratorItem(value: Boolean, setValue: (Boolean) -> Unit) {

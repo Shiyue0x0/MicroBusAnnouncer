@@ -908,28 +908,10 @@ class MainFragment : Fragment() {
         lineArriveStationIdList.clear()
 
 
-        // 删除加载列表
-        anResolver.clearNetworkMediaFileList()
+        // 删除网络加载列表
+        anResolver.clearPreloadingNetworkMediaFileList()
 
-        // network 预加载 common语句
-        val stationStateList = listOf("Next", "WillArrive", "Arrive")
-        val stationTypeList = listOf("Default", "Second", "Starting", "Terminal")
-
-        val commonTextSet = mutableSetOf<String>()
-
-        stationStateList.forEach { stationState ->
-            stationTypeList.forEach { stationType ->
-                val format = utils.getAnnouncementFormat(stationState, stationType)
-                val anList = utils.getAnnouncements(format)
-                val commonTextList = anList.filter { !(it.first() == '<' && it.last() == '>') }
-                commonTextSet.addAll(commonTextList)
-            }
-        }
-
-        val allCommonTextList = commonTextSet.toList()
-        allCommonTextList.forEach { item ->
-            anResolver.preloadingNetworkMedia(item)
-        }
+        preloadingCommonText()
 
         //切换当前站点为最近站点
         switchToNearestStation()
@@ -1944,7 +1926,7 @@ class MainFragment : Fragment() {
         anResolver = AnnouncementResolver(requireContext())
 
         // anPlayer
-        anPlayer = AnnouncementPlayer(requireContext())
+        anPlayer = AnnouncementPlayer(requireContext(), anResolver)
 
     }
 
@@ -3515,7 +3497,7 @@ class MainFragment : Fragment() {
     }
 
 
-    var filePathList = ArrayList<AnnouncementResolver.MediaItem>()
+    var filePathList = mutableListOf<AnnouncementResolver.MediaItem>()
 
     /**
      * 语音播报
@@ -3548,6 +3530,8 @@ class MainFragment : Fragment() {
 
                 anPlayer.play(filePathList, anResolver)
 
+                preloadingCommonText()
+                preloadingStation()
             }
 //            }
         }
@@ -4706,6 +4690,29 @@ class MainFragment : Fragment() {
             }
             if (!hasItem) break
             distance++
+        }
+    }
+
+    fun preloadingCommonText(){
+        // network 预加载 common语句
+        val stationStateList = listOf("Next", "WillArrive", "Arrive")
+        val stationTypeList = listOf("Default", "Second", "Starting", "Terminal")
+
+        val commonTextSet = mutableSetOf<String>()
+
+        stationStateList.forEach { stationState ->
+            stationTypeList.forEach { stationType ->
+                val format = utils.getAnnouncementFormat(stationState, stationType)
+                val anList = utils.getAnnouncements(format)
+                val commonTextList = anList.filter { !(it.first() == '<' && it.last() == '>') }
+                commonTextSet.addAll(commonTextList)
+            }
+        }
+
+        val allCommonTextList = commonTextSet.toList()
+        Log.d("L4177", "preloadingCommonText: $allCommonTextList")
+        allCommonTextList.forEach { item ->
+            anResolver.preloadingNetworkMedia(item)
         }
     }
 

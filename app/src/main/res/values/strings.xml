@@ -106,7 +106,7 @@
     <string name="es">电显</string>
 
     <string name="voice_broadcast">语音播报</string>
-    <string name="announcement_library">语音库</string>
+    <string name="announcement_source">语音来源</string>
     <string name="anFormat">播报格式</string>
 
     <string name="location">定位</string>

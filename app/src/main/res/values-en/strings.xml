@@ -107,7 +107,7 @@
     <string name="es">Electronic Display</string>
 
     <string name="voice_broadcast">Voice Broadcast</string>
-    <string name="announcement_library">Voice Library</string>
+    <string name="announcement_source">Voice Source</string>
     <string name="anFormat">Broadcast Format</string>
 
     <string name="location">Location</string>

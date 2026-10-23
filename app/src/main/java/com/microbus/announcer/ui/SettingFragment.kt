@@ -112,7 +112,7 @@ class SettingFragment : Fragment() {
                             ) {
                                 val announcementPreferences = listOf(
                                     ArrowPreferenceItem(
-                                        title = getString(R.string.announcement_library),
+                                        title = getString(R.string.announcement_source),
                                         fragmentClass = AnnouncementLibrarySettings::class.java
                                     ),
                                     ArrowPreferenceItem(
