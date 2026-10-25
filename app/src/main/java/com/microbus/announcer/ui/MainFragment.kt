@@ -141,7 +141,7 @@ import com.microbus.announcer.adapter.StationOfLineAdapter
 import com.microbus.announcer.adapter.StationOfRunningInfoAdapter
 import com.microbus.announcer.announce.AnnouncementContext
 import com.microbus.announcer.announce.AnnouncementPlayer
-import com.microbus.announcer.announce.AnnouncementResolver
+import com.microbus.announcer.announce.AnnouncementProvider
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.RunningInfo
 import com.microbus.announcer.bean.Station
@@ -816,7 +816,7 @@ class MainFragment : Fragment() {
         currentLine = line
 
         // 写入历史
-        val sharedPreferences: SharedPreferences =
+        val sharedPreferences =
             requireContext().getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
         sharedPreferences.edit(commit = true) {
             putString("lineName", currentLine.name)
@@ -875,11 +875,16 @@ class MainFragment : Fragment() {
             }
 
             if (currentLineStationList.isNotEmpty()) {
-                val originCnName = currentLineStationList.last().cnName
-                currentLineStationList.last().cnName =
-                    utils.getStationNameFromCn(originCnName, "cn")
-                currentLineStationList.last().enName =
-                    utils.getStationNameFromCn(originCnName, "en")
+                val curStation = currentLineStationList.last()
+                val sourceCnName = curStation.cnName
+                if (!curStation.hasPraseName) {
+                    curStation.cnName =
+                        utils.getStationNameFromCn(sourceCnName, "cn", curStation)
+                    curStation.enName =
+                        utils.getStationNameFromCn(sourceCnName, "en", curStation)
+                    curStation.hasPraseName = true
+                }
+
             }
 
 
@@ -909,14 +914,14 @@ class MainFragment : Fragment() {
 
 
         // 删除网络加载列表
-        anResolver.clearPreloadingNetworkMediaFileList()
+//        anResolver.clearPreloadingNetworkMediaFileList()
 
-        preloadingCommonText()
+//        preloadingCommonText()
 
         //切换当前站点为最近站点
         switchToNearestStation()
 
-        preloadingStation()
+//        preloadingStation()
 
         val viewList = ArrayList<View>()
         viewList.add(binding.lineDirectionBtnGroup)
@@ -929,7 +934,10 @@ class MainFragment : Fragment() {
             viewList.add(binding.navCard)
         }
         //显示|隐藏路线站点框和全站点路线按钮（渐出动画）
-        if (currentLine.name != resources.getString(R.string.line_all) && currentLine.name != resources.getString(
+//        if (currentLine.name != resources.getString(R.string.line_all) && currentLine.name != resources.getString(
+//                R.string.main_line_0
+//            )
+        if (currentLine.name != resources.getString(
                 R.string.main_line_0
             )
         ) {
@@ -1916,14 +1924,14 @@ class MainFragment : Fragment() {
     }
 
 
-    private lateinit var anResolver: AnnouncementResolver
+    private lateinit var anResolver: AnnouncementProvider
     private lateinit var anPlayer: AnnouncementPlayer
 
     @OptIn(UnstableApi::class)
     private fun initAnnouncement() {
 
         // anResolver
-        anResolver = AnnouncementResolver(requireContext())
+        anResolver = AnnouncementProvider.getInstance(requireContext())
 
         // anPlayer
         anPlayer = AnnouncementPlayer(requireContext(), anResolver)
@@ -3255,8 +3263,6 @@ class MainFragment : Fragment() {
         wakeLock.acquire(15 * 1000L)
 
 
-
-
     }
 
     /**
@@ -3497,7 +3503,7 @@ class MainFragment : Fragment() {
     }
 
 
-    var filePathList = mutableListOf<AnnouncementResolver.MediaItem>()
+    var filePathList = mutableListOf<AnnouncementProvider.MediaItem>()
 
     /**
      * 语音播报
@@ -3530,8 +3536,8 @@ class MainFragment : Fragment() {
 
                 anPlayer.play(filePathList, anResolver)
 
-                preloadingCommonText()
-                preloadingStation()
+//                preloadingCommonText()
+//                preloadingStation()
             }
 //            }
         }
@@ -3726,7 +3732,7 @@ class MainFragment : Fragment() {
         //更新当前站点距离
         updCurrentDistance()
 
-        preloadingStation()
+//        preloadingStation()
     }
 
     fun getOnlineLine(
@@ -3911,6 +3917,14 @@ class MainFragment : Fragment() {
                             pauseAnnounce()
                         }
 
+                        utils.preloadingCommonTextName -> {
+                            preloadCommonAndNumberAndLetterText()
+                        }
+
+                        utils.preloadingStationName -> {
+                            preloadingStation()
+                        }
+
                     }
                 }
             }
@@ -3928,7 +3942,9 @@ class MainFragment : Fragment() {
                 utils.pauseAnnounceName,
                 utils.ON_PLAYER_STATE_READY,
                 utils.ON_PLAYER_STATE_ENDED,
-                utils.ON_PLAYER_PAUSE
+                utils.ON_PLAYER_PAUSE,
+                utils.preloadingCommonTextName,
+                utils.preloadingStationName,
             ).forEach { addAction(it) }
         }
 
@@ -4693,8 +4709,8 @@ class MainFragment : Fragment() {
         }
     }
 
-    fun preloadingCommonText(){
-        // network 预加载 common语句
+    fun preloadCommonAndNumberAndLetterText() {
+        // network 预加载 common 和 number 语句
         val stationStateList = listOf("Next", "WillArrive", "Arrive")
         val stationTypeList = listOf("Default", "Second", "Starting", "Terminal")
 
@@ -4704,28 +4720,37 @@ class MainFragment : Fragment() {
             stationTypeList.forEach { stationType ->
                 val format = utils.getAnnouncementFormat(stationState, stationType)
                 val anList = utils.getAnnouncements(format)
-                val commonTextList = anList.filter { !(it.first() == '<' && it.last() == '>') }
+                val commonTextList = anList
+                    .filter { !(it.first() == '<' && it.last() == '>') }
+                    .map { "/common/${it}" }
                 commonTextSet.addAll(commonTextList)
             }
         }
 
-        val allCommonTextList = commonTextSet.toList()
-        Log.d("L4177", "preloadingCommonText: $allCommonTextList")
-        allCommonTextList.forEach { item ->
+        val numberTextList = utils.chineseNumberMap.values.map { "/cn/number/${it}" }
+        val letterTextList = ('A'..'Z').map { "/en/letter/${it}" }
+
+        val totalTextList = (commonTextSet + numberTextList + letterTextList).distinct()
+
+        utils.showMsg("正在预加载……")
+        Log.d("L4177", "preloadingCommonText: $totalTextList")
+        totalTextList.forEach { item ->
             anResolver.preloadingNetworkMedia(item)
         }
     }
 
-    fun preloadingStation(){
+    fun preloadingStation() {
         // network 预加载站点名称
 
         val stationTextSet = mutableSetOf<String>()
 
         currentLineStationList.forEachByDistance(currentLineStationCount) { index, station ->
-            stationTextSet.add(station.cnName)
-            stationTextSet.add(station.enName)
+            stationTextSet.add("/station/cn/${station.cnName}")
+            stationTextSet.add("/station/en/${station.enName}")
         }
 
+
+        utils.showMsg("正在预加载……")
         val allStationTextList = stationTextSet.toList()
         allStationTextList.forEach { item ->
             anResolver.preloadingNetworkMedia(item)

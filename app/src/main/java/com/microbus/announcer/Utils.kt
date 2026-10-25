@@ -61,7 +61,8 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 import com.microbus.announcer.activity.WebviewActivity
-
+import android.os.Handler
+import android.os.Looper
 
 class Utils(private val context: Context) {
 
@@ -88,6 +89,10 @@ class Utils(private val context: Context) {
     val backHomeName = "${baseActionName}.back_home"
 
     val pauseAnnounceName = "${baseActionName}.pause_announce"
+
+    val preloadingCommonTextName = "${baseActionName}.preloading_common_text"
+
+    val preloadingStationName = "${baseActionName}.preloading_station"
 
     val ON_PLAYER_STATE_READY = "${baseActionName}.PLAYER_STATE_READY"
 
@@ -401,6 +406,10 @@ class Utils(private val context: Context) {
         return prefs.getString("httpGetVoiceURL", "") ?: ""
     }
 
+    fun getHTTPGetVoiceURLSet(): Set<String> {
+        return prefs.getStringSet("httpGetVoiceURLSet", emptySet()) ?: emptySet()
+    }
+
     fun getIsStationChangeVibrator(): Boolean {
         return prefs.getBoolean("stationChangeVibrator", true)
     }
@@ -441,6 +450,31 @@ class Utils(private val context: Context) {
     }
 
     /**
+     * 从设置中获取是否启用在线翻译
+     */
+    fun getIsEnableOnlineTranslation(): Boolean {
+        return prefs.getBoolean("enableOnlineTranslation", true)
+    }
+
+    /**
+     * 从设置中获取在线翻译请求语言代码
+     */
+    fun getOnlineTranslationRequestCode(): String {
+        val default = """myMemoryAPI
+GET https://api.mymemory.translated.net/get?q={{text}}&langpair=zh-CN|en""".trimIndent()
+        return prefs.getString("onlineTranslationRequestCode", default) ?: default
+    }
+
+    /**
+     * 从设置中获取在线翻译请求返回的结果JSONPath
+     * 例如：responseData.translatedText
+     */
+    fun getOnlineTranslationResponseJSONPath(): String {
+        val default = "responseData.translatedText"
+        return prefs.getString("onlineTranslationResponseJSONPath", default) ?: default
+    }
+
+    /**
      * 振动
      */
     fun haptic(view: View?) {
@@ -461,6 +495,11 @@ class Utils(private val context: Context) {
         vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, repeatIndex))
     }
 
+    val chineseNumberMap = mapOf(
+        "0" to "零", "1" to "一", "2" to "二", "3" to "三", "4" to "四",
+        "5" to "五", "6" to "六", "7" to "七", "8" to "八", "9" to "九",
+        "10" to "十", "100" to "百", "1000" to "千"
+    )
 
     /**
      * 将3位及以下整数转换为中文读法字符串列表
@@ -474,7 +513,7 @@ class Utils(private val context: Context) {
         before: String = "",
         isAddZeros: Boolean = false
     ): ArrayList<String> {
-        val list = ArrayList<String>()
+        var list = ArrayList<String>()
         // 英文
         if ("[a-zA-z]+".toRegex().matches(str)) {
             list.add(list.size, "$before$str")
@@ -518,6 +557,18 @@ class Utils(private val context: Context) {
                 list.add(list.size, "$before$num")
             }
         }
+
+        Log.d("L337", "$list")
+
+        list = list.map { numberWithPath ->
+            val path = numberWithPath.substringBeforeLast("/")
+            val number = numberWithPath.substringAfterLast("/")
+            val chineseNumber = chineseNumberMap[number]
+            if (chineseNumber != null) "$path/$chineseNumber" else "$path/$number"
+        }.toCollection(ArrayList())
+
+        Log.d("L337", "$list")
+
         return list
     }
 
@@ -1304,6 +1355,7 @@ class Utils(private val context: Context) {
 
     lateinit var stationLangTableList: JsonArray
 
+
     /**
      * 根据站点中文名称获取对应语言名称
      * @param cnName 要查找的中文名
@@ -1311,19 +1363,19 @@ class Utils(private val context: Context) {
      * @return cn返回中文名本身，en返回站点在本地数据库的英文名称，其他的从stationLangTable.json查找
      * 查找失败，则返回中文名本身
      * */
-    fun getStationNameFromCn(cnName: String, lang: String): String {
+    fun getStationNameFromCn(cnName: String, lang: String, station: Station?): String {
 
-//        if (lang == "cn") {
-//            return cnName
-//        }
-
+        var matchedEnName = false
 
         var enName = cnName
         if (lang == "en") {
             val stationDatabaseHelper = StationDatabaseHelper.getInstance(context)
             val queryStationList = stationDatabaseHelper.queryByCnName(cnName)
-            if (queryStationList.isNotEmpty()) {
-                enName = queryStationList.first().enName
+            if (queryStationList.firstOrNull() != null) {
+                if (queryStationList.first().enName.isNotEmpty()) {
+                    enName = queryStationList.first().enName
+                    matchedEnName = true
+                }
             }
         }
 
@@ -1358,7 +1410,6 @@ class Utils(private val context: Context) {
             if (obj.get("cn") == null || obj.get("cn").asString != cnName)
                 continue
 
-
             if (lang == "cn" && obj.get("cnrp") != null) {
                 return obj.get("cnrp").asString
             }
@@ -1372,11 +1423,26 @@ class Utils(private val context: Context) {
 
         }
 
-        return if (lang == "en") {
+
+        val resName = if (lang == "en") {
             enName
         } else {
             cnName
         }
+
+        // TODO  在线翻译
+        if (getIsEnableOnlineTranslation() && lang == "en" && !matchedEnName && station != null) {
+            Log.d("Translate", "onLineTranslate:  $cnName")
+            Handler(Looper.getMainLooper()).post {
+                val translationService = TranslationService.getInstance(context)
+                translationService.requestTranslation(
+                    station,
+                    onSuccess = { translated -> Log.d("Translate", "翻译结果：$translated") },
+                    onFailure = { e -> Log.e("Translate", "翻译失败", e) }
+                )
+            }
+        }
+        return resName
 
     }
 

@@ -29,8 +29,8 @@
             android:fadingEdgeLength="20dp"
             android:requiresFadingEdge="vertical"
             app:fastScrollAutoHide="false"
-            app:fastScrollThumbColor="@color/md_theme_primary"
-            app:fastScrollThumbInactiveColor="@color/md_theme_primaryContainer"
+            app:fastScrollThumbColor="@color/an_text_1"
+            app:fastScrollThumbInactiveColor="@color/an_text_1"
             app:fastScrollTrackColor="@android:color/transparent" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

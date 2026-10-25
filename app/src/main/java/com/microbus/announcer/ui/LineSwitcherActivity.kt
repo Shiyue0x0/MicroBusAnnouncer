@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,6 +23,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -35,7 +40,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
@@ -68,22 +78,24 @@ import top.yukonga.miuix.kmp.basic.FabPosition
 import top.yukonga.miuix.kmp.basic.FloatingToolbar
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SearchBar
+import top.yukonga.miuix.kmp.basic.SearchBarDefaults
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.basic.Search
 import top.yukonga.miuix.kmp.icon.extended.All
 import top.yukonga.miuix.kmp.icon.extended.Edit
 import top.yukonga.miuix.kmp.icon.extended.Search
 import top.yukonga.miuix.kmp.overlay.OverlayListPopup
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.LocalContentColor
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
@@ -315,31 +327,82 @@ class LineSwitcherActivity : BaseActivity() {
         searchText: String,
         onSearchTextChange: (String) -> Unit
     ) {
-
         val focusRequester = remember { FocusRequester() }
 
-        // 在组件首次组合时请求焦点
         LaunchedEffect(Unit) {
             focusRequester.requestFocus()
         }
 
+        // 与 InputField 源码一致：文本颜色取 LocalContentColor
+        val textColor = LocalContentColor.current
+        val inputTextStyle = MiuixTheme.textStyles.main
+            .copy(fontWeight = FontWeight.Medium)
+            .copy(color = textColor)
+        val cursorBrush = SolidColor(MiuixTheme.colorScheme.primary)
+
         SearchBar(
             inputField = {
-                InputField(
-                    query = searchText,
-                    onQueryChange = onSearchTextChange,
-                    onSearch = { onSearchTextChange(searchText) },
-                    expanded = false,
-                    onExpandedChange = {},
-                    label = "通过路线名称搜索",
-                    modifier = Modifier.focusRequester(focusRequester)
+                BasicTextField(
+                    value = searchText,
+                    onValueChange = onSearchTextChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
+                    singleLine = true,
+                    textStyle = inputTextStyle,
+                    cursorBrush = cursorBrush,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Search
+                    ),
+                    decorationBox = { innerTextField ->
+                        Box(
+                            modifier = Modifier.background(
+                                color = MiuixTheme.colorScheme.surfaceContainerHigh,
+                                shape = CircleShape,
+                            ),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    modifier = Modifier.padding(
+                                        start = SearchBarDefaults.LeadingIconStartPadding,
+                                        end = SearchBarDefaults.LeadingIconEndPadding
+                                    ),
+                                    imageVector = MiuixIcons.Basic.Search,
+                                    tint = MiuixTheme.colorScheme.onSurfaceContainerHigh,
+                                    contentDescription = "Search",
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = SearchBarDefaults.InputFieldMinHeight),
+                                    contentAlignment = Alignment.CenterStart,
+                                ) {
+                                    if (searchText.isEmpty()) {
+                                        Text(
+                                            text = "通过路线名称搜索",
+                                            style = TextStyle(
+                                                fontSize = SearchBarDefaults.InputFieldFontSize,
+                                                fontWeight = FontWeight.Medium
+                                            ),
+                                            color = MiuixTheme.colorScheme.onSurfaceContainerHigh,
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            }
+                        }
+                    }
                 )
             },
             expanded = false,
             onExpandedChange = {}
         ) {
         }
-
     }
 
     object SearchLineType {
@@ -556,8 +619,8 @@ class LineSwitcherActivity : BaseActivity() {
                         )
                             .first()
                     lineName = line.name
-                    firstStationName = firstStation.cnName
-                    endStationName = endStation.cnName
+                    firstStationName = utils.getStationNameFromCn(firstStation.cnName, "cn", firstStation)
+                    endStationName = utils.getStationNameFromCn(endStation.cnName, "cn", endStation)
 
                 }
 
@@ -568,8 +631,10 @@ class LineSwitcherActivity : BaseActivity() {
                     val matchResult = pattern.matchEntire(line.name)
                     if (matchResult != null) {
                         lineName = matchResult.groupValues[1]
-                        firstStationName = matchResult.groupValues[2]
-                        endStationName = matchResult.groupValues[3]
+                        firstStationName =
+                            utils.getStationNameFromCn(matchResult.groupValues[2], "cn", null)
+                        endStationName =
+                            utils.getStationNameFromCn(matchResult.groupValues[3], "cn", null)
                     }
                 }
 
@@ -824,7 +889,7 @@ class LineSwitcherActivity : BaseActivity() {
 
         //
         val sharedPreferences: SharedPreferences =
-           getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
+            getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
         sharedPreferences.edit(commit = true) {
             putString("lineName", originLineName)
             putString("onlineLineUpId", cloudLineNameToIdMap[originLineName]?.first)

@@ -2,11 +2,9 @@ package com.microbus.announcer.ui.compose
 
 import android.annotation.SuppressLint
 import android.content.SharedPreferences
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View.GONE
 import android.view.View.VISIBLE
-import android.widget.TextView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -175,10 +173,9 @@ fun EsHeaderCompose(
                     when (lang) {
                         "cn" -> station.cnName
                         "en" -> station.enName
-                        else -> utils.getStationNameFromCn(station.cnName, lang)
+                        else -> utils.getStationNameFromCn(station.cnName, lang, station)
                     }
                 }
-
             }
         }
     }

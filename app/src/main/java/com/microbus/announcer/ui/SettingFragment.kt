@@ -31,6 +31,7 @@ import com.microbus.announcer.ui.settings.ESSettings
 import com.microbus.announcer.ui.settings.LocationSettings
 import com.microbus.announcer.ui.settings.MapSettings
 import com.microbus.announcer.ui.settings.SystemSettings
+import com.microbus.announcer.ui.settings.TranslationSettings
 import com.microbus.announcer.ui.settings.VoiceBroadcastSettings
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
@@ -113,21 +114,25 @@ class SettingFragment : Fragment() {
                                 val announcementPreferences = listOf(
                                     ArrowPreferenceItem(
                                         title = getString(R.string.announcement_source),
+                                        summary = "本地 网络 TTS",
                                         fragmentClass = AnnouncementLibrarySettings::class.java
                                     ),
                                     ArrowPreferenceItem(
-                                        title = getString(R.string.voice_broadcast),
-                                        fragmentClass = VoiceBroadcastSettings::class.java
+                                        title = getString(R.string.anFormat),
+                                        summary = "设置播报的详细内容",
+                                        fragmentClass = AnFormatSettings::class.java
                                     ),
                                     ArrowPreferenceItem(
-                                        title = getString(R.string.anFormat),
-                                        fragmentClass = AnFormatSettings::class.java
+                                        title = getString(R.string.voice_broadcast),
+                                        summary = "字幕 音量增幅等",
+                                        fragmentClass = VoiceBroadcastSettings::class.java
                                     ),
                                 )
                                 Column {
                                     announcementPreferences.forEach { item ->
                                         ArrowPreference(
                                             title = item.title,
+                                            summary = item.summary,
                                             onClick = {
                                                 FragmentContainerActivity.start(
                                                     requireContext(),
@@ -145,15 +150,18 @@ class SettingFragment : Fragment() {
                                 val mainPreferences = listOf(
                                     ArrowPreferenceItem(
                                         title = getString(R.string.es),
+                                        summary = "主控最上方的电显",
                                         fragmentClass = ESSettings::class.java
                                     ),
 
                                     ArrowPreferenceItem(
                                         title = getString(R.string.map),
+                                        summary = "主控地图",
                                         fragmentClass = MapSettings::class.java
                                     ),
                                     ArrowPreferenceItem(
                                         title = getString(R.string.location),
+                                        summary = "设置自动报站、定位频率等",
                                         fragmentClass = LocationSettings::class.java
                                     )
                                 )
@@ -161,6 +169,33 @@ class SettingFragment : Fragment() {
                                     mainPreferences.forEach { item ->
                                         ArrowPreference(
                                             title = item.title,
+                                            summary = item.summary,
+                                            onClick = {
+                                                FragmentContainerActivity.start(
+                                                    requireContext(),
+                                                    item.fragmentClass
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Card(
+                                cornerRadius = 16.dp
+                            ) {
+                                val preferences = listOf(
+                                    ArrowPreferenceItem(
+                                        title = getString(R.string.translation),
+                                        summary = "在线翻译",
+                                        fragmentClass = TranslationSettings::class.java
+                                    ),
+                                )
+                                Column {
+                                    preferences.forEach { item ->
+                                        ArrowPreference(
+                                            title = item.title,
+                                            summary = item.summary,
                                             onClick = {
                                                 FragmentContainerActivity.start(
                                                     requireContext(),
@@ -193,6 +228,7 @@ class SettingFragment : Fragment() {
                                     otherPreferences.forEach { item ->
                                         ArrowPreference(
                                             title = item.title,
+//                                            summary = item.summary,
                                             onClick = {
                                                 FragmentContainerActivity.start(
                                                     requireContext(),
@@ -203,6 +239,7 @@ class SettingFragment : Fragment() {
                                     }
                                 }
                             }
+
                             Box(modifier = Modifier.height(96.dp)) {}
                         }
                     }

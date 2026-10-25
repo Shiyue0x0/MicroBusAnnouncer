@@ -14,5 +14,6 @@ data class Station(
     var type: String = "B",
     var bearing: Double = -1.0,   //自 dbVersion 2 起
 
+    var hasPraseName: Boolean = false,
 
-) : Serializable, Parcelable
+    ) : Serializable, Parcelable

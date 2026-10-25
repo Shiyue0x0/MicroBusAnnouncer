@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -383,7 +384,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
                         } else
                             Modifier
                     ),
-                color = if (utils.getIsLiquidGlass()) Color.Transparent else MiuixTheme.colorScheme.surfaceVariant,
+                color = colorResource(R.color.an_contain_bg_tran),
                 showDivider = false
             ) {
                 TabPage.entries.forEach { tab ->
@@ -417,7 +418,7 @@ class MainActivity : BaseActivity(), TabSwitchListener {
         val railState = rememberNavigationRailState()
         NavigationRail(
             state = railState,
-            color = if (utils.getIsLiquidGlass()) Color.Transparent else MiuixTheme.colorScheme.surfaceVariant,
+            color = colorResource(R.color.an_contain_bg_tran),
             modifier = Modifier
                 .clip(CircleShape)
                 .then(

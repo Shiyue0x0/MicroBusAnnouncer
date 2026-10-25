@@ -35,7 +35,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class AnnouncementPlayer
 @OptIn(UnstableApi::class) constructor(
     val context: Context,
-    private val anResolver: AnnouncementResolver
+    private val anResolver: AnnouncementProvider
 ) {
 
     private var utils = Utils(context)
@@ -168,8 +168,8 @@ class AnnouncementPlayer
 
     @OptIn(UnstableApi::class)
     fun play(
-        mediaItemList: MutableList<AnnouncementResolver.MediaItem>,
-        anResolver: AnnouncementResolver
+        mediaItemList: MutableList<AnnouncementProvider.MediaItem>,
+        anResolver: AnnouncementProvider
     ) {
 
         mediaItemList.forEach {
@@ -186,7 +186,7 @@ class AnnouncementPlayer
             mediaItemList.forEachIndexed { i, mediaItem ->
 
                 // 等待TTS合成完成
-                if (mediaItem.source == AnnouncementResolver.AudioSourceType.TTS) {
+                if (mediaItem.source == AnnouncementProvider.AudioSourceType.TTS) {
 
                     if (!isActive) {
                         pauseAnnounce()
@@ -199,7 +199,7 @@ class AnnouncementPlayer
 
                 }
                 // 等待HTTP下载完成
-                if (mediaItem.source == AnnouncementResolver.AudioSourceType.NETWORK) {
+                if (mediaItem.source == AnnouncementProvider.AudioSourceType.NETWORK) {
 
                     if (!isActive) {
                         pauseAnnounce()
@@ -224,14 +224,14 @@ class AnnouncementPlayer
                         "L222",
                         "${System.identityHashCode(mediaItem)} ${mediaItem.text} ${mediaItem.status}"
                     )
-                    if (isTimeout || mediaItem.status == AnnouncementResolver.MediaItemStatus.FAILED) {
+                    if (isTimeout || mediaItem.status == AnnouncementProvider.MediaItemStatus.FAILED) {
                         Log.d("L223", "GET音频超时或失败回退")
-                        mediaItem.source = AnnouncementResolver.AudioSourceType.TTS
-                        mediaItem.status = AnnouncementResolver.MediaItemStatus.LOADING
+                        mediaItem.source = AnnouncementProvider.AudioSourceType.TTS
+                        mediaItem.status = AnnouncementProvider.MediaItemStatus.LOADING
                         val ttsFilePath = anResolver.buildTTSMedia(mediaItem.text ?: "")
                         mediaItem.filePath = ttsFilePath
                         if (anResolver.hasTTSDone(ttsFilePath)) {
-                            mediaItem.status = AnnouncementResolver.MediaItemStatus.COMPLETED
+                            mediaItem.status = AnnouncementProvider.MediaItemStatus.COMPLETED
                         }
                         waitTTSDoneWithTimeoutToBlank(mediaItem)
                     }
@@ -252,19 +252,19 @@ class AnnouncementPlayer
     }
 
     private suspend fun waitTTSDoneWithTimeoutToBlank(
-        mediaItem: AnnouncementResolver.MediaItem
+        mediaItem: AnnouncementProvider.MediaItem
     ) {
         val start = SystemClock.elapsedRealtime()
 //        while (!anResolver.hasTTSDone(mediaItem.filePath)) {
-        while (mediaItem.status != AnnouncementResolver.MediaItemStatus.COMPLETED) {
+        while (mediaItem.status != AnnouncementProvider.MediaItemStatus.COMPLETED) {
             currentCoroutineContext().ensureActive()
             if (SystemClock.elapsedRealtime() - start > ttsTimeoutMs) {
                 withContext(Dispatchers.Main) { utils.showMsg("TTS合成超时") }
                 // 超时回退
-                mediaItem.source = AnnouncementResolver.AudioSourceType.BLANK
+                mediaItem.source = AnnouncementProvider.AudioSourceType.BLANK
                 val blankFilePath = anResolver.buildBlankMedia("/blank/10.pcm")
                 mediaItem.filePath = blankFilePath
-                mediaItem.status = AnnouncementResolver.MediaItemStatus.COMPLETED
+                mediaItem.status = AnnouncementProvider.MediaItemStatus.COMPLETED
                 return
             }
             delay(50.milliseconds)

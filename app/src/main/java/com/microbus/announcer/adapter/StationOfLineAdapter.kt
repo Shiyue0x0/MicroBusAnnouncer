@@ -251,9 +251,9 @@ internal class StationOfLineAdapter(
 
         // todo 适配英文
         holder.stationName.text = if (utils.getUILang() == "zh") {
-            stationList[position].cnName
+            utils.getStationNameFromCn(stationList[position].cnName, "cn", stationList[position])
         } else {
-            stationList[position].cnName
+            utils.getStationNameFromCn(stationList[position].enName, "en", stationList[position])
         }
 
         //当前站点样式

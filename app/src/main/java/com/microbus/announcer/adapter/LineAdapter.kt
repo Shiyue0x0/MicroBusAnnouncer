@@ -167,8 +167,13 @@ class LineAdapter(
 
 
             if (stationList.isNotEmpty()) {
-                holder.lineStartingStation.text = stationList.first().cnName
-                holder.lineTerminal.text = stationList.last().cnName
+                holder.lineStartingStation.text = utils.getStationNameFromCn(
+                    stationList.first().cnName,
+                    "cn",
+                    stationList.first()
+                )
+                holder.lineTerminal.text =
+                    utils.getStationNameFromCn(stationList.last().cnName, "cn", stationList.last())
             } else {
                 holder.lineStartingStation.text = "未知站点"
                 holder.lineTerminal.text = "未知站点"
@@ -306,8 +311,10 @@ class LineAdapter(
         }
 
         if (stationList.isNotEmpty()) {
-            holder.lineStartingStation.text = stationList.first().cnName
-            holder.lineTerminal.text = stationList.last().cnName
+            holder.lineStartingStation.text =
+                utils.getStationNameFromCn(stationList.first().cnName, "cn", stationList.first())
+            holder.lineTerminal.text =
+                utils.getStationNameFromCn(stationList.last().cnName, "cn", stationList.last())
         } else {
             holder.lineStartingStation.text = "未知站点"
             holder.lineTerminal.text = "未知站点"

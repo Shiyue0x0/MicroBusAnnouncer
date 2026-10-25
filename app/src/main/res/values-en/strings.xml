@@ -113,6 +113,8 @@
     <string name="location">Location</string>
     <string name="map">Map</string>
 
+    <string name="translation">Translation</string>
+
     <string name="stationAndLineDate">Station &amp; Line Date</string>
     <string name="about_an">About Announcer</string>
     <string name="about">About</string>
