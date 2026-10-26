@@ -54,30 +54,20 @@
                 android:orientation="horizontal"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <LinearLayout
-                android:id="@+id/topFill"
-                android:layout_width="match_parent"
-                android:layout_height="8dp"
-                android:orientation="horizontal"
-                app:layout_constraintTop_toBottomOf="@+id/bar" />
+            <!--            <LinearLayout-->
+            <!--                android:id="@+id/topFill"-->
+            <!--                android:layout_width="match_parent"-->
+            <!--                android:layout_height="8dp"-->
+            <!--                android:orientation="horizontal"-->
+            <!--                app:layout_constraintTop_toBottomOf="@+id/bar" />-->
 
 
             <LinearLayout
                 android:id="@+id/fill2"
                 android:layout_width="match_parent"
-                android:layout_height="60dp"
+                android:layout_height="0dp"
                 android:orientation="horizontal"
-                app:layout_constraintTop_toBottomOf="@+id/topFill" />
-
-
-            <!--            <com.qmdeve.liquidglass.widget.LiquidGlassView-->
-            <!--                android:id="@+id/liquidGlassViewOfNavCard"-->
-            <!--                android:layout_width="0dp"-->
-            <!--                android:layout_height="0dp"-->
-            <!--                app:layout_constraintBottom_toBottomOf="@+id/navCard"-->
-            <!--                app:layout_constraintEnd_toEndOf="@+id/navCard"-->
-            <!--                app:layout_constraintStart_toStartOf="@+id/navCard"-->
-            <!--                app:layout_constraintTop_toTopOf="@+id/navCard" />-->
+                app:layout_constraintTop_toBottomOf="@+id/bar" />
 
             <!-- 巡航信息栏 新 -->
             <com.google.android.material.card.MaterialCardView
@@ -85,6 +75,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginTop="8dp"
                 android:layout_marginEnd="16dp"
                 android:clickable="true"
                 android:focusable="true"
@@ -270,15 +261,6 @@
                 android:orientation="horizontal"
                 android:visibility="visible"
                 app:layout_constraintTop_toBottomOf="@+id/navCard" />
-
-            <!--            <com.qmdeve.liquidglass.widget.LiquidGlassView-->
-            <!--                android:id="@+id/liquidGlassViewOfLineStationCard"-->
-            <!--                android:layout_width="0dp"-->
-            <!--                android:layout_height="0dp"-->
-            <!--                app:layout_constraintBottom_toBottomOf="@+id/lineStationCard"-->
-            <!--                app:layout_constraintEnd_toEndOf="@+id/lineStationCard"-->
-            <!--                app:layout_constraintStart_toStartOf="@+id/lineStationCard"-->
-            <!--                app:layout_constraintTop_toTopOf="@+id/lineStationCard" />-->
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/lineStationCard"
@@ -842,6 +824,7 @@
                             android:layout_marginEnd="8dp"
                             android:layout_weight="1"
                             android:contentDescription="@string/starting_station"
+                            android:visibility="gone"
                             app:backgroundTint="@color/an_contain_bg_tran"
                             app:icon="@drawable/start"
                             app:iconGravity="textTop"
@@ -897,6 +880,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:contentDescription="@string/terminal"
+                            android:visibility="gone"
                             app:backgroundTint="@color/an_contain_bg_tran"
                             app:icon="@drawable/start"
                             app:iconGravity="textTop"

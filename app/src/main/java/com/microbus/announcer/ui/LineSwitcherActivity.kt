@@ -673,7 +673,7 @@ class LineSwitcherActivity : BaseActivity() {
                     icon = MiuixIcons.Edit,
                     onClick = {
                         if (searchText == "") {
-                            utils.showMsg("请输入${getString(R.string.set_temporary_line_name)}")
+                            utils.showMsg("请在搜索栏输入${getString(R.string.set_temporary_line_name)}")
                             return@FloatingToolBtnItem
                         }
                         finishAndSetTemporaryLineName(searchText)

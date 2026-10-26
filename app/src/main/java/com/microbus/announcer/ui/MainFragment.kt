@@ -1,5 +1,13 @@
 package com.microbus.announcer.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Notification
@@ -30,6 +38,7 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -39,34 +48,53 @@ import android.view.View
 import android.view.View.GONE
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.TextView
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
@@ -76,6 +104,7 @@ import androidx.core.view.setPadding
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -125,6 +154,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
@@ -167,6 +197,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
@@ -198,7 +229,7 @@ class MainFragment : Fragment() {
     private var lastTimeMillis = System.currentTimeMillis()
     private var currentTimeMillis = System.currentTimeMillis()
 
-    private val mLooper: Looper = Looper.getMainLooper()
+    private val mainLooper = Looper.getMainLooper()
 
     private lateinit var aMapView: TextureMapView
     private lateinit var aMap: AMap
@@ -292,8 +323,8 @@ class MainFragment : Fragment() {
 
     private var cloudStationList = ArrayList<Station>()
 
-    val lastStationHandler = Handler(mLooper)
-    val nextStationHandler = Handler(mLooper)
+    val lastStationHandler = Handler(mainLooper)
+    val nextStationHandler = Handler(mainLooper)
 
     private lateinit var announcementLangList: ArrayList<String>
 
@@ -310,7 +341,7 @@ class MainFragment : Fragment() {
     val locationInfoList = ArrayList<String>()
 
 
-    val simRunningHandler = Handler(mLooper)
+    val simRunningHandler = Handler(mainLooper)
 
     var lastTouchMapTime = 0L
 
@@ -322,102 +353,127 @@ class MainFragment : Fragment() {
 
     private var esIsAnimating = mutableStateOf(false)
 
-    private val startLineSwitcherForResult =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-
-                val data: Intent = result.data ?: return@registerForActivityResult
-
-                val action = data.getIntExtra("action", -1)
-                when (action) {
-
-                    utils.LOAD_LOCAL_LINE -> {
-                        val lineId = data.getIntExtra("lineId", -1)
-                        if (lineId == -1) {
-                            return@registerForActivityResult
-                        }
-                        setLine(lineDatabaseHelper.queryById(lineId).first())
-
-                        val sharedPreferences =
-                            requireContext().getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
-                        sharedPreferences.edit {
-                            remove("onlineLineUpId")
-                            remove("onlineLineDownId")
-                        }
-
-                        utils.haptic(binding.root)
-                    }
-
-                    utils.LOAD_LINE_ALL -> {
-                        loadLineAll(true)
-
-                        val sharedPreferences =
-                            requireContext().getSharedPreferences("lastRunningInfo", MODE_PRIVATE)
-                        sharedPreferences.edit {
-                            remove("onlineLineUpId")
-                            remove("onlineLineDownId")
-                        }
-                    }
-
-                    utils.LOAD_CLOUD_LINE -> {
-                        // todo
-                        @Suppress("DEPRECATION") val line =
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                data.getSerializableExtra("line", Line::class.java)
-                            } else {
-                                data.getSerializableExtra("line") as? Line
-                            }
-
-                        if (line == null) {
-                            return@registerForActivityResult
-                        }
-
-                        @Suppress("UNCHECKED_CAST", "DEPRECATION")
-                        val cloudStationList =
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                data.getSerializableExtra(
-                                    "cloudStationList",
-                                    ArrayList::class.java
-                                ) as? ArrayList<Station>
-                            } else {
-                                data.getSerializableExtra("line") as? ArrayList<Station>
-                            }
-
-                        if (cloudStationList == null) {
-                            return@registerForActivityResult
-                        }
-
-                        this.cloudStationList = cloudStationList
-
-                        setLine(line)
-                        utils.haptic(binding.root)
-
-                    }
-
-                    utils.SET_TEMPORARY_LINE_NAME -> {
-                        val lineName =
-                            data.getStringExtra("lineName") ?: return@registerForActivityResult
-                        currentLine.name = lineName
-                        // TODO
-//                        binding.headerMiddleNew.showText(currentLine.name)
-//                        binding.headerMiddleNew.requestLayout()
-                    }
-
-
-                }
-
-
-            } else {
-                // 用户取消或其他情况
-            }
-        }
+    private var startLineSwitcherForResult: ActivityResultLauncher<Intent>
 
     // 横屏状态下floatingView的宽度（dp）
     private val floatingViewWidthDpWhenLand = 400
 
-
     val lineName = mutableStateOf("")
 
+    private var prefListener: SharedPreferences.OnSharedPreferenceChangeListener
+
+    init {
+        startLineSwitcherForResult =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == Activity.RESULT_OK) {
+
+                    val data: Intent = result.data ?: return@registerForActivityResult
+
+                    val action = data.getIntExtra("action", -1)
+                    when (action) {
+
+                        utils.LOAD_LOCAL_LINE -> {
+                            val lineId = data.getIntExtra("lineId", -1)
+                            if (lineId == -1) {
+                                return@registerForActivityResult
+                            }
+                            setLine(lineDatabaseHelper.queryById(lineId).first())
+
+                            val sharedPreferences =
+                                requireContext().getSharedPreferences(
+                                    "lastRunningInfo",
+                                    MODE_PRIVATE
+                                )
+                            sharedPreferences.edit {
+                                remove("onlineLineUpId")
+                                remove("onlineLineDownId")
+                            }
+
+                            utils.haptic(binding.root)
+                        }
+
+                        utils.LOAD_LINE_ALL -> {
+                            loadLineAll(true)
+
+                            val sharedPreferences =
+                                requireContext().getSharedPreferences(
+                                    "lastRunningInfo",
+                                    MODE_PRIVATE
+                                )
+                            sharedPreferences.edit {
+                                remove("onlineLineUpId")
+                                remove("onlineLineDownId")
+                            }
+                        }
+
+                        utils.LOAD_CLOUD_LINE -> {
+                            // todo
+                            @Suppress("DEPRECATION") val line =
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    data.getSerializableExtra("line", Line::class.java)
+                                } else {
+                                    data.getSerializableExtra("line") as? Line
+                                }
+
+                            if (line == null) {
+                                return@registerForActivityResult
+                            }
+
+                            @Suppress("UNCHECKED_CAST", "DEPRECATION")
+                            val cloudStationList =
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    data.getSerializableExtra(
+                                        "cloudStationList",
+                                        ArrayList::class.java
+                                    ) as? ArrayList<Station>
+                                } else {
+                                    data.getSerializableExtra("line") as? ArrayList<Station>
+                                }
+
+                            if (cloudStationList == null) {
+                                return@registerForActivityResult
+                            }
+
+                            this.cloudStationList = cloudStationList
+
+                            setLine(line)
+                            utils.haptic(binding.root)
+
+                        }
+
+                        utils.SET_TEMPORARY_LINE_NAME -> {
+                            val lineName =
+                                data.getStringExtra("lineName") ?: return@registerForActivityResult
+                            currentLine.name = lineName
+                            // TODO
+//                        binding.headerMiddleNew.showText(currentLine.name)
+//                        binding.headerMiddleNew.requestLayout()
+                        }
+
+
+                    }
+
+
+                } else {
+                    // 用户取消或其他情况
+                }
+            }
+
+        prefListener =
+            SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+                Log.d(tag, "onSharedPreferenceChanged: $key")
+                when (key) {
+                    "isNavMode" -> {
+//                        if (utils.getIsNavMode()) {
+//                            binding.navCard.visibility = VISIBLE
+//                        } else {
+//                            binding.navCard.visibility = GONE
+//                        }
+                    }
+
+                }
+            }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -434,7 +490,6 @@ class MainFragment : Fragment() {
     }
 
     @Composable
-    @Preview
     fun MainUI() {
 
         val controller = remember { ThemeController(ColorSchemeMode.System) }
@@ -486,72 +541,90 @@ class MainFragment : Fragment() {
                                     bottom = 0.dp
                                 )
                                 .align(Alignment.TopEnd)
+                                .onSizeChanged { size ->
+                                    binding.fill2.post {
+                                        val lp = binding.fill2.layoutParams
+                                        lp.height = size.height
+                                        binding.fill2.layoutParams = lp
+                                    }
+                                }
                         ) {
-                            // 顶部电显
-                            EsHeaderCompose(
 
-                                line = currentLine,
-                                currentSpeedKmH = currentSpeedKmH,
-                                currentLineStation = currentLineStation,
-                                currentLineStationList = currentLineStationList,
-                                currentLineStationCount = currentLineStationCount,
-                                currentLineStationState = currentLineStationState,
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // 顶部电显
+                                EsHeaderCompose(
 
-                                isAnimating = esIsAnimating.value,
-                                onHeaderClick = {
-                                    if (isOperationLock) {
-                                        utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                                        return@EsHeaderCompose
-                                    }
+                                    line = currentLine,
+                                    currentSpeedKmH = currentSpeedKmH,
+                                    currentLineStation = currentLineStation,
+                                    currentLineStationList = currentLineStationList,
+                                    currentLineStationCount = currentLineStationCount,
+                                    currentLineStationState = currentLineStationState,
 
-                                    val intent =
-                                        Intent(requireContext(), LineSwitcherActivity::class.java)
-                                    intent.putExtra("currentLineId", currentLine.id)
-                                    startLineSwitcherForResult.launch(intent)
-
-                                    return@EsHeaderCompose
-                                },
-                                onHeaderLongClick = {
-
-                                    with(binding) {
-                                        val visibility = if (hideBottomBar) VISIBLE else GONE
-                                        leftButtonGroup.visibility = visibility
-                                        rightButtonGroup.visibility = visibility
-                                        mainSwitchGroup.visibility = visibility
-                                        lineStationController.visibility = visibility
-                                    }
-
-                                    val actionText = if (hideBottomBar)
-                                        "展开"
-                                    else
-                                        "收起"
-
-                                    utils.showMsg("已${actionText}控制栏", true)
-
-                                    hideBottomBar = !hideBottomBar
-
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .then(
-                                        if (utils.getIsLiquidGlass()) {
-                                            Modifier.drawBackdrop(
-                                                backdrop = backdrop,
-                                                shape = { CircleShape },
-                                                effects = {
-                                                    vibrancy()
-                                                    blur(2f.dp.toPx())
-                                                    lens(
-                                                        refractionHeight = 2f.dp.toPx(),
-                                                        refractionAmount = 4f.dp.toPx()
-                                                    )
-                                                }
-                                            )
-                                        } else {
-                                            Modifier
+                                    isAnimating = esIsAnimating.value,
+                                    onHeaderClick = {
+                                        if (isOperationLock) {
+                                            utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+                                            return@EsHeaderCompose
                                         }
-                                    ),
-                            )
+
+                                        val intent =
+                                            Intent(
+                                                requireContext(),
+                                                LineSwitcherActivity::class.java
+                                            )
+                                        intent.putExtra("currentLineId", currentLine.id)
+                                        startLineSwitcherForResult.launch(intent)
+
+                                        return@EsHeaderCompose
+                                    },
+                                    onHeaderLongClick = {
+
+                                        with(binding) {
+                                            val visibility = if (hideBottomBar) VISIBLE else GONE
+                                            leftButtonGroup.visibility = visibility
+                                            rightButtonGroup.visibility = visibility
+                                            mainSwitchGroup.visibility = visibility
+                                            lineStationController.visibility = visibility
+                                        }
+
+                                        val actionText = if (hideBottomBar)
+                                            "展开"
+                                        else
+                                            "收起"
+
+                                        utils.showMsg("已${actionText}控制栏", true)
+
+                                        hideBottomBar = !hideBottomBar
+
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .then(
+                                            if (utils.getIsLiquidGlass()) {
+                                                Modifier.drawBackdrop(
+                                                    backdrop = backdrop,
+                                                    shape = { CircleShape },
+                                                    effects = {
+                                                        vibrancy()
+                                                        blur(2f.dp.toPx())
+                                                        lens(
+                                                            refractionHeight = 2f.dp.toPx(),
+                                                            refractionAmount = 4f.dp.toPx()
+                                                        )
+                                                    }
+                                                )
+                                            } else {
+                                                Modifier
+                                            }
+                                        ),
+                                )
+                                // 播放文本
+                                AnnouncementPlayingText(backdrop)
+                            }
+
                         }
 
                     }
@@ -559,29 +632,6 @@ class MainFragment : Fragment() {
                 }
 
 
-//                FlexibleBottomSheet(
-//                    onDismissRequest = {},
-//                    sheetState = rememberFlexibleBottomSheetState(
-//                        flexibleSheetSize = FlexibleSheetSize(
-//                            fullyExpanded = 0.9f,
-//                            intermediatelyExpanded = 0.5f,
-//                            slightlyExpanded = 0.15f,
-//                        ),
-////                            isModal = false,
-//                        skipSlightlyExpanded = false,
-//                        initialValue = FlexibleSheetValue.Hidden,
-//                    ),
-//                    containerColor = BottomSheetDefaults.backgroundColor().copy(alpha = 0.85f),
-//                ) {
-//                    androidx.compose.material3.Text(
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(8.dp),
-//                        text = "This is Flexible Bottom Sheet",
-//                        textAlign = TextAlign.Center,
-//                        color = androidx.compose.ui.graphics.Color.Gray,
-//                    )
-//                }
             })
 
 
@@ -589,6 +639,111 @@ class MainFragment : Fragment() {
 
     }
 
+    @Composable
+    fun AnnouncementPlayingText(backdrop: LayerBackdrop) {
+
+        val text by anPlayer.playingText.collectAsStateWithLifecycle()
+        val playbackDuration by anPlayer.playbackDuration.collectAsStateWithLifecycle()
+        val playbackStartTime by anPlayer.playbackStartTime.collectAsStateWithLifecycle()
+
+        val playbackProgress by produceState(0f, text, playbackDuration, playbackStartTime) {
+            if (text.isEmpty() || playbackDuration <= 0L || playbackStartTime <= 0L) {
+                value = 0f
+                return@produceState
+            }
+            while (true) {
+                withFrameNanos {
+                    val elapsed =
+                        (SystemClock.elapsedRealtime() - playbackStartTime).coerceAtLeast(0L)
+                    value = (elapsed.toFloat() / playbackDuration.toFloat()).coerceIn(0f, 1f)
+                }
+                if (value >= 1f) break
+            }
+        }
+
+        val progressBarHeight = 4
+
+        AnimatedVisibility(
+            visible = text.isNotEmpty(),
+            enter = expandVertically(
+                animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+                expandFrom = Alignment.Top
+            ) + fadeIn(animationSpec = tween(durationMillis = 200)),
+            exit = shrinkVertically(
+                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing),
+                shrinkTowards = Alignment.Top
+            ) + fadeOut(animationSpec = tween(durationMillis = 150))
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .drawBackdrop(
+                        backdrop = backdrop,
+                        shape = { CircleShape },
+                        effects = {
+                            vibrancy()
+                            blur(2f.dp.toPx())
+                            lens(
+                                refractionHeight = 2f.dp.toPx(),
+                                refractionAmount = 4f.dp.toPx()
+                            )
+                        }
+                    ),
+                shape = CircleShape,
+                colors = CardDefaults.cardColors(
+                    containerColor = colorResource(R.color.an_contain_bg_tran)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                border = null,
+                onClick = {
+                    anPlayer.stopAnnounce()
+                    utils.showMsg("已停止播放", true)
+                },
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = text,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            modifier = Modifier
+                                .padding(
+                                    top = 12.dp,
+                                    bottom = 12.dp,
+                                    start = 16.dp,
+                                    end = (16 - progressBarHeight).dp
+                                )
+                                .basicMarquee(initialDelayMillis = 500)
+                                .fillMaxWidth(),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily(
+                                Font(R.font.galano_grotesque_bold, FontWeight.Bold)
+                            )
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(progressBarHeight.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth(playbackProgress)
+                                    .background(androidx.compose.ui.graphics.Color(0xFF1996D8))
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -725,6 +880,14 @@ class MainFragment : Fragment() {
 
         aMapView.onResume()
 
+        prefs.registerOnSharedPreferenceChangeListener(prefListener)
+
+        if (utils.getIsNavMode()) {
+            binding.navCard.visibility = VISIBLE
+        } else {
+            binding.navCard.visibility = GONE
+        }
+
     }
 
     private var mapPauseRunnable: Runnable? = null
@@ -772,6 +935,8 @@ class MainFragment : Fragment() {
 
         esIsAnimating.value = false
 
+        prefs.unregisterOnSharedPreferenceChangeListener(prefListener)
+
         super.onPause()
 
     }
@@ -796,6 +961,8 @@ class MainFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
+        lastStationHandler.removeCallbacksAndMessages(null)
+        nextStationHandler.removeCallbacksAndMessages(null)
         aMapView.onDestroy()
     }
 
@@ -852,10 +1019,10 @@ class MainFragment : Fragment() {
                             enName = "unknown"
                         )
                     )
-                Log.d(
-                    "L855",
-                    "${currentLineStationList.last().cnName} ${currentLineStationList.last().bearing}"
-                )
+//                Log.d(
+//                    "L855",
+//                    "${currentLineStationList.last().cnName} ${currentLineStationList.last().bearing}"
+//                )
             }
             // 云端路线
             else if (strIndex.toIntOrNull() != null) {
@@ -924,12 +1091,16 @@ class MainFragment : Fragment() {
 //        preloadingStation()
 
         val viewList = ArrayList<View>()
+
         viewList.add(binding.lineDirectionBtnGroup)
-        viewList.add(binding.startingStation)
+        viewList.add(binding.terminalCard)
+
         viewList.add(binding.lastStation)
         viewList.add(binding.nextStation)
-        viewList.add(binding.terminal)
-        viewList.add(binding.terminalCard)
+
+//        viewList.add(binding.startingStation)
+//        viewList.add(binding.terminal)
+
         if (!enableLowPowerMode && utils.getIsNavMode()) {
             viewList.add(binding.navCard)
         }
@@ -1041,76 +1212,15 @@ class MainFragment : Fragment() {
 
         }
 
-
-        return
-
-        getLineTrajectoryCorrection {
-
-            if (!isAdded || view == null) return@getLineTrajectoryCorrection
-
-            //移除所有轨迹
-            for (line in polylineList) {
-                line.remove()
-            }
-            polylineList.clear()
-            lineWithTypeMap.clear()
-
-            //移除所有站点范围圆
-            for (circle in circleList) {
-                circle.remove()
-            }
-            circleList.clear()
-            circleWithStationMap.clear()
-
-            refreshUIAndPreloadingStationVoice()
-        }
-
     }
 
     private var pointGroup: MutableList<MutableList<Triple<Double, Double, Int?>>> = mutableListOf()
-
-    private suspend fun drawPointIndex(pointGroup: MutableList<MutableList<Triple<Double, Double, Int?>>>) {
-        withContext(Dispatchers.Main) {
-            aMap.clear()
-
-            pointGroup.forEachIndexed { stationIndex, point ->
-
-                point.forEachIndexed { index, (lng, lat) ->
-
-                    val latLng = LatLng(lat, lng)
-
-                    // 1) 画点
-                    aMap.addMarker(
-                        MarkerOptions()
-                            .position(latLng)
-                            .title("index = $index")
-                    )
-
-                    // 2) 在点旁边画 index 数字
-                    aMap.addText(
-                        TextOptions()
-                            .position(latLng)
-                            .text("${stationIndex + 1}-${index}")
-                            .fontSize(30)          // 单位 px
-                            .fontColor(Color.RED)
-                            .backgroundColor(Color.argb(120, 255, 255, 255))
-                    )
-
-                    // 画线
-
-
-                }
-            }
-        }
-    }
 
 
     private val mockLocation = false
     lateinit var mockLocationList: List<Pair<Date, Location>>
 
     var baseMillis: Long = 0
-
-    val mockLocationMarkerList = ArrayList<MarkerOptions>()
 
 
     /**
@@ -1142,23 +1252,6 @@ class MainFragment : Fragment() {
             Log.d("L1116", "${mockLocationList.size}")
             mockLocationList = normalizeTimes(mockLocationList)
             Log.d("L1117", "${mockLocationList.size}")
-
-            // 40倍时间段
-            val x40Range = listOf(
-                168150L..195383L,
-                237300L..318117L,
-                360017L..423200L,
-                692250L..702450L,
-                981150L..1116200L,
-                1326133L..1387000L,
-                1480450L..1611317L,
-                1737100L..1758267L,
-                1980183L..2059917L,
-                2306017L..2353967L,
-                2947333L..3158383L
-            )
-
-            fun isInX40Ranges(ms: Long): Boolean = x40Range.any { ms in it }
 
             mockLocationList.forEachIndexed { index, item ->
 
@@ -1512,128 +1605,82 @@ class MainFragment : Fragment() {
             refreshUIAndPreloadingStationVoice()
         }
 
-
-        //起点站按钮
-        binding.startingStation.scaleX = -1f
-        binding.startingStation.setOnClickListener {
-            if (isOperationLock) {
-                utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                return@setOnClickListener
-            }
-            if (currentLineStationCount != 0) {
-                setStationAndState(0, StationStatus.ON_NEXT)
-                utils.haptic(binding.startingStation)
-            }
-
-        }
-
-        //终点站按钮
-        binding.terminal.setOnClickListener {
-            if (isOperationLock) {
-                utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                return@setOnClickListener
-            }
-            if (currentLineStationCount != currentLineStationList.size - 1) {
-                setStationAndState(currentLineStationList.size - 1, StationStatus.ON_ARRIVE)
-                utils.haptic(binding.terminal)
-            }
-
-        }
-
-        //上站按钮
-        binding.lastStation.setOnClickListener {
-            val lastLineStationState = currentLineStationState
-            if (isOperationLock) {
-                utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                return@setOnClickListener
-            }
-            lastStation()
-            if (currentLineStationState != lastLineStationState) utils.haptic(binding.lastStation)
-        }
-        binding.lastStation.setOnLongClickListener {
-            return@setOnLongClickListener true
-        }
-        binding.lastStation.setOnTouchListener { _, event ->
-            val lastStationRunnable = object : Runnable {
-                override fun run() {
-                    binding.lastStation.performClick()
-                    lastStationHandler.postDelayed(this, 100L)
+        if (false) {
+            //切换到起点站按钮
+            binding.startingStation.scaleX = -1f
+            binding.startingStation.setOnClickListener {
+                if (isOperationLock) {
+                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+                    return@setOnClickListener
                 }
-            }
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    // 触摸按下
-                    lastStationHandler.postDelayed(lastStationRunnable, 100L)
-                    return@setOnTouchListener false
+                if (currentLineStationCount != 0) {
+                    setStationAndState(0, StationStatus.ON_NEXT)
+                    utils.haptic(binding.startingStation)
                 }
 
-                MotionEvent.ACTION_UP -> {
-                    // 触摸松开
-                    lastStationHandler.removeCallbacksAndMessages(null)
-                    return@setOnTouchListener false
+            }
+
+            //切换到终点站按钮
+            binding.terminal.scaleX = 1f
+            binding.terminal.setOnClickListener {
+                if (isOperationLock) {
+                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+                    return@setOnClickListener
+                }
+                if (currentLineStationCount != currentLineStationList.size - 1) {
+                    setStationAndState(currentLineStationList.size - 1, StationStatus.ON_ARRIVE)
+                    utils.haptic(binding.terminal)
                 }
 
-                MotionEvent.ACTION_CANCEL -> {
-                    // 触摸松开
-                    lastStationHandler.removeCallbacksAndMessages(null)
-                    return@setOnTouchListener false
-                }
-
-                else -> {
-                    return@setOnTouchListener false
-                }
             }
         }
 
-
-        //下站按钮
-        binding.nextStation.setOnClickListener {
-            val lastLineStationState = currentLineStationState
-
-            if (isOperationLock) {
-                utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                return@setOnClickListener
-            }
-
-            nextStation()
-            if (currentLineStationState != lastLineStationState) utils.haptic(binding.nextStation)
-
-        }
-        binding.nextStation.setOnLongClickListener {
-            return@setOnLongClickListener true
-        }
-        binding.nextStation.setOnTouchListener { _, event ->
-            val nextStationRunnable = object : Runnable {
-                override fun run() {
-                    binding.nextStation.performClick()
-                    nextStationHandler.postDelayed(this, 100L)
+        // 上站：单击/连点=上站，双击=跳起点站
+        binding.lastStation.setupClickDoubleClickRepeat(
+            onClick = {
+                if (isOperationLock) {
+                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+                    return@setupClickDoubleClickRepeat
+                }
+                val before = currentLineStationState
+                lastStation()
+                if (currentLineStationState != before) utils.haptic(binding.lastStation)
+            },
+            onDoubleClick = {
+                if (isOperationLock) {
+                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+                    return@setupClickDoubleClickRepeat
+                }
+                if (currentLineStationCount != 0) {
+                    setStationAndState(0, StationStatus.ON_NEXT)
+                    utils.haptic(binding.lastStation)
                 }
             }
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    // 触摸按下
-                    nextStationHandler.postDelayed(nextStationRunnable, 100L)
-                    return@setOnTouchListener false
-                }
+        )
 
-                MotionEvent.ACTION_UP -> {
-                    // 触摸松开
-                    nextStationHandler.removeCallbacksAndMessages(null)
-                    return@setOnTouchListener false
+        // 下站：单击/连点=下站，双击=跳终点站
+        binding.nextStation.setupClickDoubleClickRepeat(
+            onClick = {
+                if (isOperationLock) {
+                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+                    return@setupClickDoubleClickRepeat
                 }
-
-                MotionEvent.ACTION_CANCEL -> {
-                    // 触摸松开
-                    nextStationHandler.removeCallbacksAndMessages(null)
-                    return@setOnTouchListener false
+                val before = currentLineStationState
+                nextStation()
+                if (currentLineStationState != before) utils.haptic(binding.nextStation)
+            },
+            onDoubleClick = {
+                Log.d("L1587", "onDoubleClick")
+                if (isOperationLock) {
+                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+                    return@setupClickDoubleClickRepeat
                 }
-
-                else -> {
-                    return@setOnTouchListener false
+                if (currentLineStationCount != currentLineStationList.size - 1) {
+                    setStationAndState(currentLineStationList.size - 1, StationStatus.ON_ARRIVE)
+                    utils.haptic(binding.nextStation)
                 }
             }
-        }
-
+        )
 
         //报本站按钮
         binding.voiceAnnouncement.setOnClickListener {
@@ -1644,14 +1691,6 @@ class MainFragment : Fragment() {
 
             //语音播报当前站点
             announce()
-
-            // todo debug
-//            Handler(Looper.getMainLooper()).postDelayed({
-//                nextStation()
-//                announce()
-//            }, 7500 + 100 * 1)
-
-
             utils.haptic(requireView())
         }
 
@@ -1667,7 +1706,7 @@ class MainFragment : Fragment() {
             binding.locationBtnGroup.uncheck(binding.locationBtn.id)
 
             //关闭报站
-            anPlayer.pauseAnnounce()
+            anPlayer.stopAnnounce()
 
             // 切换到起点站
             if (currentLineStationCount != 0) {
@@ -1714,7 +1753,7 @@ class MainFragment : Fragment() {
                 .setView(nestedScrollView)
                 .show()
 
-            val infoUpdateHandler = Handler(mLooper)
+            val infoUpdateHandler = Handler(mainLooper)
             val infoUpdateRunnable = object : Runnable {
                 override fun run() {
                     var listStr = ""
@@ -1897,7 +1936,7 @@ class MainFragment : Fragment() {
         // 停止播报
         binding.stopAnnouncement.setOnClickListener {
             runningSimRunning = false
-            anPlayer.pauseAnnounce()
+            anPlayer.stopAnnounce()
         }
 
         binding.serviceBtn.setOnClickListener {
@@ -1923,6 +1962,92 @@ class MainFragment : Fragment() {
         }
     }
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun View.setupClickDoubleClickRepeat(
+        intervalMs: Long = 100L,
+        doubleTapTimeout: Long = ViewConfiguration.getDoubleTapTimeout().toLong(),
+        onClick: () -> Unit,
+        onDoubleClick: () -> Unit
+    ) {
+        setOnLongClickListener { true }
+
+        var tapTimeoutRunnable: Runnable? = null
+        var repeatRunnable: Runnable? = null
+        var isDown = false
+        var waitingSecondTap = false
+        var secondTapDeadline = 0L   // 第一下 UP 后，第二下必须在此时间前按下
+
+        fun cancelTapTimeout() {
+            tapTimeoutRunnable?.let { mainHandler.removeCallbacks(it) }
+            tapTimeoutRunnable = null
+        }
+
+        fun cancelRepeat() {
+            repeatRunnable?.let { mainHandler.removeCallbacks(it) }
+            repeatRunnable = null
+        }
+
+        setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    val now = SystemClock.uptimeMillis()
+                    if (waitingSecondTap && now <= secondTapDeadline) {
+                        // ===== 双击第二下 =====
+                        waitingSecondTap = false
+                        cancelTapTimeout()
+                        cancelRepeat()
+                        isDown = true
+                        onDoubleClick()
+                    } else {
+                        // ===== 第一下按下（或双击窗口已过期） =====
+                        cancelTapTimeout()
+                        cancelRepeat()
+                        waitingSecondTap = true
+                        isDown = true
+                        // 双击窗口从 DOWN 开始计时
+                        secondTapDeadline = now + doubleTapTimeout
+
+                        val timeout = object : Runnable {
+                            override fun run() {
+                                waitingSecondTap = false
+                                if (isDown) {
+                                    // 仍按住 → 连点
+                                    onClick()
+                                    val repeat = object : Runnable {
+                                        override fun run() {
+                                            if (!isDown) return
+                                            onClick()
+                                            mainHandler.postDelayed(this, intervalMs)
+                                        }
+                                    }
+                                    repeatRunnable = repeat
+                                    mainHandler.postDelayed(repeat, intervalMs)
+                                } else {
+                                    // 已抬起 → 单击
+                                    onClick()
+                                }
+                            }
+                        }
+                        tapTimeoutRunnable = timeout
+                        mainHandler.postDelayed(timeout, doubleTapTimeout)
+                    }
+                    false
+                }
+
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    isDown = false
+                    cancelRepeat()
+                    // 不取消 tapTimeoutRunnable：让它在窗口到期时执行单击
+                    // 不重置 waitingSecondTap：保留到窗口过期，以便识别第二下
+                    false
+                }
+
+                else -> false
+            }
+        }
+    }
 
     private lateinit var anResolver: AnnouncementProvider
     private lateinit var anPlayer: AnnouncementPlayer
@@ -2254,7 +2379,7 @@ class MainFragment : Fragment() {
             }
             if (utils.getClickMapPauseAn()) {
                 runningSimRunning = false
-                anPlayer.pauseAnnounce()
+                anPlayer.stopAnnounce()
             }
 
             lastTouchMapTime = System.currentTimeMillis()
@@ -2316,7 +2441,7 @@ class MainFragment : Fragment() {
         aMap.setOnMapTouchListener {
             if (utils.getClickMapPauseAn()) {
                 runningSimRunning = false
-                anPlayer.pauseAnnounce()
+                anPlayer.stopAnnounce()
             }
             lastTouchMapTime = System.currentTimeMillis()
         }
@@ -3881,7 +4006,7 @@ class MainFragment : Fragment() {
                         }
 
                         utils.pauseAnnounceName -> {
-                            anPlayer.pauseAnnounce()
+                            anPlayer.stopAnnounce()
                         }
 
                         // 播放准备就绪
@@ -3913,7 +4038,7 @@ class MainFragment : Fragment() {
                             }
                         }
 
-                        utils.ON_PLAYER_PAUSE -> {
+                        utils.ON_PLAYER_STOP -> {
                             pauseAnnounce()
                         }
 
@@ -3942,7 +4067,7 @@ class MainFragment : Fragment() {
                 utils.pauseAnnounceName,
                 utils.ON_PLAYER_STATE_READY,
                 utils.ON_PLAYER_STATE_ENDED,
-                utils.ON_PLAYER_PAUSE,
+                utils.ON_PLAYER_STOP,
                 utils.preloadingCommonTextName,
                 utils.preloadingStationName,
             ).forEach { addAction(it) }
@@ -3952,6 +4077,7 @@ class MainFragment : Fragment() {
             .registerReceiver(mBroadcastReceiver, intentFilter)
 
     }
+
 
     fun switchLine(id: Int) {
 

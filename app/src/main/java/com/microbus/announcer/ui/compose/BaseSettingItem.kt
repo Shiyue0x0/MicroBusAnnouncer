@@ -6,11 +6,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
@@ -46,7 +48,7 @@ fun BaseSettingItem(
     iconRotate: Float = 0F,
     leftContain: @Composable () -> Unit = {},
     rightContain: @Composable () -> Unit = {},
-   ) {
+) {
 //        Surface(
 //            contentColor = colorResource(R.color.md_theme_onSurface),
 //            color = colorResource(R.color.an_window_bg)
@@ -90,7 +92,10 @@ fun BaseSettingItem(
                         Spacer(modifier = Modifier.width(24.dp))
                     }
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
                     if (isCustomLeft) {
                         leftContain()
                     } else {
@@ -127,7 +132,7 @@ fun BaseSettingItem(
                     }
                 }
                 Column(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier,
                     horizontalAlignment = Alignment.End,
                 ) {
                     rightContain()

@@ -9,12 +9,12 @@ import android.media.audiofx.LoudnessEnhancer
 import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.media3.common.C
 import androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC
 import androidx.media3.common.C.USAGE_MEDIA
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -26,6 +26,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,12 +42,23 @@ class AnnouncementPlayer
 
     private var utils = Utils(context)
 
-    private var audioFocusRequest: AudioFocusRequest? = null
-    private var audioManager: AudioManager? = null
+    private var audioFocusRequest: AudioFocusRequest
+    private val audioManager: AudioManager
     private var player: ExoPlayer
     private var audioSessionId: Int? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
 
+    /** 外部可用来订阅当前正在播放的字幕文本 */
+    val playingText: StateFlow<String>
+        field = MutableStateFlow("")
+
+    /** 开始播放的系统时间（毫秒，SystemClock.elapsedRealtime），未播放时为 0 */
+    val playbackStartTime: StateFlow<Long>
+        field = MutableStateFlow(0L)
+
+    /** 当前媒体总时长（毫秒），未知时为 C.TIME_UNSET（-9223372036854775807L） */
+    val playbackDuration: StateFlow<Long>
+        field = MutableStateFlow(0L)
 
     init {
 
@@ -89,7 +102,7 @@ class AnnouncementPlayer
 
         player = ExoPlayer.Builder(context)
             .setLoadControl(loadControl)   // <--- 在这里设置
-            .setAudioAttributes(exoAudioAttributes, true)
+            .setAudioAttributes(exoAudioAttributes, false)
             .setHandleAudioBecomingNoisy(true)
             .build()
 
@@ -98,9 +111,16 @@ class AnnouncementPlayer
             override fun onPlaybackStateChanged(playbackState: Int) {
                 when (playbackState) {
 
-                    // 播放准备就绪
+                    // 播放项播放准备就绪
                     Player.STATE_READY -> {
-                        audioManager?.requestAudioFocus(audioFocusRequest!!)
+
+                        val dur = player.duration
+                        if (dur != C.TIME_UNSET) {
+                            playbackDuration.value = dur
+                        }
+
+                        playbackStartTime.value = SystemClock.elapsedRealtime()
+
                         if (utils.getAnSubtitle()) {
                             showAnSubtitle()
                         }
@@ -110,19 +130,17 @@ class AnnouncementPlayer
                             .sendBroadcast(intent)
                     }
 
-                    // 播放完成
+                    // 播放项播放完成
                     Player.STATE_ENDED -> {
-//                        if (player.currentMediaItemIndex >= filePathList.size) {
                         Log.d("L1946", "STATE_ENDED")
+                        stopAnnounce(false)
                         val intent = Intent()
                             .setAction(utils.ON_PLAYER_STATE_ENDED)
                         LocalBroadcastManager.getInstance(context)
                             .sendBroadcast(intent)
-//                        }
                     }
 
-                    Player.STATE_BUFFERING -> {
-                    }
+                    Player.STATE_BUFFERING -> {}
 
                     Player.STATE_IDLE -> {}
                 }
@@ -130,6 +148,14 @@ class AnnouncementPlayer
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
 //                Log.d("L1966", "${player.currentMediaItemIndex} $reason")
+
+                val dur = player.duration
+                if (dur != C.TIME_UNSET) {
+                    playbackDuration.value = dur
+                }
+
+                playbackStartTime.value = SystemClock.elapsedRealtime()
+
                 if (utils.getAnSubtitle()) {
                     if (reason == 3) {
                         return
@@ -145,7 +171,7 @@ class AnnouncementPlayer
             override fun onPlayerError(error: PlaybackException) {
                 Log.e("L1946", "播放异常: ${error.message}", error.cause)
                 utils.showMsg("播放异常: ${error.message}")
-                pauseAnnounce()
+                stopAnnounce()
             }
 
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
@@ -166,6 +192,8 @@ class AnnouncementPlayer
 
     val netWorkTimeoutMs = 15_000L
 
+    private var progressJob: Job? = null
+
     @OptIn(UnstableApi::class)
     fun play(
         mediaItemList: MutableList<AnnouncementProvider.MediaItem>,
@@ -181,7 +209,7 @@ class AnnouncementPlayer
         }
         playJob = CoroutineScope(Dispatchers.IO).launch {
 
-            pauseAnnounce(cancelPlayJob = false).join()
+            stopAnnounce(cancelPlayJob = false).join()
 
             mediaItemList.forEachIndexed { i, mediaItem ->
 
@@ -189,7 +217,7 @@ class AnnouncementPlayer
                 if (mediaItem.source == AnnouncementProvider.AudioSourceType.TTS) {
 
                     if (!isActive) {
-                        pauseAnnounce()
+                        stopAnnounce()
                         playJob?.cancel()
                         playJob = null
                         return@launch
@@ -202,7 +230,7 @@ class AnnouncementPlayer
                 if (mediaItem.source == AnnouncementProvider.AudioSourceType.NETWORK) {
 
                     if (!isActive) {
-                        pauseAnnounce()
+                        stopAnnounce()
                         playJob?.cancel()
                         playJob = null
                         return@launch
@@ -281,10 +309,12 @@ class AnnouncementPlayer
 
             player.addMediaItem(i, mediaItem)
 
-            if (player.playbackState == STATE_ENDED) {
+            if (player.playbackState == Player.STATE_ENDED) {
                 player.seekTo(i, 0L)
             }
 
+            Log.d("L201", "requestAudioFocus")
+            audioManager.requestAudioFocus(audioFocusRequest)
             player.prepare()
             player.play()
         }
@@ -298,16 +328,22 @@ class AnnouncementPlayer
         // blank 播报间隔：不显示字幕
         if (Regex("^.*/blank/[^/]+\\.pcm$").matches(path))
             return
+
         val fileName = path.split('/').last()
         val lastDotIndex = fileName.lastIndexOf(".")
-        utils.showMsg(
-            fileName.take(lastDotIndex), true
-        )
+        val text = fileName.take(lastDotIndex)
+
+        utils.showMsg(text, true)
+        playingText.value = text
     }
 
-    fun pauseAnnounce(cancelPlayJob: Boolean = true): Job {
+    // TODO 改为stop
+    fun stopAnnounce(cancelPlayJob: Boolean = true): Job {
+        Log.d("L308", "pauseAnnounce")
         return CoroutineScope(Dispatchers.Main).launch {
-            audioManager?.abandonAudioFocusRequest(audioFocusRequest!!)
+
+            Log.d("L201", "abandonAudioFocus")
+            audioManager.abandonAudioFocusRequest(audioFocusRequest)
 
             player.stop()
             player.clearMediaItems()
@@ -315,8 +351,11 @@ class AnnouncementPlayer
                 playJob?.cancel()
             }
 
+            playingText.value = ""
+            playbackStartTime.value = 0L
+
             val intent = Intent()
-                .setAction(utils.ON_PLAYER_PAUSE)
+                .setAction(utils.ON_PLAYER_STOP)
             LocalBroadcastManager.getInstance(context)
                 .sendBroadcast(intent)
         }

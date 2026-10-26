@@ -98,7 +98,7 @@ class Utils(private val context: Context) {
 
     val ON_PLAYER_STATE_ENDED = "${baseActionName}.PLAYER_STATE_ENDED"
 
-    val ON_PLAYER_PAUSE = "${baseActionName}.PLAYER_PAUSE"
+    val ON_PLAYER_STOP = "${baseActionName}.PLAYER_STOP"
 
 
     val LOAD_LOCAL_LINE = 0

@@ -80,11 +80,11 @@ object LineTrajectoryCorrection {
 
         // TODO 考虑多页
         val terminalTrsearchRes = terminalTrsearch(trid, 1, 999)
-        Log.d("L97", "${terminalTrsearchRes?.toString(2)}")
+//        Log.d("L97", "${terminalTrsearchRes?.toString(2)}")
 
         val locationsAndIndex: ArrayList<Triple<Double, Double, Int?>> =
             getLocationsFromTracks(tracks = terminalTrsearchRes?.optJSONArray("tracks"))
-        Log.d("L101", locationsAndIndex.chunked(10).joinToString("\n"))
+//        Log.d("L101", locationsAndIndex.chunked(10).joinToString("\n"))
 
         val grouped = groupLocations(locationsAndIndex)
 

@@ -342,19 +342,34 @@ class AnnouncementProvider private constructor(context: Context) {
     }
 
     fun getNumOrLetterVoiceList(str: String): ArrayList<String> {
+        // 预编译正则，避免重复编译
+        val splitRegex = Regex("([a-zA-Z]+|\\d+)")
+        val numberRegex = Regex("\\d+")
 
-        //拆分数字和字母
-        val strList = "([a-zA-Z]+|\\d+)".toRegex().findAll(str).toList()
         val voiceList = ArrayList<String>()
 
-        strList.forEach { result ->
-            if ("\\d+".toRegex().findAll(result.value).toList()
-                    .isNotEmpty()
-            ) voiceList.addAll(utils.intOrLetterToCnReading(result.value, "/cn/number/"))
-            else voiceList.addAll(utils.intOrLetterToCnReading(result.value, "/en/letter/"))
+        var lastEnd = 0
+        splitRegex.findAll(str).forEach { match ->
+            // 1. 匹配片段之前的"非数字/字母"文本 → 走 common 目录原文本
+            if (match.range.first > lastEnd) {
+                voiceList.add("/common/${str.substring(lastEnd, match.range.first)}")
+            }
 
+            // 2. 匹配到的数字/字母片段
+            val value = match.value
+            if (numberRegex.matches(value)) {
+                voiceList.addAll(utils.intOrLetterToCnReading(value, "/cn/number/"))
+            } else {
+                voiceList.addAll(utils.intOrLetterToCnReading(value, "/en/letter/"))
+            }
+
+            lastEnd = match.range.last + 1
         }
 
+        // 3. 末尾剩余的"非数字/字母"文本
+        if (lastEnd < str.length) {
+            voiceList.add("/common/${str.substring(lastEnd)}")
+        }
 
         return voiceList
     }
@@ -377,6 +392,7 @@ class AnnouncementProvider private constructor(context: Context) {
 
     fun resolveLineNameKey(): ArrayList<String> {
 
+        // 从line目录查找音频
         for (lang in anContext.announcementLangList) {
             val file =
                 File("${utils.appRootPath}/Media/${utils.getAnnouncementLibrary()}/${lang}/line")

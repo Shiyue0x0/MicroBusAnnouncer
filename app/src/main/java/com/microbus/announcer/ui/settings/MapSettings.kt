@@ -187,7 +187,7 @@ MapSettings : Fragment() {
                                     mapEditLineMode,
                                     setMapEditLineMode,
                                     title = "地图编辑路线模式",
-                                    text = "开启该模式并且运行全站路线，\n可以在地图上便捷地编辑路线",
+                                    text = "开启该模式并且运行全站路线，可以在地图上便捷地编辑路线",
                                     icon = painterResource(id = R.drawable.line),
                                     key = "mapEditLineMode",
                                 )
