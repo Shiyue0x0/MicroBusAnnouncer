@@ -1,9 +1,6 @@
 package com.microbus.announcer.ui.settings
 
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.os.Bundle
@@ -11,17 +8,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -30,7 +23,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -38,7 +30,6 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -48,11 +39,10 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
-import com.microbus.announcer.ui.compose.BaseSettingItem
-import com.microbus.announcer.ui.compose.SwitchSettingItem
 import com.microbus.announcer.databinding.DialogInputBinding
-import com.microbus.announcer.databinding.DialogSliderBinding
+import com.microbus.announcer.ui.AnFormatEditorActivity
 import com.microbus.announcer.ui.compose.AnSmallTopAppBar
+import com.microbus.announcer.ui.compose.BaseSettingItem
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -189,78 +179,6 @@ class AnFormatSettings : Fragment() {
     }
 
     @Composable
-    fun StationChangeVibratorItem(value: Boolean, setValue: (Boolean) -> Unit) {
-        BaseSettingItem(
-            "站点状态变更振动提醒",
-            "出站/即将进站/进站时振动提醒",
-            painterResource(id = R.drawable.vibrator),
-            {
-                toggleStationChangeVibrator(setValue, !value)
-            },
-            rightContain = {
-                SwitchSettingItem(value) {
-                    toggleStationChangeVibrator(setValue, it)
-                }
-            },
-        )
-    }
-
-    fun toggleStationChangeVibrator(setValue: (Boolean) -> Unit, it: Boolean) {
-        setValue(it)
-        prefs.edit {
-            putBoolean("stationChangeVibrator", it)
-        }
-    }
-
-    @Composable
-    fun AnSubtitleItem(value: Boolean, setValue: (Boolean) -> Unit) {
-        BaseSettingItem(
-            "播报字幕",
-            "播报时显示字幕",
-            painterResource(id = R.drawable.subtitle),
-            {
-                toggleAnSubtitle(setValue, !value)
-            },
-            rightContain = {
-                SwitchSettingItem(value) {
-                    toggleAnSubtitle(setValue, it)
-                }
-            },
-        )
-    }
-
-    fun toggleAnSubtitle(setValue: (Boolean) -> Unit, it: Boolean) {
-        setValue(it)
-        prefs.edit {
-            putBoolean("anSubtitle", it)
-        }
-    }
-
-    @Composable
-    fun ClickMapPauseAnItem(value: Boolean, setValue: (Boolean) -> Unit) {
-        BaseSettingItem(
-            "点击地图中断播报",
-            "点击地图后，自动中断播报",
-            painterResource(id = R.drawable.pause),
-            {
-                toggleClickMapPauseAn(setValue, !value)
-            },
-            rightContain = {
-                SwitchSettingItem(value) {
-                    toggleClickMapPauseAn(setValue, it)
-                }
-            },
-        )
-    }
-
-    fun toggleClickMapPauseAn(setValue: (Boolean) -> Unit, it: Boolean) {
-        setValue(it)
-        prefs.edit {
-            putBoolean("clickMapPauseAn", it)
-        }
-    }
-
-    @Composable
     fun ServiceLanguageItem(value: String) {
         BaseSettingItem(
             "服务语", value, painterResource(id = R.drawable.service),
@@ -318,97 +236,6 @@ class AnFormatSettings : Fragment() {
     }
 
     @Composable
-    fun AutoAnIntervalItem(interval: Int) {
-        BaseSettingItem(
-            "自动播报间隔", "每次报站间隔 $interval 秒", painterResource(id = R.drawable.time),
-            {
-                val binding = DialogSliderBinding.inflate(LayoutInflater.from(context))
-                val dialog = MaterialAlertDialogBuilder(
-                    requireContext(),
-                    R.style.CustomAlertDialogStyle
-                ).setTitle("设置自动播报间隔").setView(binding.root)
-                    .setPositiveButton("保存", null)
-                    .setNegativeButton(getString(android.R.string.cancel), null).show()
-
-                binding.slider.contentDescription = "拖动以调整自动播报间隔"
-                binding.slider.stepSize = 1F
-                binding.slider.valueFrom = 0F
-                binding.slider.valueTo = 180F
-                binding.slider.value = interval.toFloat()
-
-                binding.es.visibility = ViewGroup.GONE
-
-                binding.text.visibility = ViewGroup.VISIBLE
-                binding.text.text = getString(R.string.autoAnPerSecond, interval)
-
-                binding.slider.addOnChangeListener { slider, value, fromUser ->
-                    binding.text.text = getString(R.string.autoAnPerSecond, value.toInt())
-                }
-
-                dialog.setCanceledOnTouchOutside(false)
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                    prefs.edit {
-                        putInt("autoAnInterval", binding.slider.value.toInt())
-                    }
-                    utils.showMsg("自动播报间隔设置成功")
-                    dialog.dismiss()
-                }
-
-            },
-        )
-    }
-
-    @Composable
-    fun LoudnessBoostAmountItem(amount: Int) {
-        val itemText = "音量增强幅度"
-        BaseSettingItem(
-            itemText,
-            getString(R.string.volumeBoostAmountMdB, amount),
-            painterResource(id = R.drawable.sound),
-            {
-                val binding = DialogSliderBinding.inflate(LayoutInflater.from(context))
-                val dialog = MaterialAlertDialogBuilder(
-                    requireContext(),
-                    R.style.CustomAlertDialogStyle
-                ).setTitle("设置${itemText}").setView(binding.root)
-                    .setPositiveButton("保存", null)
-                    .setNegativeButton(getString(android.R.string.cancel), null).show()
-
-                binding.slider.contentDescription = "拖动以调整${itemText}"
-                binding.slider.stepSize = 1F
-                binding.slider.valueFrom = 0F
-                binding.slider.valueTo = 6000F
-                binding.slider.value = amount.toFloat()
-
-                binding.es.visibility = ViewGroup.GONE
-
-                binding.text.visibility = ViewGroup.VISIBLE
-                binding.text.text = getString(R.string.volumeBoostAmountMdB, amount)
-
-                binding.slider.addOnChangeListener { slider, value, fromUser ->
-                    binding.text.text = getString(R.string.volumeBoostAmountMdB, value.toInt())
-                }
-
-                dialog.setCanceledOnTouchOutside(false)
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                    prefs.edit {
-                        putInt("loudnessBoostAmount", binding.slider.value.toInt())
-                    }
-
-                    val intent = Intent()
-                        .setAction(utils.setLoudnessBoostAmountName)
-                    LocalBroadcastManager.getInstance(requireContext())
-                        .sendBroadcast(intent)
-
-                    utils.showMsg("${itemText}设置成功")
-                    dialog.dismiss()
-                }
-
-            },
-        )
-    }
-
-    @Composable
     fun AnFormatGroup(anFormatArray: Array<Array<String>>) {
         val stationStateList = utils.getStationStateList()
         val stationTypeList = utils.getStationTypeList()
@@ -440,6 +267,17 @@ class AnFormatSettings : Fragment() {
                         anFormatArray[stationStateList.indexOf(state)][stationTypeList.indexOf(type)],
                         painterResource(id = R.drawable.format),
                         {
+
+
+                            val intent =
+                                Intent(
+                                    requireContext(),
+                                    AnFormatEditorActivity::class.java
+                                )
+                            startActivity(intent)
+
+                            // TODO
+//                            return@BaseSettingItem
 
                             if (!utils.isGrantManageFilesAccessPermission()) {
                                 utils.requestManageFilesAccessPermission(requireActivity())

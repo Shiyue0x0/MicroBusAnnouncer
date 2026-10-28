@@ -350,19 +350,23 @@ object LineTrajectoryCorrection {
             .post(formBody)
             .build()
 
-        okHttpClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("Unexpected code $response")
+        try {
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.e("L81", "$tag HTTP 失败: ${response.code} ${response.message}")
+                    return@withContext ""
+                }
 
-            val bodyStr = response.body.string()
-            val json = JSONObject(bodyStr)
-            try {
+                val bodyStr = response.body.string()
+                val json = JSONObject(bodyStr)
                 if (json.optInt("errcode", -1) != 10000) {
-                    throw IOException("$tag failed: ${json.optString("errmsg")} ($bodyStr)")
+                    Log.e("L81", "$tag 业务失败: ${json.optString("errmsg")} ($bodyStr)")
+                    return@withContext ""
                 }
                 return@withContext json.getJSONObject("data").getString(dataField)
-            } catch (e: Exception) {
-                Log.e("L81", "$tag 解析失败: ${e.message}, body=$bodyStr", e)
             }
+        } catch (e: Exception) {
+            Log.e("L81", "$tag 请求/解析失败: ${e.message}", e)
         }
         return@withContext ""
     }
@@ -392,19 +396,23 @@ object LineTrajectoryCorrection {
             .get()
             .build()
 
-        okHttpClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("Unexpected code $response")
+        try {
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.e("L81", "$tag HTTP 失败: ${response.code} ${response.message}")
+                    return@withContext null
+                }
 
-            val bodyStr = response.body.string()
-            val json = JSONObject(bodyStr)
-            try {
+                val bodyStr = response.body.string()
+                val json = JSONObject(bodyStr)
                 if (json.optInt("errcode", -1) != 10000) {
-                    throw IOException("$tag failed: ${json.optString("errmsg")} ($bodyStr)")
+                    Log.e("L81", "$tag 业务失败: ${json.optString("errmsg")} ($bodyStr)")
+                    return@withContext null
                 }
                 return@withContext json.optJSONObject("data")
-            } catch (e: Exception) {
-                Log.e("L81", "$tag 解析失败: ${e.message}, body=$bodyStr", e)
             }
+        } catch (e: Exception) {
+            Log.e("L81", "$tag 请求/解析失败: ${e.message}", e)
         }
         return@withContext null
     }

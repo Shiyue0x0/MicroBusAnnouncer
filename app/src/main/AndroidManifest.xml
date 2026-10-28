@@ -68,7 +68,6 @@
         android:theme="@style/Theme.MicroBusAnnouncer"
         android:usesCleartextTraffic="true"
         tools:targetApi="36">
-
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
@@ -83,11 +82,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".activity.WebviewActivity"
             android:exported="false" />
-
         <activity
             android:name=".activity.FragmentContainerActivity"
             android:exported="true"
@@ -105,6 +102,12 @@
             android:name=".ui.LineSwitcherActivity"
             android:exported="false"
             android:label="LineSwitcherActivity"
+            android:theme="@style/Theme.MicroBusAnnouncer"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.AnFormatEditorActivity"
+            android:exported="false"
+            android:label="@string/title_activity_an_format_editor"
             android:theme="@style/Theme.MicroBusAnnouncer"
             android:windowSoftInputMode="adjustResize" />
     </application>

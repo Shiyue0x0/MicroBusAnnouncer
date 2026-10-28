@@ -1,13 +1,5 @@
 package com.microbus.announcer.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Notification
@@ -48,7 +40,6 @@ import android.view.View
 import android.view.View.GONE
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
-import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
@@ -61,6 +52,13 @@ import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
@@ -460,7 +458,7 @@ class MainFragment : Fragment() {
             }
 
         prefListener =
-            SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+            SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
                 Log.d(tag, "onSharedPreferenceChanged: $key")
                 when (key) {
                     "isNavMode" -> {
@@ -1183,6 +1181,7 @@ class MainFragment : Fragment() {
                 val lineTrajectoryCorrection = LineTrajectoryCorrection
 
                 lineTrajectoryCorrection.init(requireContext())
+
                 pointGroup = lineTrajectoryCorrection.getTrack(currentLineStationList)
                 Log.d("L973", "${pointGroup.size}")
 //                drawPointIndex(pointGroup)
@@ -1253,7 +1252,7 @@ class MainFragment : Fragment() {
             mockLocationList = normalizeTimes(mockLocationList)
             Log.d("L1117", "${mockLocationList.size}")
 
-            mockLocationList.forEachIndexed { index, item ->
+            mockLocationList.forEachIndexed { _, item ->
 
 
                 // 变速处理，全局x10
@@ -1287,10 +1286,10 @@ class MainFragment : Fragment() {
 
     }
 
-    data class LogEntry(
-        val time: Date,
-        val location: Location
-    )
+//    data class LogEntry(
+//        val time: Date,
+//        val location: Location
+//    )
 
 
     fun readLocationLog(): List<Pair<Date, Location>> {
@@ -1372,10 +1371,10 @@ class MainFragment : Fragment() {
             scheduleNext()
         }
 
-        fun stop() {
-            running = false
-            handler.removeCallbacksAndMessages(null)
-        }
+//        fun stop() {
+//            running = false
+//            handler.removeCallbacksAndMessages(null)
+//        }
 
         private fun scheduleNext() {
             if (!running || index >= entries.size) {
@@ -1635,21 +1634,21 @@ class MainFragment : Fragment() {
             }
         }
 
-        // 上站：单击/连点=上站，双击=跳起点站
-        binding.lastStation.setupClickDoubleClickRepeat(
+        // 上站：短按=上站，长按=跳起点站
+        binding.lastStation.setupTapLongPress(
             onClick = {
                 if (isOperationLock) {
                     utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                    return@setupClickDoubleClickRepeat
+                    return@setupTapLongPress
                 }
                 val before = currentLineStationState
                 lastStation()
                 if (currentLineStationState != before) utils.haptic(binding.lastStation)
             },
-            onDoubleClick = {
+            onLongClick = {
                 if (isOperationLock) {
                     utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                    return@setupClickDoubleClickRepeat
+                    return@setupTapLongPress
                 }
                 if (currentLineStationCount != 0) {
                     setStationAndState(0, StationStatus.ON_NEXT)
@@ -1658,22 +1657,21 @@ class MainFragment : Fragment() {
             }
         )
 
-        // 下站：单击/连点=下站，双击=跳终点站
-        binding.nextStation.setupClickDoubleClickRepeat(
+        // 下站：短按=下站，长按=跳终点站
+        binding.nextStation.setupTapLongPress(
             onClick = {
                 if (isOperationLock) {
                     utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                    return@setupClickDoubleClickRepeat
+                    return@setupTapLongPress
                 }
                 val before = currentLineStationState
                 nextStation()
                 if (currentLineStationState != before) utils.haptic(binding.nextStation)
             },
-            onDoubleClick = {
-                Log.d("L1587", "onDoubleClick")
+            onLongClick = {
                 if (isOperationLock) {
                     utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                    return@setupClickDoubleClickRepeat
+                    return@setupTapLongPress
                 }
                 if (currentLineStationCount != currentLineStationList.size - 1) {
                     setStationAndState(currentLineStationList.size - 1, StationStatus.ON_ARRIVE)
@@ -1962,88 +1960,35 @@ class MainFragment : Fragment() {
         }
     }
 
-    private val mainHandler = Handler(Looper.getMainLooper())
-
     @SuppressLint("ClickableViewAccessibility")
-    private fun View.setupClickDoubleClickRepeat(
-        intervalMs: Long = 100L,
-        doubleTapTimeout: Long = ViewConfiguration.getDoubleTapTimeout().toLong(),
+    private fun View.setupTapLongPress(
         onClick: () -> Unit,
-        onDoubleClick: () -> Unit
+        onLongClick: () -> Unit
     ) {
-        setOnLongClickListener { true }
-
-        var tapTimeoutRunnable: Runnable? = null
-        var repeatRunnable: Runnable? = null
-        var isDown = false
-        var waitingSecondTap = false
-        var secondTapDeadline = 0L   // 第一下 UP 后，第二下必须在此时间前按下
-
-        fun cancelTapTimeout() {
-            tapTimeoutRunnable?.let { mainHandler.removeCallbacks(it) }
-            tapTimeoutRunnable = null
+        // 用长按监听器处理长按
+        setOnLongClickListener {
+            onLongClick()
+            true
         }
 
-        fun cancelRepeat() {
-            repeatRunnable?.let { mainHandler.removeCallbacks(it) }
-            repeatRunnable = null
-        }
+        // 短按通过触摸抬起且未触发长按来判断
+        var longPressTriggered = false
 
         setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    val now = SystemClock.uptimeMillis()
-                    if (waitingSecondTap && now <= secondTapDeadline) {
-                        // ===== 双击第二下 =====
-                        waitingSecondTap = false
-                        cancelTapTimeout()
-                        cancelRepeat()
-                        isDown = true
-                        onDoubleClick()
-                    } else {
-                        // ===== 第一下按下（或双击窗口已过期） =====
-                        cancelTapTimeout()
-                        cancelRepeat()
-                        waitingSecondTap = true
-                        isDown = true
-                        // 双击窗口从 DOWN 开始计时
-                        secondTapDeadline = now + doubleTapTimeout
+                    longPressTriggered = false
+                    false
+                }
 
-                        val timeout = object : Runnable {
-                            override fun run() {
-                                waitingSecondTap = false
-                                if (isDown) {
-                                    // 仍按住 → 连点
-                                    onClick()
-                                    val repeat = object : Runnable {
-                                        override fun run() {
-                                            if (!isDown) return
-                                            onClick()
-                                            mainHandler.postDelayed(this, intervalMs)
-                                        }
-                                    }
-                                    repeatRunnable = repeat
-                                    mainHandler.postDelayed(repeat, intervalMs)
-                                } else {
-                                    // 已抬起 → 单击
-                                    onClick()
-                                }
-                            }
-                        }
-                        tapTimeoutRunnable = timeout
-                        mainHandler.postDelayed(timeout, doubleTapTimeout)
+                MotionEvent.ACTION_UP -> {
+                    if (!longPressTriggered) {
+                        onClick()
                     }
                     false
                 }
 
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    isDown = false
-                    cancelRepeat()
-                    // 不取消 tapTimeoutRunnable：让它在窗口到期时执行单击
-                    // 不重置 waitingSecondTap：保留到窗口过期，以便识别第二下
-                    false
-                }
-
+                MotionEvent.ACTION_CANCEL -> false
                 else -> false
             }
         }

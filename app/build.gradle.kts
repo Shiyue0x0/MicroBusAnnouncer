@@ -109,6 +109,7 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.material)
     implementation(libs.flexible.bottomsheet.material3)
+    implementation(libs.reorderable)
 
 
     //AMap
@@ -125,6 +126,7 @@ dependencies {
     //liquidglass
     implementation(libs.backdrop)
     implementation(libs.liquidglass)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
 
     // Test
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

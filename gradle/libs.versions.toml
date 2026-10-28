@@ -21,6 +21,7 @@ navigationCompose = "2.9.8"
 okhttp = "5.4.0"
 recyclerviewFastscroll = "2.0.1"
 recyclerviewVersion = "1.4.0"
+reorderable = "3.1.0"
 swiperefreshlayout = "1.2.0"
 viewpager2Version = "1.1.0"
 legacySupportV4 = "1.0.0"
@@ -76,6 +77,7 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
 androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
 androidx-compose-ui-viewbinding = { group = "androidx.compose.ui", name = "ui-viewbinding", version.ref = "uiViewbinding" }
+reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
