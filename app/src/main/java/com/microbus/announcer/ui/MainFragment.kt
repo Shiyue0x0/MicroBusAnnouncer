@@ -2004,7 +2004,7 @@ class MainFragment : Fragment() {
         anResolver = AnnouncementProvider.getInstance(requireContext())
 
         // anPlayer
-        anPlayer = AnnouncementPlayer(requireContext(), anResolver)
+        anPlayer = AnnouncementPlayer.getInstance(requireContext(), anResolver)
 
     }
 

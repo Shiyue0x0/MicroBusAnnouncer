@@ -92,7 +92,7 @@ class AboutSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        AnSmallTopAppBar(requireActivity(), getString(R.string.about))
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.about),)
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()

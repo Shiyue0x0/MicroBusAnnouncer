@@ -175,7 +175,7 @@ LocationSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        AnSmallTopAppBar(requireActivity(), getString(R.string.location))
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.location),)
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()
@@ -340,20 +340,6 @@ LocationSettings : Fragment() {
 
                 binding.slider.contentDescription = "拖动以调整${title}${actionName}范围半径"
                 binding.slider.stepSize = 1F
-//                binding.slider.valueFrom = when (key) {
-//                    "C" -> 20F - 15F
-//                    "B" -> 30F - 25F
-//                    "U" -> 300F - 250F
-//                    "T" -> 500F - 400F
-//                    else -> 30F - 25F
-//                }
-//                binding.slider.valueTo = when (key) {
-//                    "C" -> 20F + 15F
-//                    "B" -> 30F + 25F
-//                    "U" -> 300F + 250F
-//                    "T" -> 500F + 400F
-//                    else -> 30F + 25F
-//                }
                 binding.slider.valueFrom = 0F
                 binding.slider.valueTo =
                     maxOf(utils.getStationRangeByLineType(key, action, true) * 3, value)
@@ -361,8 +347,6 @@ LocationSettings : Fragment() {
 
                 binding.es.visibility = ViewGroup.GONE
 
-//                binding.text.visibility = ViewGroup.VISIBLE
-//                binding.text.text = getString(R.string.currentRange, value.toInt())
 
                 binding.text1.text = getString(R.string.currentRange)
                 binding.text2.text = "m"
@@ -373,7 +357,6 @@ LocationSettings : Fragment() {
 
 
                 binding.slider.addOnChangeListener { slider, value, fromUser ->
-//                    binding.text.text = getString(R.string.currentRange, value.toInt())
                     binding.editValue.setText(value.toInt().toString())
                 }
 

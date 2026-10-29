@@ -168,7 +168,7 @@ class AnnouncementLibrarySettings : Fragment() {
         val anFormatArrayOri = Array(3) { Array(4) { "" } }
 
         val stationStateList = utils.getStationStateList()
-        val stationTypeList = utils.getStationTypeList()
+        val stationTypeList = utils.getStationPosotionList()
 
         anFormatArrayOri.forEachIndexed { rowIndex, row ->
             row.forEachIndexed { colIndex, value ->
@@ -220,7 +220,10 @@ class AnnouncementLibrarySettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        AnSmallTopAppBar(requireActivity(), getString(R.string.announcement_source))
+                        AnSmallTopAppBar(
+                            requireActivity(),
+                            getString(R.string.announcement_source),
+                        )
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()

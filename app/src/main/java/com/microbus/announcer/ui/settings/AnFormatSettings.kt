@@ -93,7 +93,7 @@ class AnFormatSettings : Fragment() {
         val anFormatArrayOri = Array(3) { Array(4) { "" } }
 
         val stationStateList = utils.getStationStateList()
-        val stationTypeList = utils.getStationTypeList()
+        val stationTypeList = utils.getStationPosotionList()
 
         anFormatArrayOri.forEachIndexed { rowIndex, row ->
             row.forEachIndexed { colIndex, value ->
@@ -238,7 +238,7 @@ class AnFormatSettings : Fragment() {
     @Composable
     fun AnFormatGroup(anFormatArray: Array<Array<String>>) {
         val stationStateList = utils.getStationStateList()
-        val stationTypeList = utils.getStationTypeList()
+        val stationPositionList = utils.getStationPosotionList()
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             for (state in stationStateList) {
@@ -254,136 +254,57 @@ class AnFormatSettings : Fragment() {
                     fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
                     modifier = Modifier.padding(16.dp, 4.dp, 0.dp, 4.dp)
                 )
-                for (type in stationTypeList) {
-                    val typeStr = when (type) {
+                for (position in stationPositionList) {
+                    val positionStr = when (position) {
                         "Default" -> "默认"
                         "Starting" -> "起点站"
                         "Second" -> "第二站"
                         "Terminal" -> "终点站"
                         else -> ""
                     }
+
+                    val sourceFormat =
+                        anFormatArray[stationStateList.indexOf(state)][stationPositionList.indexOf(
+                            position
+                        )]
+
+                    val displayFormat = addLineNumbers(sourceFormat)
+
                     BaseSettingItem(
-                        typeStr,
-                        anFormatArray[stationStateList.indexOf(state)][stationTypeList.indexOf(type)],
+                        positionStr,
+                        displayFormat,
                         painterResource(id = R.drawable.format),
                         {
-
-
-                            val intent =
-                                Intent(
-                                    requireContext(),
-                                    AnFormatEditorActivity::class.java
-                                )
-                            startActivity(intent)
-
-                            // TODO
-//                            return@BaseSettingItem
 
                             if (!utils.isGrantManageFilesAccessPermission()) {
                                 utils.requestManageFilesAccessPermission(requireActivity())
                                 return@BaseSettingItem
                             }
 
-                            val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
-                            val dialog = MaterialAlertDialogBuilder(
-                                requireContext(),
-                                R.style.CustomAlertDialogStyle
-                            ).setTitle("设置${stateStr}${typeStr}播报")
-                                .setView(binding.root)
-                                .setPositiveButton("保存", null)
-                                .setNeutralButton("帮助", null)
-                                .setNegativeButton("试听", null)
-                                .show()
-
-                            binding.editText.isSingleLine = false
-                            binding.editText.setText(
-                                anFormatArray[stationStateList.indexOf(state)][stationTypeList.indexOf(
-                                    type
-                                )]
-                            )
-
-                            dialog.setCanceledOnTouchOutside(false)
-
-                            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                                utils.openHelperDialog("查看语音播报文档", "readme/语音播报.md")
-                            }
-
-                            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
-
-                                val newValue = binding.editText.text.toString()
-
-                                if (newValue == "") {
-                                    utils.showMsg("请输入播报格式")
-                                    return@setOnClickListener
-                                }
-
-                                val ans = utils.getAnnouncements(newValue)
-                                if (ans[0] == "ERROR") {
-                                    utils.showMsg("${ans[1]}不正确，请修改")
-                                    return@setOnClickListener
-                                } else {
-                                    val intent = Intent()
-                                        .setAction(utils.tryListeningAnActionName)
-                                        .putExtra("format", newValue)
-                                    LocalBroadcastManager.getInstance(requireContext())
-                                        .sendBroadcast(intent)
-                                }
-
-                            }
-
-                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                                val newValue = binding.editText.text.toString()
-
-//                                if (newValue == "") {
-//                                    utils.showMsg("请输入播报格式")
-//                                    return@setOnClickListener
-//                                }
-
-                                // 允许填空
-
-                                val ans = utils.getAnnouncements(newValue)
-                                if (ans[0] == "ERROR" && newValue != "") {
-                                    utils.showMsg("${ans[1]}不正确，请修改")
-                                } else {
-
-                                    prefs.edit {
-                                        putString(
-                                            "${type}${state}AnnouncementExpression",
-                                            newValue
-                                        )
-                                    }
-
-                                    // 同步修改config.json
-                                    utils.updateAnnouncementFormatConfig(
-                                        type,
-                                        state,
-                                        newValue
-                                    )
-                                    utils.showMsg("播报格式设置成功")
-                                    dialog.dismiss()
-                                }
-                            }
-
-                            // 中断播报
-                            dialog.setOnDismissListener {
-                                val intent = Intent()
-                                    .setAction(utils.pauseAnnounceName)
-                                LocalBroadcastManager.getInstance(requireContext())
-                                    .sendBroadcast(intent)
-                            }
-
-                            binding.textInputLayout.hint = "请输入文本"
-                            binding.textInputLayout.requestFocus()
-                            WindowCompat.getInsetsController(
-                                requireActivity().window,
-                                binding.editText
-                            )
-                                .show(WindowInsetsCompat.Type.ime())
+                            val intent =
+                                Intent(
+                                    requireContext(),
+                                    AnFormatEditorActivity::class.java
+                                )
+                            // stationState
+                            intent.putExtra("state", state)
+                            // stationType
+                            intent.putExtra("position", position)
+                            // sourceFormat
+                            intent.putExtra("sourceFormat", sourceFormat)
+                            startActivity(intent)
                         },
                     )
                 }
             }
         }
+    }
+
+    fun addLineNumbers(text: String): String {
+        val lines = text.lines()
+        if (lines.size <= 1) return text
+        return lines.mapIndexed { index, line -> "${index + 1}. $line" }
+            .joinToString("\n")
     }
 
 }

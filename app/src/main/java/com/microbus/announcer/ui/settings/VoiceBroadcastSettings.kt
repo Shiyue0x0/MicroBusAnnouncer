@@ -130,7 +130,7 @@ class VoiceBroadcastSettings : Fragment() {
         val anFormatArrayOri = Array(3) { Array(4) { "" } }
 
         val stationStateList = utils.getStationStateList()
-        val stationTypeList = utils.getStationTypeList()
+        val stationTypeList = utils.getStationPosotionList()
 
         anFormatArrayOri.forEachIndexed { rowIndex, row ->
             row.forEachIndexed { colIndex, value ->
@@ -187,7 +187,7 @@ class VoiceBroadcastSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        AnSmallTopAppBar(requireActivity(), getString(R.string.voice_broadcast))
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.voice_broadcast),)
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()
@@ -443,7 +443,7 @@ class VoiceBroadcastSettings : Fragment() {
     @Composable
     fun AnFormatGroup(anFormatArray: Array<Array<String>>) {
         val stationStateList = utils.getStationStateList()
-        val stationTypeList = utils.getStationTypeList()
+        val stationTypeList = utils.getStationPosotionList()
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             for (state in stationStateList) {

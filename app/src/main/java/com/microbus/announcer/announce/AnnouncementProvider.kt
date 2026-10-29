@@ -1018,5 +1018,24 @@ class AnnouncementProvider private constructor(context: Context) {
         }
     }
 
+    /**
+     * 获取公告库中所有语言 common 目录下的音频文件名（不含后缀），
+     * 作为「普通语句」的搜索提示关键词。去重后返回。
+     */
+    fun getCommonMediaKeywords(): List<String> {
+        val keywords = LinkedHashSet<String>()
+        val library = utils.getAnnouncementLibrary()
+        for (lang in utils.getLangList()) {
+            val commonDir = File("${utils.appRootPath}/Media/$library/$lang/common")
+            if (!commonDir.exists()) continue
+            commonDir.listFiles()?.forEach { file ->
+                if (file.isFile) {
+                    val name = file.nameWithoutExtension
+                    if (name.isNotEmpty()) keywords.add(name)
+                }
+            }
+        }
+        return keywords.toList()
+    }
 
 }

@@ -186,7 +186,7 @@ class ESSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        AnSmallTopAppBar(requireActivity(), getString(R.string.es))
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.es),)
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()

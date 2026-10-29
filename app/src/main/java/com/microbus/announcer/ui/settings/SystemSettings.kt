@@ -7,6 +7,9 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.os.Bundle
+import android.text.Editable
+import android.text.InputType
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -43,6 +47,7 @@ import com.microbus.announcer.Utils
 import com.microbus.announcer.ui.compose.BaseSettingItem
 import com.microbus.announcer.ui.compose.SwitchSettingItem
 import com.microbus.announcer.databinding.DialogInputBinding
+import com.microbus.announcer.databinding.DialogSliderBinding
 import com.microbus.announcer.ui.compose.AnSmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
@@ -112,6 +117,14 @@ class SystemSettings : Fragment() {
             mutableStateOf(prefs.getString("lang", "auto") ?: "auto")
         }
 
+        val (enableAppDpi, setEnableAppDpi) = remember {
+            mutableStateOf(utils.getEnableAppDpi())
+        }
+
+        val (appDpi, setAppDpi) = remember {
+            mutableIntStateOf(utils.getAppDpi())
+        }
+
         val (city, setCity) = remember {
             mutableStateOf(utils.getCity())
         }
@@ -139,6 +152,8 @@ class SystemSettings : Fragment() {
         DisposableEffect(prefs) {
             val listener = OnSharedPreferenceChangeListener { prefs, key ->
                 when (key) {
+                    "enableAppDpi" -> setEnableAppDpi(utils.getEnableAppDpi())
+                    "appDpi" -> setAppDpi(utils.getAppDpi())
                     "lang" -> setLang(prefs.getString(key, "") ?: "")
                     "city" -> setCity(prefs.getString(key, "") ?: "")
                     "showBottomBar" -> setShowBottomBar(prefs.getBoolean(key, true))
@@ -177,6 +192,10 @@ class SystemSettings : Fragment() {
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 UiLangItem(lang)
+                                EnableAppDpiItem(enableAppDpi, setEnableAppDpi)
+                                if (enableAppDpi) {
+                                    AppDpiItem(appDpi, setAppDpi)
+                                }
                                 CityNameItem(city)
                                 LiquidGlassItem(liquidGlass, setLiquidGlass)
                                 BottomBarItem(showBottomBar, setShowBottomBar)
@@ -220,6 +239,111 @@ class SystemSettings : Fragment() {
         )
     }
 
+    @Composable
+    fun EnableAppDpiItem(value: Boolean, setValue: (Boolean) -> Unit) {
+        BaseSettingItem(
+            "自定义显示大小", "", painterResource(id = R.drawable.glass),
+            {
+                toggleEnableAppDpi(value, setValue, !value)
+            },
+            rightContain = {
+                SwitchSettingItem(value) {
+                    toggleEnableAppDpi(value, setValue, it)
+                }
+            },
+        )
+    }
+
+    fun toggleEnableAppDpi(value: Boolean, setValue: (Boolean) -> Unit, it: Boolean) {
+        setValue(it)
+        utils.setEnableAppDpi(it)
+        utils.showMsg("重启应用生效")
+    }
+
+    @Composable
+    fun AppDpiItem(appDpi: Int, setAppDpi: (Int) -> Unit) {
+
+
+        BaseSettingItem(
+            "显示大小", "$appDpi", painterResource(id = R.drawable.list),
+            {
+                val binding = DialogSliderBinding.inflate(LayoutInflater.from(context))
+                val dialog = MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                ).setTitle("设置显示大小").setView(binding.root)
+                    .setPositiveButton("保存并重启", null)
+                    .setNegativeButton(getString(android.R.string.cancel), null).show()
+
+
+                binding.slider.contentDescription = "拖动以调整显示大小"
+                binding.slider.stepSize = 1F
+                binding.slider.valueFrom = 320F
+                binding.slider.valueTo = 960F
+                binding.slider.value = appDpi.toFloat()
+
+                binding.es.visibility = ViewGroup.GONE
+
+                binding.text.visibility = ViewGroup.VISIBLE
+
+                binding.text1.text = "显示大小"
+                binding.text2.text = "DPI"
+                binding.editableLayout.visibility = ViewGroup.VISIBLE
+                binding.editValue.inputType = InputType.TYPE_CLASS_NUMBER
+                binding.editValue.setText(appDpi.toString())
+
+                binding.slider.addOnChangeListener { slider, value, fromUser ->
+                    binding.editValue.setText(value.toInt().toString())
+                }
+
+                binding.editValue.addTextChangedListener(object : TextWatcher {
+                    override fun afterTextChanged(s: Editable?) {
+                        // 验证输入是否为正整数，范围为[binding.slider.valueFrom]--[binding.slider.valueTo]之间
+                        val text = s?.toString() ?: return
+                        // 空或非正整数（排除前导0/负号/小数点/空串）直接返回
+                        if (text.isEmpty() || !text.matches(Regex("^[1-9]\\d*$"))) return
+
+                        val value = text.toIntOrNull() ?: return
+                        val from = binding.slider.valueFrom.toInt()
+                        val to = binding.slider.valueTo.toInt()
+
+                        // 超出范围时，同步扩展 slider 的 valueTo（保持原逻辑），再夹取
+                        if (value > to) {
+                            binding.slider.valueTo = value.toFloat()
+                        }
+
+                        // 夹取到 [valueFrom, valueTo] 之间并同步给 slider
+                        val clamped = value.coerceIn(from, maxOf(to, value))
+                        binding.slider.value = clamped.toFloat()
+                    }
+
+                    override fun beforeTextChanged(
+                        s: CharSequence?,
+                        start: Int,
+                        count: Int,
+                        after: Int
+                    ) {
+                    }
+
+                    override fun onTextChanged(
+                        s: CharSequence?,
+                        start: Int,
+                        before: Int,
+                        count: Int
+                    ) {
+                    }
+                })
+
+                dialog.setCanceledOnTouchOutside(false)
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    utils.setAppDpi(binding.slider.value.toInt())
+                    dialog.dismiss()
+                    utils.restartApp(requireContext())
+                }
+
+            },
+        )
+    }
 
     lateinit var cityInput: TextInputEditText
 
@@ -274,7 +398,9 @@ class SystemSettings : Fragment() {
     @Composable
     fun LiquidGlassItem(value: Boolean, setValue: (Boolean) -> Unit) {
         BaseSettingItem(
-            "液态玻璃效果", "实验性，适用于部分组件，重启生效", painterResource(id = R.drawable.glass),
+            "液态玻璃效果",
+            "实验性，适用于部分组件，重启生效",
+            painterResource(id = R.drawable.glass),
             {
                 toggleLiquidGlass(value, setValue, !value)
             },

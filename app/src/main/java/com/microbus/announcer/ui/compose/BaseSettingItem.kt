@@ -106,7 +106,7 @@ fun BaseSettingItem(
                         )
                         if (text != "") {
                             val lines = text.split('\n')
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {  // 段间距
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {  // 段间距
                                 for (line in lines) {
                                     Text(
                                         text = line,

@@ -168,7 +168,7 @@ MapSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        AnSmallTopAppBar(requireActivity(), getString(R.string.map))
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.map),)
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()

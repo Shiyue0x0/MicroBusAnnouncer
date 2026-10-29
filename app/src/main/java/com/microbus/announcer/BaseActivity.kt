@@ -24,18 +24,14 @@ open class BaseActivity : AppCompatActivity() {
 
         utils = Utils(newBase)
 
-        // todo 强制平板 dpi（仅横屏时生效）
-        if (newBase.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        if (utils.getEnableAppDpi()) {
             val config = Configuration(newBase.resources.configuration).apply {
-                densityDpi = 320
+                densityDpi = utils.getAppDpi()
             }
-            super.attachBaseContext(newBase.createConfigurationContext(config))
+            val wrapped = newBase.createConfigurationContext(config)
+            super.attachBaseContext(wrapped)
         } else {
-            // TODO 竖屏
-            val config = Configuration(newBase.resources.configuration).apply {
-//                densityDpi = 560
-            }
-            super.attachBaseContext(newBase.createConfigurationContext(config))
+            super.attachBaseContext(newBase)
         }
     }
 }

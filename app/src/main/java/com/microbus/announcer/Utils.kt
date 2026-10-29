@@ -3,6 +3,7 @@ package com.microbus.announcer
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -225,6 +226,24 @@ class Utils(private val context: Context) {
             Locale.getDefault().language
         else
             prefStr!!
+    }
+
+    fun getEnableAppDpi(): Boolean {
+        return prefs.getBoolean("enableAppDpi", false)
+    }
+
+    fun setEnableAppDpi(enable: Boolean) {
+        prefs.edit { putBoolean("enableAppDpi", enable) }
+    }
+
+    // -1表示使用默认DPI
+    fun getAppDpi(): Int {
+        return prefs.getInt("appDpi", 400)
+    }
+
+    @SuppressLint("UseKtx")
+    fun setAppDpi(dpi: Int) {
+        prefs.edit { putInt("appDpi", dpi).commit() }
     }
 
     /**
@@ -1019,7 +1038,7 @@ GET https://api.mymemory.translated.net/get?q={{text}}&langpair=zh-CN|en""".trim
         return listOf("Next", "WillArrive", "Arrive")
     }
 
-    fun getStationTypeList(): List<String> {
+    fun getStationPosotionList(): List<String> {
         return listOf("Default", "Starting", "Second", "Terminal")
     }
 
@@ -1043,7 +1062,7 @@ GET https://api.mymemory.translated.net/get?q={{text}}&langpair=zh-CN|en""".trim
         prefs.edit {
             for (stationState in getStationStateList()) {
                 val stateObj = formatObj.get(stationState).asJsonObject
-                for (stationType in getStationTypeList()) {
+                for (stationType in getStationPosotionList()) {
                     val format = stateObj.get(stationType).asString
                     putString("${stationType}${stationState}AnnouncementExpression", format)
                 }
@@ -1681,6 +1700,20 @@ GET https://api.mymemory.translated.net/get?q={{text}}&langpair=zh-CN|en""".trim
     fun getVoiceUrlKey(url: String): String {
         return url.lineSequence().firstOrNull() ?: "default"
 
+    }
+
+    fun restartApp(context: Context) {
+        val packageManager = context.packageManager
+        // 获取启动 Intent
+        val intent = packageManager.getLaunchIntentForPackage(context.packageName) ?: return
+        val componentName = intent.component ?: return
+
+        // 创建重启任务 Intent
+        val restartIntent = Intent.makeRestartActivityTask(componentName)
+        context.startActivity(restartIntent)
+
+        // 退出当前进程
+        Runtime.getRuntime().exit(0)
     }
 
 

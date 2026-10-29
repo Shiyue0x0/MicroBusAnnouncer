@@ -34,11 +34,12 @@ import kotlinx.coroutines.withContext
 import kotlin.collections.forEachIndexed
 import kotlin.time.Duration.Companion.milliseconds
 
-class AnnouncementPlayer
-@OptIn(UnstableApi::class) constructor(
+class AnnouncementPlayer @OptIn(UnstableApi::class)
+private constructor(
     val context: Context,
     private val anResolver: AnnouncementProvider
 ) {
+
 
     private var utils = Utils(context)
 
@@ -184,6 +185,18 @@ class AnnouncementPlayer
         // 开启预加载，目标时长为 30 秒 (30,000,000 微秒)
         player.preloadConfiguration = ExoPlayer.PreloadConfiguration(30_000_000L)
 
+    }
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AnnouncementPlayer? = null
+
+        fun getInstance(context: Context, anResolver: AnnouncementProvider): AnnouncementPlayer {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: AnnouncementPlayer(context.applicationContext, anResolver)
+                    .also { INSTANCE = it }
+            }
+        }
     }
 
     var playJob: Job? = null

@@ -151,7 +151,7 @@ class LineSwitcherActivity : BaseActivity() {
             Scaffold(
 
                 topBar = {
-                    AnSmallTopAppBar(this, getString(R.string.switch_line))
+                    AnSmallTopAppBar(this, getString(R.string.switch_line),)
                 },
                 content = { innerPadding ->
                     MainContent(searchText, setSearchText, innerPadding)

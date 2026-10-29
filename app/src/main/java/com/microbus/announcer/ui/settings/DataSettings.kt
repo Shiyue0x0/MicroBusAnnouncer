@@ -109,7 +109,7 @@ class DataSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        AnSmallTopAppBar(requireActivity(), getString(R.string.stationAndLineDate))
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.stationAndLineDate),)
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()
