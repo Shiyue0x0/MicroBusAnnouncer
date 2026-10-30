@@ -1721,9 +1721,9 @@ GET https://api.mymemory.translated.net/get?q={{text}}&langpair=zh-CN|en""".trim
      * 高德返回坐标通常 6 位小数，这里用 ~5e-5 度（约 5 米）容差。
      */
     fun isSamePoint(a: LatLng, b: LatLng): Boolean {
-        val eps = 5e-5
-        return Math.abs(a.latitude - b.latitude) < eps &&
-                Math.abs(a.longitude - b.longitude) < eps
+        val distance = calculateDistance(a.longitude, a.latitude, b.longitude, b.latitude)
+        val eps = 5
+        return distance < eps
     }
 
 }

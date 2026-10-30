@@ -16,6 +16,7 @@ class DrivingPlanning(context: Context) {
 
     private val appContext = context.applicationContext
     private val client = OkHttpClient()
+    private val utils = Utils(context)
 
     private val apiKey = appContext.getString(R.string.amapKey_web)
 
@@ -25,14 +26,16 @@ class DrivingPlanning(context: Context) {
         private const val URL_DRIVING = "https://restapi.amap.com/v5/direction/driving"
     }
 
+    /** 分段 */
     data class Step(
-        /** TODO 分段所属的途径点下标，接口不会返回，需要根据waypoints和polyline
-         * 0表示origin到下一个途径点（没有途径点就是destination）的分段
+        /** 分段所属的[起点 + 途径点 + 终点]下标
+         * 接口不会返回，需要根据waypoints和polyline
+         * 0表示起点到下一个途径点（没有途径点就是destination）的分段
          * 1表示第1个途径点到下一个途径点（没有途径点就是destination）的分段
          * 2表示第2个途径点到下一个途径点（没有途径点就是destination）的分段
          * ...
          */
-        val waypoint_index: Int,
+        var waypoint_index: Int,
         /** 行驶指示 */
         val instruction: String,
         /** 进入道路方向 */
@@ -134,8 +137,9 @@ class DrivingPlanning(context: Context) {
     ): List<Step> {
         val jsonStr = planDrivingRoute(origin, destination, waypoints) ?: return emptyList()
         // TODO 获取waypoint_index
-
-        return parseSteps(jsonStr)
+        val stepList = parseSteps(jsonStr)
+        getStepListWithWaypointIndex(origin, destination, waypoints, stepList)
+        return stepList
     }
 
     /**
@@ -198,6 +202,61 @@ class DrivingPlanning(context: Context) {
             e.printStackTrace()
         }
         return result
+    }
+
+    private fun getStepListWithWaypointIndex(
+        origin: String,
+        destination: String,
+        waypoints: String?,
+        stepList: List<Step>
+    ) {
+        // 无途径点
+        if (waypoints.isNullOrBlank()) {
+            stepList.forEach { it.waypoint_index = 0 }
+            return
+        }
+
+        // 有途径点，转成 LatLng ArrayList
+        val totalpointList = waypoints.split(";").toMutableList()
+
+        // 添加起点和终点
+        totalpointList.add(0, origin)
+        totalpointList.add(destination)
+
+
+        // 转换成 LatLng 列表
+        val totalPointLatLngList = totalpointList.map { pair ->
+            val parts = pair.split(",")
+            if (parts.size == 2) {
+                val lon = parts[0].trim().toDoubleOrNull()
+                val lat = parts[1].trim().toDoubleOrNull()
+                if (lon != null && lat != null) {
+                    LatLng(lat, lon) // LatLng(latitude, longitude)
+                } else null
+            } else null
+        }.filterNotNull()
+
+        Log.d("totalPointLatLngList", "size: ${totalPointLatLngList.size} totalPointLatLngList=${totalPointLatLngList}")
+        // 从1开始遍历totalPointLatLngList
+        for (i in 1 until totalPointLatLngList.size) {
+            val point = totalPointLatLngList[i]
+            val step = stepList.find { step -> utils.isSamePoint(step.polyline.first(), point) }
+            if (step != null) {
+                val matchStepIndex = stepList.indexOf(step)
+//                Log.d("step", "find ${stepList.indexOf(step)} ${step}")
+                stepList.forEachIndexed { index, step ->
+                    if (step.waypoint_index == -1 && index < matchStepIndex) {
+                        step.waypoint_index = i - 1
+                    }
+                }
+            }
+        }
+        // 遍历循环打印
+        stepList.forEach { step ->
+            Log.d("step", step.toString())
+        }
+
+
     }
 
     /**

@@ -1259,8 +1259,15 @@ class MainFragment : Fragment() {
             )
 
             steps.forEachIndexed { index, step ->
-                Log.d("L1258", "i=${index + 1}, for_station=${step.waypoint_index + 1}, instruction=${step.instruction}, road=${step.road_name}, " +
-                        "distance=${step.step_distance}, polylinePoints=${step.polyline.size}")
+                val stationCnName = currentLineStationList
+                    .getOrNull(step.waypoint_index)
+                    ?.cnName
+
+                Log.d(
+                    "L1258",
+                    "i=${index + 1}, for_station=${step.waypoint_index + 1}, station=${stationCnName}, instruction=${step.instruction}, road=${step.road_name}, " +
+                            "distance=${step.step_distance}, polylinePoints=${step.polyline.size}"
+                )
             }
 
             // TODO 将得到的[step.polyline]标点绘制到地图上，带上序号
@@ -1334,8 +1341,10 @@ class MainFragment : Fragment() {
             aMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 120))
         }
 
-        Log.d("L1258", "绘制完成：steps=${steps.size}, " +
-                "polyline=${stepPolylines.size}, markers=${stepMarkers.size}")
+        Log.d(
+            "L1258", "绘制完成：steps=${steps.size}, " +
+                    "polyline=${stepPolylines.size}, markers=${stepMarkers.size}"
+        )
     }
 
     /** 清理上一次绘制的线/点 */
