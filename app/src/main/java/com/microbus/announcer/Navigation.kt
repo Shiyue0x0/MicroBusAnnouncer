@@ -3,10 +3,19 @@ package com.microbus.announcer
 import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
+import androidx.lifecycle.lifecycleScope
 import com.amap.api.location.AMapLocation
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.utils.SpatialRelationUtil
+import com.microbus.announcer.announce.AnnouncementContext
+import com.microbus.announcer.announce.AnnouncementPlayer
 import com.microbus.announcer.announce.AnnouncementProvider
+import com.microbus.announcer.bean.Station
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.collections.ArrayList
 import kotlin.properties.Delegates
 
 class Navigation private constructor(private val context: Context) {
@@ -27,6 +36,7 @@ class Navigation private constructor(private val context: Context) {
 
     private val utils = Utils(context)
     private var anResolver = AnnouncementProvider.getInstance(context)
+    private val anPlayer = AnnouncementPlayer.getInstance(context)
 
     // 导航路段列表
     var stepList: List<DrivingPlanning.Step>? = null
@@ -143,20 +153,21 @@ class Navigation private constructor(private val context: Context) {
         Log.d("L59", "驶出路段起点: ${step}")
 
         val navVoiceStartList = mutableListOf<String>()
-        navVoiceStartList.add("向${step.orientation}方向")
+        navVoiceStartList.add("向${step.orientation}")
         if (step.road_name.isNotBlank()) {
             navVoiceStartList.add("沿")
+            // TODO 路段名称进入road文件夹
             navVoiceStartList.add(step.road_name)
         }
         navVoiceStartList.add("行驶")
 
-        val stepDistanceInt = step.step_distance.toIntOrNull()
-        if (stepDistanceInt != null) {
-            navVoiceStartList.add(step.step_distance)
+//        val stepDistanceInt = step.step_distance.toIntOrNull()
+//        if (stepDistanceInt != null) {
+//            navVoiceStartList.add(step.step_distance)
+//
+//        }
 
-        }
-
-        navVoiceStartList.add("米")
+//        navVoiceStartList.add("米")
 
         Log.d("L59", "驶出路段起点 导航播报: ${navVoiceStartList.joinToString("|")}")
         playNaviVoice(navVoiceStartList)
@@ -182,7 +193,7 @@ class Navigation private constructor(private val context: Context) {
         }
 
         val nextStep = stepList?.getOrNull(index + 1)
-        if (nextStep != null) {
+        if (nextStep != null && nextStep.road_name.isNotBlank()) {
             navVoiceStartList.add("进入")
             navVoiceStartList.add(nextStep.road_name)
         }
@@ -192,6 +203,45 @@ class Navigation private constructor(private val context: Context) {
     }
 
     private fun playNaviVoice(navVoiceList: MutableList<String>) {
+        val mockStationList = mutableListOf<Station>()
+
+        mockStationList.add(
+            Station(
+                id = 1,
+                latitude = 39.9042,
+                longitude = 116.4074
+            )
+        )
+
+        mockStationList.add(
+            Station(
+                id = 2,
+                latitude = 39.9042,
+                longitude = 116.4074
+            )
+        )
+
+        val announcementContext = AnnouncementContext(
+            "",
+            mockStationList,
+            2,
+            0,
+            0.0,
+            ArrayList()
+        )
+
+        // TODO navVoiceList与上次播报相同时不播报
+
+        val navVoiceListStr = navVoiceList.joinToString("|")
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val filePathList = anResolver.resolveAndBuild(
+                navVoiceListStr,
+                announcementContext
+            )
+            anPlayer.play(filePathList)
+        }
+
 
     }
 

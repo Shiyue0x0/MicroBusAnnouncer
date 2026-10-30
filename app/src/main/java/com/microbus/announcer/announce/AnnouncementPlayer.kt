@@ -1,5 +1,6 @@
 package com.microbus.announcer.announce
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
@@ -35,10 +36,7 @@ import kotlin.collections.forEachIndexed
 import kotlin.time.Duration.Companion.milliseconds
 
 class AnnouncementPlayer @OptIn(UnstableApi::class)
-private constructor(
-    val context: Context,
-    private val anResolver: AnnouncementProvider
-) {
+private constructor(val context: Context) {
 
 
     private var utils = Utils(context)
@@ -48,6 +46,9 @@ private constructor(
     private var player: ExoPlayer
     private var audioSessionId: Int? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
+
+    val anResolver = AnnouncementProvider.getInstance(context)
+
 
     /** 外部可用来订阅当前正在播放的字幕文本 */
     val playingText: StateFlow<String>
@@ -61,7 +62,9 @@ private constructor(
     val playbackDuration: StateFlow<Long>
         field = MutableStateFlow(0L)
 
+
     init {
+
 
         //设置音频属性
         val attributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
@@ -188,12 +191,13 @@ private constructor(
     }
 
     companion object {
+        @SuppressLint("StaticFieldLeak")
         @Volatile
         private var INSTANCE: AnnouncementPlayer? = null
 
-        fun getInstance(context: Context, anResolver: AnnouncementProvider): AnnouncementPlayer {
+        fun getInstance(context: Context): AnnouncementPlayer {
             return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: AnnouncementPlayer(context.applicationContext, anResolver)
+                INSTANCE ?: AnnouncementPlayer(context.applicationContext)
                     .also { INSTANCE = it }
             }
         }
@@ -206,17 +210,12 @@ private constructor(
     val netWorkTimeoutMs = 15_000L
 
 
-
     /**
      * 播放音频
      * @param mediaItemList 音频列表
-     * @param anResolver 音频提供器
      * */
     @OptIn(UnstableApi::class)
-    fun play(
-        mediaItemList: MutableList<AnnouncementProvider.MediaItem>,
-        anResolver: AnnouncementProvider
-    ) {
+    fun play(mediaItemList: MutableList<AnnouncementProvider.MediaItem>) {
 
         mediaItemList.forEach {
             Log.d("L176", it.text ?: "")
@@ -225,6 +224,7 @@ private constructor(
         if (playJob != null) {
             playJob?.cancel()
         }
+
         playJob = CoroutineScope(Dispatchers.IO).launch {
 
             stopAnnounce(cancelPlayJob = false).join()
@@ -295,20 +295,6 @@ private constructor(
 
             }
         }
-    }
-
-    fun appendPlay(
-        mediaItemList: MutableList<AnnouncementProvider.MediaItem>,
-        anResolver: AnnouncementProvider
-    ) {
-        // 未在播放
-        if (playJob == null) {
-            play(mediaItemList, anResolver)
-            return
-        }
-
-        // 正在播放
-
     }
 
     private suspend fun waitTTSDoneWithTimeoutToBlank(

@@ -3,11 +3,8 @@ package com.microbus.announcer.ui
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.util.Log
-import android.view.LayoutInflater
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AlertDialog
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
@@ -49,26 +46,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.content.edit
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.BaseActivity
-import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.announce.AnnouncementPlayer
 import com.microbus.announcer.announce.AnnouncementProvider
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
-import com.microbus.announcer.databinding.DialogInputBinding
 import com.microbus.announcer.model.StationStatus
 import com.microbus.announcer.ui.compose.AnSmallTopAppBar
 import kotlinx.coroutines.launch
@@ -87,7 +78,6 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -100,7 +90,6 @@ import top.yukonga.miuix.kmp.icon.extended.ListView
 import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.icon.extended.Play
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
-import top.yukonga.miuix.kmp.preference.RadioButtonPreference
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -134,7 +123,7 @@ class AnFormatEditorActivity : BaseActivity() {
         stationDatabaseHelper = StationDatabaseHelper.getInstance(this)
         prefs = PreferenceManager.getDefaultSharedPreferences(this)
         announcementProvider = AnnouncementProvider.getInstance(this)
-        anPlayer = AnnouncementPlayer.getInstance(this, announcementProvider)
+        anPlayer = AnnouncementPlayer.getInstance(this)
 
         enableEdgeToEdge()
         setContent {

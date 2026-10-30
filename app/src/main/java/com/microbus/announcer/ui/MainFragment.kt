@@ -2194,7 +2194,7 @@ class MainFragment : Fragment() {
         anResolver = AnnouncementProvider.getInstance(requireContext())
 
         // anPlayer
-        anPlayer = AnnouncementPlayer.getInstance(requireContext(), anResolver)
+        anPlayer = AnnouncementPlayer.getInstance(requireContext())
 
     }
 
@@ -3787,7 +3787,6 @@ class MainFragment : Fragment() {
         }
 
         audioStreamScope = lifecycleScope.launch {
-//            repeatOnLifecycle(Lifecycle.State.RESUMED) {
             withContext(Dispatchers.IO) {
                 val announcementContext = AnnouncementContext(
                     binding.lineName!!,
@@ -3800,12 +3799,8 @@ class MainFragment : Fragment() {
 
                 filePathList = anResolver.resolveAndBuild(format, announcementContext)
 
-                anPlayer.play(filePathList, anResolver)
-
-//                preloadingCommonText()
-//                preloadingStation()
+                anPlayer.play(filePathList)
             }
-//            }
         }
 
     }
