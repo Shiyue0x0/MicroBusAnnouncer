@@ -113,6 +113,7 @@
     <string name="map">地图</string>
 
     <string name="translation">翻译</string>
+    <string name="navigation">导航</string>
 
     <string name="stationAndLineDate">站点与路线数据</string>
     <string name="about_an">关于 Announcer</string>

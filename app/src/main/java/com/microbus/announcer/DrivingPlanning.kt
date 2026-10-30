@@ -236,14 +236,25 @@ class DrivingPlanning(context: Context) {
             } else null
         }.filterNotNull()
 
-        Log.d("totalPointLatLngList", "size: ${totalPointLatLngList.size} totalPointLatLngList=${totalPointLatLngList}")
+//        Log.d(
+//            "totalPointLatLngList",
+//            "size: ${totalPointLatLngList.size} totalPointLatLngList=${totalPointLatLngList}"
+//        )
+
+//        var lastMatchStepIndex = -1
+
         // 从1开始遍历totalPointLatLngList
         for (i in 1 until totalPointLatLngList.size) {
             val point = totalPointLatLngList[i]
-            val step = stepList.find { step -> utils.isSamePoint(step.polyline.first(), point) }
+            // 匹配 当前点的和step起点
+            val step = stepList.find { step ->
+                utils.isSamePoint(step.polyline.first(), point)
+//                        && stepList.indexOf(step) > lastMatchStepIndex
+            }
             if (step != null) {
                 val matchStepIndex = stepList.indexOf(step)
-//                Log.d("step", "find ${stepList.indexOf(step)} ${step}")
+//                lastMatchStepIndex = matchStepIndex
+//                Log.d("step", "find ${matchStepIndex} ${step}")
                 stepList.forEachIndexed { index, step ->
                     if (step.waypoint_index == -1 && index < matchStepIndex) {
                         step.waypoint_index = i - 1
@@ -251,10 +262,15 @@ class DrivingPlanning(context: Context) {
                 }
             }
         }
+
+        // 兜底：仍未赋值的归入最后一段
+        val lastIndex = totalPointLatLngList.size - 2
+        stepList.forEach { if (it.waypoint_index == -1) it.waypoint_index = lastIndex }
+
         // 遍历循环打印
-        stepList.forEach { step ->
-            Log.d("step", step.toString())
-        }
+//        stepList.forEach { step ->
+//            Log.d("step", step.toString())
+//        }
 
 
     }

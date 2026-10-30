@@ -165,6 +165,7 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.microbus.announcer.DrivingPlanning
 import com.microbus.announcer.LineTrajectoryCorrection
+import com.microbus.announcer.Navigation
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
@@ -824,6 +825,9 @@ class MainFragment : Fragment() {
         // 初始化报站
         initAnnouncement()
 
+        // 初始化导航
+        initNavigation()
+
         //初始化路线
         initLine()
 
@@ -1225,20 +1229,22 @@ class MainFragment : Fragment() {
             return text.chunked(size)
         }
 
-        // TODO 驾车规划（获取路线和导航）
-        lifecycleScope.launch {
-            val planner = DrivingPlanning(requireContext())
+        // TODO 驾车规划（获取 路线轨迹 和 导航信息）
+        if (utils.getIsEnableOnlineNavigation() || utils.getIsLineTrajectoryCorrection()) {
+            lifecycleScope.launch {
+                val planner = DrivingPlanning(requireContext())
 
-            val firstStation = currentLineStationList.first()
-            val lastStation = currentLineStationList.last()
+                val firstStation = currentLineStationList.first()
+                val lastStation = currentLineStationList.last()
 
 
-            val origin = firstStation.toLngLatString()
-            val dest = lastStation.toLngLatString()
+                val origin = firstStation.toLngLatString()
+                val dest = lastStation.toLngLatString()
 
-            // 途径站点
-            val wayStationList = currentLineStationList.subList(1, currentLineStationList.size - 1)
-            val waypoints = wayStationList.joinToString(separator = ";") { it.toLngLatString() }
+                // 途径站点
+                val wayStationList =
+                    currentLineStationList.subList(1, currentLineStationList.size - 1)
+                val waypoints = wayStationList.joinToString(separator = ";") { it.toLngLatString() }
 
 //            val jsonResult = planner.planDrivingRoute(origin, dest, waypoints)
 //            if (jsonResult != null) {
@@ -1252,29 +1258,32 @@ class MainFragment : Fragment() {
 //                Log.d("L112", "请求失败")
 //            }
 
-            val steps: List<DrivingPlanning.Step> = planner.planDrivingSteps(
-                origin = origin,
-                destination = dest,
-                waypoints = waypoints
-            )
-
-            steps.forEachIndexed { index, step ->
-                val stationCnName = currentLineStationList
-                    .getOrNull(step.waypoint_index)
-                    ?.cnName
-
-                Log.d(
-                    "L1258",
-                    "i=${index + 1}, for_station=${step.waypoint_index + 1}, station=${stationCnName}, instruction=${step.instruction}, road=${step.road_name}, " +
-                            "distance=${step.step_distance}, polylinePoints=${step.polyline.size}"
+                val steps: List<DrivingPlanning.Step> = planner.planDrivingSteps(
+                    origin = origin,
+                    destination = dest,
+                    waypoints = waypoints
                 )
-            }
 
-            // TODO 将得到的[step.polyline]标点绘制到地图上，带上序号
-            withContext(Dispatchers.Main) {
-                drawStepsOnMap(steps)
-            }
+                steps.forEachIndexed { index, step ->
+                    val stationCnName = currentLineStationList
+                        .getOrNull(step.waypoint_index)
+                        ?.cnName
 
+                    Log.d(
+                        "L1258",
+                        "i=${index + 1}, for_station=${step.waypoint_index + 1}, station=${stationCnName}, step=${step}" +
+                                "distance=${step.step_distance}, polylinePoints=${step.polyline.size}"
+                    )
+                }
+
+                navigation.startNavigation(steps)
+
+                // TODO 将得到的[step.polyline]标点绘制到地图上，带上序号
+                withContext(Dispatchers.Main) {
+                    drawStepsOnMap(steps)
+                }
+
+            }
         }
 
 
@@ -1456,7 +1465,10 @@ class MainFragment : Fragment() {
         if (!mockLocation) {
             locationClient.setLocationListener { location ->
                 if (location.errorCode == 0)
-                    onMyLocationChange(location)
+                    if (utils.getIsEnableOnlineNavigation()) {
+                        navigation.onLocationChanged(location)
+                    }
+                onMyLocationChange(location)
             }
             locationClient.startLocation()
         }
@@ -2184,6 +2196,12 @@ class MainFragment : Fragment() {
         // anPlayer
         anPlayer = AnnouncementPlayer.getInstance(requireContext(), anResolver)
 
+    }
+
+
+    private lateinit var navigation: Navigation
+    private fun initNavigation() {
+        navigation = Navigation.getInstance(requireContext())
     }
 
     /**

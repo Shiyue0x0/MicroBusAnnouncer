@@ -494,6 +494,21 @@ GET https://api.mymemory.translated.net/get?q={{text}}&langpair=zh-CN|en""".trim
     }
 
     /**
+     * 从设置中获取是否启用在线导航
+     */
+    fun getIsEnableOnlineNavigation(): Boolean {
+        return prefs.getBoolean("enableOnlineNavigation", true)
+    }
+
+    /**
+     * 从设置中设置是否启用在线导航
+     */
+    fun setIsEnableOnlineNavigation(value: Boolean) {
+        prefs.edit {
+            putBoolean("enableOnlineNavigation", value)
+        }
+    }
+    /**
      * 振动
      */
     fun haptic(view: View?) {
@@ -1722,7 +1737,7 @@ GET https://api.mymemory.translated.net/get?q={{text}}&langpair=zh-CN|en""".trim
      */
     fun isSamePoint(a: LatLng, b: LatLng): Boolean {
         val distance = calculateDistance(a.longitude, a.latitude, b.longitude, b.latitude)
-        val eps = 5
+        val eps = 10
         return distance < eps
     }
 

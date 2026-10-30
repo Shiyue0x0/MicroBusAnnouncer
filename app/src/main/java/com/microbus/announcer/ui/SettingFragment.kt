@@ -30,6 +30,7 @@ import com.microbus.announcer.ui.settings.DataSettings
 import com.microbus.announcer.ui.settings.ESSettings
 import com.microbus.announcer.ui.settings.LocationSettings
 import com.microbus.announcer.ui.settings.MapSettings
+import com.microbus.announcer.ui.settings.NavigationSettings
 import com.microbus.announcer.ui.settings.SystemSettings
 import com.microbus.announcer.ui.settings.TranslationSettings
 import com.microbus.announcer.ui.settings.VoiceBroadcastSettings
@@ -153,11 +154,15 @@ class SettingFragment : Fragment() {
                                         summary = "主控最上方的电显",
                                         fragmentClass = ESSettings::class.java
                                     ),
-
                                     ArrowPreferenceItem(
                                         title = getString(R.string.map),
                                         summary = "主控地图",
                                         fragmentClass = MapSettings::class.java
+                                    ),
+                                    ArrowPreferenceItem(
+                                        title = getString(R.string.navigation),
+                                        summary = "在线导航",
+                                        fragmentClass = NavigationSettings::class.java
                                     ),
                                     ArrowPreferenceItem(
                                         title = getString(R.string.location),

@@ -205,8 +205,13 @@ private constructor(
 
     val netWorkTimeoutMs = 15_000L
 
-    private var progressJob: Job? = null
 
+
+    /**
+     * 播放音频
+     * @param mediaItemList 音频列表
+     * @param anResolver 音频提供器
+     * */
     @OptIn(UnstableApi::class)
     fun play(
         mediaItemList: MutableList<AnnouncementProvider.MediaItem>,
@@ -290,6 +295,20 @@ private constructor(
 
             }
         }
+    }
+
+    fun appendPlay(
+        mediaItemList: MutableList<AnnouncementProvider.MediaItem>,
+        anResolver: AnnouncementProvider
+    ) {
+        // 未在播放
+        if (playJob == null) {
+            play(mediaItemList, anResolver)
+            return
+        }
+
+        // 正在播放
+
     }
 
     private suspend fun waitTTSDoneWithTimeoutToBlank(

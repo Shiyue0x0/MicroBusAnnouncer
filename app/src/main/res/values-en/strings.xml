@@ -114,6 +114,7 @@
     <string name="map">Map</string>
 
     <string name="translation">Translation</string>
+    <string name="navigation">Navigation</string>
 
     <string name="stationAndLineDate">Station &amp; Line Date</string>
     <string name="about_an">About Announcer</string>
