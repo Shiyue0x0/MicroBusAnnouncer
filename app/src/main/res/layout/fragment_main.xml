@@ -277,28 +277,20 @@
                 app:strokeColor="@color/md_theme_surface_tran2"
                 app:strokeWidth="2dp">
 
-                <com.microbus.announcer.ui.view.NestedScrollableHost
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_margin="8dp"
-                    app:sameDirectionWithParent="true">
+<!--                <com.microbus.announcer.ui.view.NestedScrollableHost-->
+<!--                    android:layout_width="wrap_content"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:layout_gravity="center">-->
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/lineStationList"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_margin="8dp"
                         android:fadingEdgeLength="20dp"
                         android:requiresFadingEdge="horizontal" />
 
-                    <ImageView
-                        android:id="@+id/glassSourceImageOfLineStationCard"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription=""
-                        android:scaleType="centerCrop" />
-
-                </com.microbus.announcer.ui.view.NestedScrollableHost>
+<!--                </com.microbus.announcer.ui.view.NestedScrollableHost>-->
 
 
             </com.google.android.material.card.MaterialCardView>

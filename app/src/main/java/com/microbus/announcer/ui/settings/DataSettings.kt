@@ -1,10 +1,7 @@
 package com.microbus.announcer.ui.settings
 
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.app.Activity.OVERRIDE_TRANSITION_CLOSE
 import android.app.Activity.RESULT_OK
-import android.content.Context
 import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
@@ -109,7 +106,7 @@ class DataSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        AnSmallTopAppBar(requireActivity(), getString(R.string.stationAndLineDate),)
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.stationAndLineDate))
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()
@@ -350,17 +347,6 @@ class DataSettings : Fragment() {
             kotlin.system.exitProcess(0)
 
         }
-    }
-
-    fun restartActivityStack(context: Context) {
-        val packageName = context.packageName
-        val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
-        launchIntent?.let { intent ->
-            // 关键Flag：清空任务栈并创建新任务
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            context.startActivity(intent)
-        }
-         (activity as? Activity)?.overridePendingTransition(OVERRIDE_TRANSITION_CLOSE,0, 0)
     }
 
     private fun loadPresetData(resId: Int) {

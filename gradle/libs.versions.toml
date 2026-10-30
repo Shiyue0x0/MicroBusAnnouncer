@@ -1,23 +1,23 @@
 [versions]
 activityComposeVersion = "1.13.0"
-agp = "9.2.1"
+agp = "9.5.0"
 backdrop = "2.0.1"
 coreVersion = "1.0.5"
 easypermissions = "3.0.0"
 flexibleBottomsheetMaterial3 = "0.4.0"
-fragmentKtx = "1.9.0"
+fragmentKtx = "1.9.1"
 gson = "2.14.0"
-kotlin = "2.4.10"
-coreKtx = "1.19.0"
+kotlin = "2.4.21"
+coreKtx = "1.19.1"
 appcompat = "1.8.0"
 kotlinxSerializationJson = "1.11.0"
 activity = "1.13.0"
 constraintlayout = "2.2.2"
 lifecycleRuntimeCompose = "2.11.0"
 materialVersion = "1.14.0"
-media3Exoplayer = "1.11.0"
+media3Exoplayer = "1.11.1"
 miuixUiAndroid = "0.9.3"
-navigationCompose = "2.9.8"
+navigationCompose = "2.10.2"
 okhttp = "5.4.0"
 recyclerviewFastscroll = "2.0.1"
 recyclerviewVersion = "1.4.0"
@@ -26,14 +26,14 @@ swiperefreshlayout = "1.2.0"
 viewpager2Version = "1.1.0"
 legacySupportV4 = "1.0.0"
 preference = "1.2.1"
-fragment = "1.9.0"
-core = "1.19.0"
+fragment = "1.9.1"
+core = "1.19.1"
 lifecycleRuntimeKtx = "2.11.0"
-composeBom = "2026.08.00"
-roomKtx = "2.8.4"
-uiText = "1.12.0"
-uiViewbinding = "1.12.0"
-litertApi = "2.1.6"
+composeBom = "2026.09.00"
+roomKtx = "2.8.5"
+uiText = "1.12.1"
+uiViewbinding = "1.12.1"
+material3 = "1.4.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
@@ -78,6 +78,7 @@ androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = 
 androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
 androidx-compose-ui-viewbinding = { group = "androidx.compose.ui", name = "ui-viewbinding", version.ref = "uiViewbinding" }
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

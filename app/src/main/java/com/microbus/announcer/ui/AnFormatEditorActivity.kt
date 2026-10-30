@@ -321,7 +321,6 @@ class AnFormatEditorActivity : BaseActivity() {
         ) {
             Scaffold(
                 topBar = {
-                    // TODO
                     AnSmallTopAppBar(
                         activity = this,
                         title = "编辑播报格式",
@@ -1304,7 +1303,7 @@ class AnFormatEditorActivity : BaseActivity() {
     }
 
 
-    // TODO 添加其他占位符语句（如路线名、时间）
+    // 添加其他占位符语句（如路线名、时间）
     @Composable
     fun OtherPlaceholderAppendSentenceCompose(
         onAppend: (SentenceItem) -> Unit = {}

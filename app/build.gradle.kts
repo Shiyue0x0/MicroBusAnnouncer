@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.legacy.support.v4)
+    implementation(libs.androidx.material3)
     implementation(libs.androidx.preference)
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.swiperefreshlayout)

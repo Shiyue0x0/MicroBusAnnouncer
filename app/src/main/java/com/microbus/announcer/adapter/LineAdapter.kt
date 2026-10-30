@@ -70,7 +70,7 @@ class LineAdapter(
         var lineStartingStation = binding.lineStartingStation
         var lineTerminal = binding.lineTerminal
         var lineStationList = binding.lineStationList
-        var lineStationListHost = binding.lineStationListHost
+//        var lineStationListHost = binding.lineStationListHost
 
         init {
             mListener = clickListener
@@ -221,6 +221,7 @@ class LineAdapter(
 //            stationOfLineAdapter.isShown = position + 1 in firstVisibleItem..lastVisibleItem
 
             holder.lineStationList.adapter = stationOfLineAdapter
+            holder.lineStationList.setOnTouchListener { _, _ -> false }
 
             stationOfLineAdapterMap[position + 1] = stationOfLineAdapter
 //            stationOfLineAdapterList.add(stationOfLineAdapter)

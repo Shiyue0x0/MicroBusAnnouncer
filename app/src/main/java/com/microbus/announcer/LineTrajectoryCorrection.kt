@@ -35,7 +35,7 @@ object LineTrajectoryCorrection {
 
     private lateinit var prefs: SharedPreferences
     private lateinit var utils: Utils
-    private lateinit var appContext: Context
+    lateinit var appContext: Context
 
     // 路线平均速度（km/h）
     val SPEED_KMH = 15

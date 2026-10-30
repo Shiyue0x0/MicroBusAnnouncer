@@ -21,7 +21,10 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.drawable.Icon
 import android.location.Location
 import android.os.Build
@@ -126,6 +129,7 @@ import com.amap.api.maps.model.CameraPosition
 import com.amap.api.maps.model.Circle
 import com.amap.api.maps.model.CircleOptions
 import com.amap.api.maps.model.LatLng
+import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.maps.model.Marker
 import com.amap.api.maps.model.MarkerOptions
 import com.amap.api.maps.model.MultiPointItem
@@ -159,6 +163,7 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
+import com.microbus.announcer.DrivingPlanning
 import com.microbus.announcer.LineTrajectoryCorrection
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
@@ -971,6 +976,11 @@ class MainFragment : Fragment() {
 
     val client = OkHttpClient()
 
+    fun Station.toLngLatString(): String {
+        val lng = String.format("%.6f", longitude)
+        val lat = String.format("%.6f", latitude)
+        return "$lng,$lat"
+    }
 
     /**
      * 加载路线
@@ -1211,10 +1221,169 @@ class MainFragment : Fragment() {
 
         }
 
+        fun splitByLength(text: String, size: Int = 100): List<String> {
+            return text.chunked(size)
+        }
+
+        // TODO 驾车规划（获取路线和导航）
+        lifecycleScope.launch {
+            val planner = DrivingPlanning(requireContext())
+
+            val firstStation = currentLineStationList.first()
+            val lastStation = currentLineStationList.last()
+
+
+            val origin = firstStation.toLngLatString()
+            val dest = lastStation.toLngLatString()
+
+            // 途径站点
+            val wayStationList = currentLineStationList.subList(1, currentLineStationList.size - 1)
+            val waypoints = wayStationList.joinToString(separator = ";") { it.toLngLatString() }
+
+//            val jsonResult = planner.planDrivingRoute(origin, dest, waypoints)
+//            if (jsonResult != null) {
+//                // 解析 JSON 数据，提取路线 polyline 或距离时间
+//                // 建议使用 Gson 或 org.json 解析
+//                Log.d("L112", "规划结果: ")
+//                splitByLength(jsonResult).forEach {
+//                    Log.d("L112", it)
+//                }
+//            } else {
+//                Log.d("L112", "请求失败")
+//            }
+
+            val steps: List<DrivingPlanning.Step> = planner.planDrivingSteps(
+                origin = origin,
+                destination = dest,
+                waypoints = waypoints
+            )
+
+            steps.forEachIndexed { index, step ->
+                Log.d("L1258", "i=${index + 1}, for_station=${step.waypoint_index + 1}, instruction=${step.instruction}, road=${step.road_name}, " +
+                        "distance=${step.step_distance}, polylinePoints=${step.polyline.size}")
+            }
+
+            // TODO 将得到的[step.polyline]标点绘制到地图上，带上序号
+            withContext(Dispatchers.Main) {
+                drawStepsOnMap(steps)
+            }
+
+        }
+
+
+    }
+
+    private val stepPolylines = mutableListOf<Polyline>()
+    private val stepMarkers = mutableListOf<Marker>()
+
+    /**
+     * 把规划结果的每个 Step 绘制到地图上
+     * - 每个 step 一条 Polyline（颜色循环）
+     * - 每个 step 起点处一个带序号的 Marker
+     */
+    private fun drawStepsOnMap(steps: List<DrivingPlanning.Step>) {
+        // 先清掉上一次绘制的内容
+        clearStepOverlays()
+        if (steps.isEmpty()) return
+
+        // 颜色循环，便于区分相邻路段
+        val colors = intArrayOf(
+            0xFF2979FF.toInt(), // 蓝
+            0xFF00C853.toInt(), // 绿
+            0xFFFF6D00.toInt(), // 橙
+            0xFFAA00FF.toInt(), // 紫
+            0xFFD50000.toInt()  // 红
+        )
+
+        val allPoints = mutableListOf<LatLng>()
+
+        steps.forEachIndexed { index, step ->
+            if (step.polyline.isEmpty()) return@forEachIndexed
+
+            val color = colors[index % colors.size]
+
+            // 1) 画线
+            val polyline = aMap.addPolyline(
+                PolylineOptions()
+                    .addAll(step.polyline)
+                    .width(12f)
+                    .color(color)
+                    .setDottedLine(false)
+                    .zIndex(10f)
+            )
+            stepPolylines.add(polyline)
+
+            // 2) 起点处画带序号的 Marker
+            val startPoint = step.polyline.first()
+            val marker = aMap.addMarker(
+                MarkerOptions()
+                    .position(startPoint)
+                    .icon(BitmapDescriptorFactory.fromBitmap(createNumberIcon(index + 1, color)))
+                    .anchor(0.5f, 0.5f)   // 图标中心对准坐标
+                    .zIndex(20f)
+            )
+            marker?.let { stepMarkers.add(it) }
+
+            allPoints.addAll(step.polyline)
+        }
+
+        // 3) 可选：自动缩放让所有点都在视野内
+        if (allPoints.isNotEmpty()) {
+            val builder = LatLngBounds.Builder()
+            allPoints.forEach { builder.include(it) }
+            aMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 120))
+        }
+
+        Log.d("L1258", "绘制完成：steps=${steps.size}, " +
+                "polyline=${stepPolylines.size}, markers=${stepMarkers.size}")
+    }
+
+    /** 清理上一次绘制的线/点 */
+    private fun clearStepOverlays() {
+        stepPolylines.forEach { it.remove() }
+        stepPolylines.clear()
+        stepMarkers.forEach { it.remove() }
+        stepMarkers.clear()
+    }
+
+    /**
+     * 生成一个圆形背景 + 数字的 Bitmap 图标
+     */
+    private fun createNumberIcon(number: Int, circleColor: Int): Bitmap {
+        val size = 72               // 图标像素尺寸
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        // 画圆
+        val paintCircle = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = circleColor
+            style = Paint.Style.FILL
+        }
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f - 4f, paintCircle)
+
+        // 白色描边
+        val paintBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.STROKE
+            strokeWidth = 4f
+        }
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f - 4f, paintBorder)
+
+        // 画数字
+        val paintText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textSize = 36f
+            textAlign = Paint.Align.CENTER
+        }
+        val text = number.toString()
+        val fontMetrics = paintText.fontMetrics
+        val textY = size / 2f - (fontMetrics.ascent + fontMetrics.descent) / 2f
+        canvas.drawText(text, size / 2f, textY, paintText)
+
+        return bitmap
     }
 
     private var pointGroup: MutableList<MutableList<Triple<Double, Double, Int?>>> = mutableListOf()
-
 
     private val mockLocation = false
     lateinit var mockLocationList: List<Pair<Date, Location>>
