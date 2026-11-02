@@ -165,7 +165,7 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.microbus.announcer.DrivingPlanning
 import com.microbus.announcer.LineTrajectoryCorrection
-import com.microbus.announcer.Navigation
+import com.microbus.announcer.NavigationService
 import com.microbus.announcer.PermissionManager
 import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
@@ -176,6 +176,7 @@ import com.microbus.announcer.adapter.StationOfRunningInfoAdapter
 import com.microbus.announcer.announce.AnnouncementContext
 import com.microbus.announcer.announce.AnnouncementPlayer
 import com.microbus.announcer.announce.AnnouncementProvider
+import com.microbus.announcer.bean.AnMediaItem
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.RunningInfo
 import com.microbus.announcer.bean.Station
@@ -1225,12 +1226,9 @@ class MainFragment : Fragment() {
 
         }
 
-        fun splitByLength(text: String, size: Int = 100): List<String> {
-            return text.chunked(size)
-        }
-
         // TODO 驾车规划（获取 路线轨迹 和 导航信息）
-        if (utils.getIsEnableOnlineNavigation() || utils.getIsLineTrajectoryCorrection()) {
+        if (utils.getIsEnableOnlineNavigation()) {
+//        if (utils.getIsEnableOnlineNavigation() || utils.getIsLineTrajectoryCorrection()) {
             lifecycleScope.launch {
                 val planner = DrivingPlanning(requireContext())
 
@@ -1276,7 +1274,7 @@ class MainFragment : Fragment() {
                     )
                 }
 
-                navigation.startNavigation(steps)
+                navigationService.startNavigation(steps)
 
                 // TODO 将得到的[step.polyline]标点绘制到地图上，带上序号
                 withContext(Dispatchers.Main) {
@@ -1466,7 +1464,7 @@ class MainFragment : Fragment() {
             locationClient.setLocationListener { location ->
                 if (location.errorCode == 0)
                     if (utils.getIsEnableOnlineNavigation()) {
-                        navigation.onLocationChanged(location)
+                        navigationService.onLocationChanged(location)
                     }
                 onMyLocationChange(location)
             }
@@ -2199,9 +2197,9 @@ class MainFragment : Fragment() {
     }
 
 
-    private lateinit var navigation: Navigation
+    private lateinit var navigationService: NavigationService
     private fun initNavigation() {
-        navigation = Navigation.getInstance(requireContext())
+        navigationService = NavigationService.getInstance(requireContext())
     }
 
     /**
@@ -3769,7 +3767,7 @@ class MainFragment : Fragment() {
     }
 
 
-    var filePathList = mutableListOf<AnnouncementProvider.MediaItem>()
+    var filePathList = mutableListOf<AnMediaItem>()
 
     /**
      * 语音播报
@@ -3799,6 +3797,7 @@ class MainFragment : Fragment() {
 
                 filePathList = anResolver.resolveAndBuild(format, announcementContext)
 
+                Log.d("L60", "announce: ${filePathList}")
                 anPlayer.play(filePathList)
             }
         }

@@ -7,6 +7,10 @@ import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import com.microbus.announcer.HTTPRequest
 import com.microbus.announcer.Utils
+import com.microbus.announcer.bean.AudioSourceType
+import com.microbus.announcer.bean.AnMediaItem
+import com.microbus.announcer.bean.MediaItemStatus
+import com.microbus.announcer.bean.NetworkInfo
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.model.StationStatus
@@ -70,48 +74,7 @@ class AnnouncementProvider private constructor(context: Context) {
         }
     }
 
-    enum class AudioSourceType {
-        /** 空白间隔（例如100ms） */
-        BLANK,
 
-        /** 本地文件 */
-        LOCAL,
-
-        /** 网络请求获取 */
-        NETWORK,
-
-        /** 文字转语音 */
-        TTS
-    }
-
-    enum class MediaItemStatus {
-        /** 加载中 */
-        LOADING,
-
-        /** 加载完成 */
-        COMPLETED,
-
-        /** 加载失败 */
-        FAILED
-    }
-
-    data class MediaItem(
-        var source: AudioSourceType,
-        var filePath: String,
-        val text: String?,
-        var status: MediaItemStatus = MediaItemStatus.LOADING,
-        var networkInfo: NetworkInfo = NetworkInfo(
-            voiceText = "",
-            downloadBeginTime = 0,
-            downloadDoneTime = 0,
-        )
-    )
-
-    data class NetworkInfo(
-        var voiceText: String,
-        var downloadBeginTime: Long?,
-        var downloadDoneTime: Long?,
-    )
 
     private fun initTTS() {
         tts = TextToSpeech(appContext) { status ->
@@ -134,14 +97,14 @@ class AnnouncementProvider private constructor(context: Context) {
             override fun onDone(utteranceId: String) {
                 Log.d("L102", "onDone: $utteranceId")
                 ttsFileDoneList.add(utteranceId)
-                playingMediaItemList.findAllTTSByPath(utteranceId).forEach {
+                playingAnMediaItemList.findAllTTSByPath(utteranceId).forEach {
                     it.status = MediaItemStatus.COMPLETED
                 }
             }
 
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String) {
-                playingMediaItemList.findAllTTSByPath(utteranceId).forEach {
+                playingAnMediaItemList.findAllTTSByPath(utteranceId).forEach {
                     it.status = MediaItemStatus.FAILED
                 }
                 CoroutineScope(Dispatchers.Main).launch {
@@ -172,7 +135,7 @@ class AnnouncementProvider private constructor(context: Context) {
 
     fun resolveAndBuild(
         format: String = "", anContext: AnnouncementContext
-    ): MutableList<MediaItem> {
+    ): MutableList<AnMediaItem> {
 
         this.format = format
         this.anContext = anContext
@@ -422,19 +385,19 @@ class AnnouncementProvider private constructor(context: Context) {
 
     }
 
-    var playingMediaItemList = CopyOnWriteArrayList<MediaItem>()
-    var preloadMediaItemList = CopyOnWriteArrayList<MediaItem>()
+    var playingAnMediaItemList = CopyOnWriteArrayList<AnMediaItem>()
+    var preloadAnMediaItemList = CopyOnWriteArrayList<AnMediaItem>()
 
     private var playingNetworkDownloadJob: Job? = null
     private var preloadNetworkDownloadJob: Job? = null
 
-    fun build(textWithPathList: ArrayList<String>): MutableList<MediaItem> {
+    fun build(textWithPathList: ArrayList<String>): MutableList<AnMediaItem> {
 
         if (textWithPathList.isEmpty()) {
             return mutableListOf()
         }
 
-        playingMediaItemList = CopyOnWriteArrayList<MediaItem>()
+        playingAnMediaItemList = CopyOnWriteArrayList<AnMediaItem>()
 
         for (textWithPath in textWithPathList) {
 
@@ -443,8 +406,8 @@ class AnnouncementProvider private constructor(context: Context) {
             // 1. 空白占位音频
             if (textWithPath.startsWith("/blank")) {
                 val blankFilePath = buildBlankMedia(textWithPath)
-                playingMediaItemList.add(
-                    MediaItem(
+                playingAnMediaItemList.add(
+                    AnMediaItem(
                         AudioSourceType.BLANK, blankFilePath, null, MediaItemStatus.COMPLETED
                     )
                 )
@@ -457,19 +420,19 @@ class AnnouncementProvider private constructor(context: Context) {
             // 2. 本地音频
             val localFilePath = buildLocalMedia(textWithPath)
             if (localFilePath != "") {
-                playingMediaItemList.add(
-                    MediaItem(
+                playingAnMediaItemList.add(
+                    AnMediaItem(
                         AudioSourceType.LOCAL, localFilePath, text, MediaItemStatus.COMPLETED
                     )
                 )
                 continue
             }
 
-            // 3. 通过网络请求获取音频
+            // 3. 通过网络API获取音频
             val networkMediaBuildResult = buildNetworkMedia(textWithPath)
             if (networkMediaBuildResult.code != NetworkMediaBuildResultCode.FAIL) {
-                playingMediaItemList.add(
-                    networkMediaBuildResult.mediaItem
+                playingAnMediaItemList.add(
+                    networkMediaBuildResult.anMediaItem
                 )
                 if (networkMediaBuildResult.code != NetworkMediaBuildResultCode.LOCALCACHE) {
                     beginDownloadNetworkMedia(NetworkMediaLoadingType.PLAYING)
@@ -481,19 +444,19 @@ class AnnouncementProvider private constructor(context: Context) {
             val ttsText = utils.getVoiceText(text)
             val ttsFilePath = buildTTSMedia(ttsText)
             if (ttsFilePath != "") {
-                val mediaItem = MediaItem(
+                val anMediaItem = AnMediaItem(
                     AudioSourceType.TTS, ttsFilePath, ttsText, MediaItemStatus.LOADING
                 )
                 if (ttsFileDoneList.contains(ttsFilePath)) {
-                    mediaItem.status = MediaItemStatus.COMPLETED
+                    anMediaItem.status = MediaItemStatus.COMPLETED
                 }
-                playingMediaItemList.add(mediaItem)
+                playingAnMediaItemList.add(anMediaItem)
                 continue
             }
 
         }
 
-        return playingMediaItemList
+        return playingAnMediaItemList
     }
 
     fun buildBlankMedia(media: String): String {
@@ -519,17 +482,17 @@ class AnnouncementProvider private constructor(context: Context) {
     // 正在下载或排队等待的网络音频文件
 //    val networkMediaFileList: MutableList<NetworkInfo> = mutableListOf()
 
-    fun MutableList<MediaItem>.removeNetworkByPath(path: String) {
+    fun MutableList<AnMediaItem>.removeNetworkByPath(path: String) {
         removeAll { it.source == AudioSourceType.NETWORK && it.filePath == path }
     }
 
-    fun List<MediaItem>.findAllTTSByPath(path: String): List<MediaItem> =
+    fun List<AnMediaItem>.findAllTTSByPath(path: String): List<AnMediaItem> =
         filter { it.source == AudioSourceType.TTS && it.filePath == path }
 
-    fun List<MediaItem>.findNetworkByPath(path: String): MediaItem? =
+    fun List<AnMediaItem>.findNetworkByPath(path: String): AnMediaItem? =
         find { it.source == AudioSourceType.NETWORK && it.filePath == path }
 
-    fun List<MediaItem>.findFirstNetworkLoading(): MediaItem? =
+    fun List<AnMediaItem>.findFirstNetworkLoading(): AnMediaItem? =
         find { it.source == AudioSourceType.NETWORK && it.status == MediaItemStatus.LOADING }
 
 
@@ -558,7 +521,7 @@ class AnnouncementProvider private constructor(context: Context) {
 
     data class NetworkMediaBuildResult(
         var code: NetworkMediaBuildResultCode,
-        var mediaItem: MediaItem?
+        var anMediaItem: AnMediaItem?
     )
 
     fun buildNetworkMedia(
@@ -568,14 +531,14 @@ class AnnouncementProvider private constructor(context: Context) {
         if (textWithPath.isBlank()) {
             return NetworkMediaBuildResult(
                 code = NetworkMediaBuildResultCode.FAIL,
-                mediaItem = null
+                anMediaItem = null
             )
         }
 
         if (!utils.getEnableHTTPGetVoiceItem()) {
             return NetworkMediaBuildResult(
                 code = NetworkMediaBuildResultCode.FAIL,
-                mediaItem = null
+                anMediaItem = null
             )
         }
 
@@ -583,7 +546,7 @@ class AnnouncementProvider private constructor(context: Context) {
         if (baseUrl.isEmpty() || !baseUrl.contains("{{text}}")) {
             return NetworkMediaBuildResult(
                 code = NetworkMediaBuildResultCode.FAIL,
-                mediaItem = null
+                anMediaItem = null
             )
         }
 
@@ -600,7 +563,7 @@ class AnnouncementProvider private constructor(context: Context) {
         }
         val networkFile = File(networkDir, networkFileName)
 
-        val mediaItem = MediaItem(
+        val anMediaItem = AnMediaItem(
             AudioSourceType.NETWORK,
             networkFile.path,
             voiceText,
@@ -615,30 +578,30 @@ class AnnouncementProvider private constructor(context: Context) {
         // 本地缓存：相同urlKey且text相同的请求，直接返回
         if (networkFile.exists() && networkFile.length() > 0L) {
             Log.d("L555", "本地缓存：${networkFile.path}")
-            mediaItem.status = MediaItemStatus.COMPLETED
+            anMediaItem.status = MediaItemStatus.COMPLETED
             return NetworkMediaBuildResult(
                 code = NetworkMediaBuildResultCode.LOCALCACHE,
-                mediaItem = mediaItem
+                anMediaItem = anMediaItem
             )
         }
 
         // 已在队列中加载，直接返回
-        val samePathMediaItem = playingMediaItemList.findNetworkByPath(networkFile.path)
+        val samePathMediaItem = playingAnMediaItemList.findNetworkByPath(networkFile.path)
         if (samePathMediaItem != null) {
             Log.d("L562", "正在下载：${samePathMediaItem.filePath}")
             return NetworkMediaBuildResult(
                 code = NetworkMediaBuildResultCode.HASMEDIA,
-                mediaItem = samePathMediaItem
+                anMediaItem = samePathMediaItem
             )
         }
 
 //        Log.d("L516", "${mediaItemList.last()}")
-        Log.d("L568", "新增对象：${mediaItem.filePath}")
+        Log.d("L568", "新增对象：${anMediaItem.filePath}")
 
 
         return NetworkMediaBuildResult(
             code = NetworkMediaBuildResultCode.NEWMEDIA,
-            mediaItem = mediaItem
+            anMediaItem = anMediaItem
         )
     }
 
@@ -948,20 +911,20 @@ class AnnouncementProvider private constructor(context: Context) {
 //            Log.d("L770", "${item.networkInfo.voiceText}, ${item.status}")
 //        }
 
-        val mediaItem = playingMediaItemList.findNetworkByPath(filePath) ?: return false
+        val mediaItem = playingAnMediaItemList.findNetworkByPath(filePath) ?: return false
 
         Log.d(
             "L782", "${mediaItem.networkInfo.voiceText} ${mediaItem.status}"
         )
 
 
-        return playingMediaItemList.find { it.filePath == filePath && it.status != MediaItemStatus.LOADING } != null
+        return playingAnMediaItemList.find { it.filePath == filePath && it.status != MediaItemStatus.LOADING } != null
     }
 
     fun preloadingNetworkMedia(textWithPath: String) {
         val networkMediaBuildResult = buildNetworkMedia(textWithPath)
         if (networkMediaBuildResult.code == NetworkMediaBuildResultCode.NEWMEDIA) {
-            preloadMediaItemList.add(networkMediaBuildResult.mediaItem)
+            preloadAnMediaItemList.add(networkMediaBuildResult.anMediaItem)
             beginDownloadNetworkMedia(NetworkMediaLoadingType.PRELOAD)
         }
     }
@@ -1006,14 +969,14 @@ class AnnouncementProvider private constructor(context: Context) {
         return info
     }
 
-    fun getMediaItemList(loadingType: NetworkMediaLoadingType): MutableList<MediaItem> {
+    fun getMediaItemList(loadingType: NetworkMediaLoadingType): MutableList<AnMediaItem> {
         return when (loadingType) {
             NetworkMediaLoadingType.PLAYING -> {
-                playingMediaItemList
+                playingAnMediaItemList
             }
 
             NetworkMediaLoadingType.PRELOAD -> {
-                preloadMediaItemList
+                preloadAnMediaItemList
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.microbus.announcer
 
 import android.content.Context
+import android.text.Html
 import android.util.Log
 import com.google.gson.JsonParser
 import com.microbus.announcer.bean.Station
@@ -19,6 +20,7 @@ import okio.IOException
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.milliseconds
+import androidx.core.content.edit
 
 class TranslationService private constructor(context: Context) {
 
@@ -72,17 +74,38 @@ class TranslationService private constructor(context: Context) {
     /** 写缓存 */
     private fun putCachedTranslation(sourceText: String, translated: String) {
         if (sourceText.isBlank() || translated.isBlank()) return
-        prefs.edit().putString(KEY_PREFIX + sourceText, translated).apply()
+        prefs.edit { putString(KEY_PREFIX + sourceText, translated) }
     }
 
     /** 清空翻译缓存 */
     fun clearCache() {
-        prefs.edit().clear().apply()
+        prefs.edit {clear()}
     }
 
     /** 移除单条缓存 */
     fun removeCache(sourceText: String) {
-        prefs.edit().remove(KEY_PREFIX + sourceText).apply()
+        prefs.edit { remove(KEY_PREFIX + sourceText) }
+    }
+
+    /**
+     * 获取全部翻译缓存的只读快照。
+     * key 为原文（已去掉 KEY_PREFIX），value 为译文。
+     */
+    fun getAllCache(): Map<String, String> {
+        return prefs.all
+            .mapNotNull { (k, v) ->
+                if (k.startsWith(KEY_PREFIX) && v is String) {
+                    k.removePrefix(KEY_PREFIX) to v
+                } else {
+                    null
+                }
+            }
+            .toMap()
+    }
+
+    /** 获取缓存条数（不清空、不加载全部 value 之外的额外开销） */
+    fun getCacheSize(): Int {
+        return prefs.all.keys.count { it.startsWith(KEY_PREFIX) }
     }
 
     // ---------------------------------------------------------------------
@@ -286,16 +309,34 @@ class TranslationService private constructor(context: Context) {
                 }
             }
 
-            if (current == null || current.isJsonNull) {
-                ""
-            } else if (current.isJsonPrimitive) {
-                current.asJsonPrimitive.asString
-            } else {
-                current.toString()
+            val raw = when {
+                current == null || current.isJsonNull -> ""
+                current.isJsonPrimitive -> current.asJsonPrimitive.asString
+                else -> current.toString()
             }
+
+            // 解码 HTML 实体
+            decodeHtmlEntities(raw)
         } catch (e: Exception) {
             Log.e(tag, "解析翻译结果失败：$jsonStr", e)
             ""
+        }
+    }
+
+    /**
+     * 解码 HTML 实体。
+     * - API 24+ 使用 Html.fromHtml 的 FROM_HTML_MODE_LEGACY 模式；
+     * - 低版本回退到旧的 fromHtml。
+     */
+    private fun decodeHtmlEntities(text: String): String {
+        if (text.isBlank()) return text
+        return try {
+            val decoded =
+                Html.fromHtml(text, Html.FROM_HTML_MODE_LEGACY).toString()
+            decoded
+        } catch (e: Exception) {
+            Log.w(tag, "HTML 实体解码失败：$text", e)
+            text
         }
     }
 }

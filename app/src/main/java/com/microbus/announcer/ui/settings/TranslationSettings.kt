@@ -35,6 +35,7 @@ import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
+import com.microbus.announcer.TranslationService
 import com.microbus.announcer.Utils
 import com.microbus.announcer.databinding.DialogInputBinding
 import com.microbus.announcer.ui.compose.BaseSettingItem
@@ -124,7 +125,7 @@ class TranslationSettings : Fragment() {
             ) {
                 Scaffold(
                     topBar = {
-                        AnSmallTopAppBar(requireActivity(), getString(R.string.translation),)
+                        AnSmallTopAppBar(requireActivity(), getString(R.string.translation))
                     },
                     content = { innerPadding ->
                         val scrollState = rememberScrollState()
@@ -140,7 +141,7 @@ class TranslationSettings : Fragment() {
                             ) {
                                 //TODO
                                 androidx.compose.material3.Text(
-                                    "中文 - 英文",
+                                    "中文 -> 英文",
                                     fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
                                     modifier = Modifier.padding(16.dp, 4.dp, 0.dp, 0.dp)
                                 )
@@ -153,6 +154,8 @@ class TranslationSettings : Fragment() {
                                     OnlineTranslationResponseJSONPathItem(
                                         onlineTranslationResponseJSONPath
                                     )
+                                    ViewTranslationCacheItem()
+                                    ClearTranslationCacheItem()
                                 }
                             }
                             Spacer(modifier = Modifier.height(8.dp))
@@ -203,19 +206,19 @@ class TranslationSettings : Fragment() {
     @Composable
     fun OnlineTranslationRequestCodeItem(value: String) {
         BaseSettingItem(
-            "翻译请求代码", value, painterResource(id = R.drawable.lang),
+            "翻译API", value, painterResource(id = R.drawable.lang),
             {
                 val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
                 val dialog = MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
-                ).setTitle("设置翻译请求代码").setView(binding.root)
+                ).setTitle("设置翻译API").setView(binding.root)
                     .setPositiveButton("保存", null)
                     .setNegativeButton(getString(android.R.string.cancel), null).show()
 
                 binding.editText.isSingleLine = false
                 binding.editText.setText(value)
-                binding.textInputLayout.hint = "请输入文本"
+                binding.textInputLayout.hint = "请输入翻译API"
 
                 dialog.setCanceledOnTouchOutside(false)
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -223,19 +226,19 @@ class TranslationSettings : Fragment() {
                     val newValue = binding.editText.text.toString()
 
                     if (newValue == "") {
-                        utils.showMsg("请输入翻译请求代码")
+                        utils.showMsg("请输入翻译API")
                         return@setOnClickListener
                     }
 
                     if (!newValue.contains("{{text}}")) {
-                        utils.showMsg("请将代码中要翻译的文本替换为{{text}}")
+                        utils.showMsg("请将API中要翻译的文本替换为{{text}}")
                         return@setOnClickListener
                     }
 
                     prefs.edit {
                         putString("onlineTranslationRequestCode", newValue)
                     }
-                    utils.showMsg("翻译请求代码设置成功")
+                    utils.showMsg("翻译API设置成功")
                     dialog.dismiss()
 
                 }
@@ -285,6 +288,58 @@ class TranslationSettings : Fragment() {
                 binding.textInputLayout.requestFocus()
                 WindowCompat.getInsetsController(requireActivity().window, binding.editText)
                     .show(WindowInsetsCompat.Type.ime())
+            },
+        )
+    }
+
+    @Composable
+    fun ViewTranslationCacheItem() {
+        BaseSettingItem(
+            "查看翻译缓存", "", painterResource(id = R.drawable.lang),
+            {
+                val translationService = TranslationService.getInstance(requireContext())
+                val cache = translationService.getAllCache() // 见下方 TranslationService 修改
+
+                if (cache.isEmpty()) {
+                    utils.showMsg("暂无翻译缓存")
+                    return@BaseSettingItem
+                }
+
+                val entries = cache.entries.toList()
+                val messages = entries.joinToString("\n\n") { (k, v) ->
+                    "原文：$k\n译文：$v"
+                }
+
+                MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                )
+                    .setTitle("翻译缓存（共 ${entries.size} 条）")
+                    .setMessage(messages)
+                    .setPositiveButton("关闭", null)
+                    .show()
+            },
+        )
+    }
+
+    @Composable
+    fun ClearTranslationCacheItem() {
+        BaseSettingItem(
+            "清除翻译缓存", "", painterResource(id = R.drawable.lang),
+            {
+                MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.CustomAlertDialogStyle
+                )
+                    .setTitle("清除翻译缓存")
+                    .setMessage("确定要清除所有翻译缓存吗？此操作不可撤销。")
+                    .setPositiveButton("清除") { _, _ ->
+                        val translationService = TranslationService.getInstance(requireContext())
+                        translationService.clearCache()
+                        utils.showMsg("翻译缓存已清除")
+                    }
+                    .setNegativeButton(getString(android.R.string.cancel), null)
+                    .show()
             },
         )
     }

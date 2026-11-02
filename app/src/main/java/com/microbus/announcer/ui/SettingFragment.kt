@@ -115,7 +115,7 @@ class SettingFragment : Fragment() {
                                 val announcementPreferences = listOf(
                                     ArrowPreferenceItem(
                                         title = getString(R.string.announcement_source),
-                                        summary = "本地 网络 TTS",
+                                        summary = "本地音频 网络API 语音转文字",
                                         fragmentClass = AnnouncementLibrarySettings::class.java
                                     ),
                                     ArrowPreferenceItem(

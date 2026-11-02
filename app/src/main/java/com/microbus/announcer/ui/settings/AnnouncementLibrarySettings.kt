@@ -238,7 +238,7 @@ class AnnouncementLibrarySettings : Fragment() {
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Text(
-                                    "本地语音",
+                                    "本地音频",
                                     fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
                                     modifier = Modifier.padding(16.dp, 4.dp, 0.dp, 0.dp)
                                 )
@@ -260,7 +260,7 @@ class AnnouncementLibrarySettings : Fragment() {
                                 }
 
                                 Text(
-                                    "网络下载",
+                                    "网络API",
                                     fontFamily = FontFamily(Font(R.font.galano_grotesque_bold)),
                                     modifier = Modifier.padding(16.dp, 4.dp, 0.dp, 0.dp)
                                 )
@@ -479,7 +479,7 @@ class AnnouncementLibrarySettings : Fragment() {
         val voiceUrlKey = utils.getVoiceUrlKey(value)
 
         BaseSettingItem(
-            "选择网络请求",
+            "选择网络API",
             if (value != "") "已选择：${voiceUrlKey}" else "还未选择或添加",
             painterResource(id = R.drawable.network),
             clickFun = {
@@ -489,14 +489,14 @@ class AnnouncementLibrarySettings : Fragment() {
                     httpGetVoiceURLArray.map { it.lineSequence().firstOrNull() }.toTypedArray()
 
                 if (httpGetVoiceURLArray.isEmpty()) {
-                    utils.showMsg("请先添加网络请求")
+                    utils.showMsg("请先添加网络API")
                     return@BaseSettingItem
                 }
 
                 MaterialAlertDialogBuilder(
                     requireContext(),
                     R.style.CustomAlertDialogStyle
-                ).setTitle("选择网络请求").setSingleChoiceItems(
+                ).setTitle("选择网络API").setSingleChoiceItems(
                     httpGetVoiceURLKeyArray, -1
                 ) { dialog, which ->
                     prefs.edit {
@@ -516,7 +516,7 @@ class AnnouncementLibrarySettings : Fragment() {
         val painterId = if (action == httpGetVoiceURLAction.Add) R.drawable.add else R.drawable.edit
 
         BaseSettingItem(
-            text = "${actionName}网络请求",
+            text = "${actionName}网络API",
             painter = painterResource(id = painterId),
             clickFun = {
                 val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
@@ -554,19 +554,19 @@ Authorization: key=xxx
                     val newVoiceUrl = binding.editText.text.toString()
 
                     if (newVoiceUrl == "") {
-                        utils.showMsg("请输入请求获取音频网络请求")
+                        utils.showMsg("请输入获取音频的网络API")
                         return@setOnClickListener
                     }
 
                     val newVoiceUrlKey = utils.getVoiceUrlKey(newVoiceUrl)
 
                     if (newVoiceUrlKey == "default") {
-                        utils.showMsg("请在第1行输入请求名称")
+                        utils.showMsg("请在第1行输入网络API名称")
                         return@setOnClickListener
                     }
 
                     if (!newVoiceUrl.contains("{{text}}")) {
-                        utils.showMsg("请将请求中要合成音频的文本替换为{{text}}")
+                        utils.showMsg("请将网络API中要合成音频的文本替换为{{text}}")
                         return@setOnClickListener
                     }
 
@@ -575,7 +575,7 @@ Authorization: key=xxx
 
                     if (action == httpGetVoiceURLAction.Add) {
                         if (httpGetVoiceURLSet.contains(newVoiceUrlKey)) {
-                            utils.showMsg("请求名称已存在")
+                            utils.showMsg("网络API名称已存在")
                             return@setOnClickListener
                         }
 
@@ -593,7 +593,7 @@ Authorization: key=xxx
                         }
 
                         if (oldVoiceUrl == null) {
-                            utils.showMsg("请求名称不存在")
+                            utils.showMsg("网络API名称不存在")
                             return@setOnClickListener
                         }
 
@@ -606,7 +606,7 @@ Authorization: key=xxx
                         }
                     }
 
-                    utils.showMsg("获取音频网络请求${actionName}成功")
+                    utils.showMsg("网络获取音频API${actionName}成功")
                     dialog.dismiss()
 
                 }

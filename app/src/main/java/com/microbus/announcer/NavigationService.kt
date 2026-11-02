@@ -3,7 +3,6 @@ package com.microbus.announcer
 import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.lifecycleScope
 import com.amap.api.location.AMapLocation
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.utils.SpatialRelationUtil
@@ -14,20 +13,19 @@ import com.microbus.announcer.bean.Station
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.collections.ArrayList
 import kotlin.properties.Delegates
 
-class Navigation private constructor(private val context: Context) {
+class NavigationService private constructor(private val context: Context) {
 
     companion object {
         @SuppressLint("StaticFieldLeak")
         @Volatile
-        private var instance: Navigation? = null
+        private var instance: NavigationService? = null
 
-        fun getInstance(context: Context): Navigation {
+        fun getInstance(context: Context): NavigationService {
             return instance ?: synchronized(this) {
-                instance ?: Navigation(context.applicationContext).also {
+                instance ?: NavigationService(context.applicationContext).also {
                     instance = it
                 }
             }
@@ -66,6 +64,11 @@ class Navigation private constructor(private val context: Context) {
     }
 
     fun onLocationChanged(location: AMapLocation) {
+
+        if (!utils.getIsEnableOnlineNavigation()) {
+            return
+        }
+
         val currentSteps = stepList ?: return
 
         // 获取当前位置所在路段
@@ -152,25 +155,27 @@ class Navigation private constructor(private val context: Context) {
         val step = stepList?.getOrNull(index) ?: return
         Log.d("L59", "驶出路段起点: ${step}")
 
-        val navVoiceStartList = mutableListOf<String>()
-        navVoiceStartList.add("向${step.orientation}")
+        val navVoiceList = mutableListOf<String>()
+        navVoiceList.add("向${step.orientation}")
         if (step.road_name.isNotBlank()) {
-            navVoiceStartList.add("沿")
+            navVoiceList.add("沿")
             // TODO 路段名称进入road文件夹
-            navVoiceStartList.add(step.road_name)
+            navVoiceList.add(step.road_name)
         }
-        navVoiceStartList.add("行驶")
+        navVoiceList.add("行驶")
 
-//        val stepDistanceInt = step.step_distance.toIntOrNull()
-//        if (stepDistanceInt != null) {
-//            navVoiceStartList.add(step.step_distance)
-//
-//        }
+        if (false) {
+            val stepDistanceInt = step.step_distance.toIntOrNull()
+            if (stepDistanceInt != null) {
+                navVoiceList.add(step.step_distance)
+            }
+            navVoiceList.add("米")
+        }
 
-//        navVoiceStartList.add("米")
+        navVoiceList.removeAll { it.isEmpty() }
 
-        Log.d("L59", "驶出路段起点 导航播报: ${navVoiceStartList.joinToString("|")}")
-        playNaviVoice(navVoiceStartList)
+        Log.d("L59", "驶出路段起点 导航播报: ${navVoiceList.joinToString("|")}")
+        playNaviVoice(navVoiceList)
 
     }
 
@@ -179,27 +184,29 @@ class Navigation private constructor(private val context: Context) {
         val step = stepList?.getOrNull(index) ?: return
         Log.d("L59", "驶入路段终点: ${step}")
 
-        if (step.navi["assistant_action"] != null && step.navi["assistant_action"] == "到达途经地") {
-            return
-        }
+//        if (step.navi["assistant_action"] != null && step.navi["assistant_action"] == "到达途经地") {
+//            return
+//        }
 
-        val navVoiceStartList = mutableListOf<String>()
+        val navVoiceList = mutableListOf<String>()
         if (step.navi["action"] != null) {
-            navVoiceStartList.add(step.navi["action"]!!)
+            navVoiceList.add(step.navi["action"]!!)
         }
 
         if (step.navi["assistant_action"] != null) {
-            navVoiceStartList.add(step.navi["assistant_action"]!!)
+            navVoiceList.add(step.navi["assistant_action"]!!)
         }
 
         val nextStep = stepList?.getOrNull(index + 1)
         if (nextStep != null && nextStep.road_name.isNotBlank()) {
-            navVoiceStartList.add("进入")
-            navVoiceStartList.add(nextStep.road_name)
+            navVoiceList.add("进入")
+            navVoiceList.add(nextStep.road_name)
         }
 
-        Log.d("L59", "驶入路段终点 导航播报: ${navVoiceStartList.joinToString("|")}")
-        playNaviVoice(navVoiceStartList)
+        navVoiceList.removeAll { it.isEmpty() }
+
+        Log.d("L59", "驶入路段终点 导航播报: ${navVoiceList.joinToString("|")}")
+        playNaviVoice(navVoiceList)
     }
 
     private fun playNaviVoice(navVoiceList: MutableList<String>) {
@@ -239,9 +246,8 @@ class Navigation private constructor(private val context: Context) {
                 navVoiceListStr,
                 announcementContext
             )
-            anPlayer.play(filePathList)
+            anPlayer.play(filePathList, AnnouncementPlayer.PlayMode.APPEND)
         }
-
 
     }
 
@@ -259,7 +265,6 @@ class Navigation private constructor(private val context: Context) {
      */
     fun isOnStep(currentPos: LatLng, roadPoints: List<LatLng>): Boolean {
         if (roadPoints.size < 2) return false
-
 
         val result = SpatialRelationUtil.calShortestDistancePoint(
             roadPoints,

@@ -472,7 +472,7 @@ class Utils(private val context: Context) {
      * 从设置中获取是否启用在线翻译
      */
     fun getIsEnableOnlineTranslation(): Boolean {
-        return prefs.getBoolean("enableOnlineTranslation", true)
+        return prefs.getBoolean("enableOnlineTranslation", false)
     }
 
     /**
@@ -497,7 +497,7 @@ GET https://api.mymemory.translated.net/get?q={{text}}&langpair=zh-CN|en""".trim
      * 从设置中获取是否启用在线导航
      */
     fun getIsEnableOnlineNavigation(): Boolean {
-        return prefs.getBoolean("enableOnlineNavigation", true)
+        return prefs.getBoolean("enableOnlineNavigation", false)
     }
 
     /**
