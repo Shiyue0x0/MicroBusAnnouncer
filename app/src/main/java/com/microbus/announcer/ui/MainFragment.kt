@@ -153,7 +153,6 @@ import com.amap.api.services.route.RideRouteResult
 import com.amap.api.services.route.RouteSearch
 import com.amap.api.services.route.WalkRouteResult
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.kyant.backdrop.backdrops.LayerBackdrop
@@ -180,7 +179,6 @@ import com.microbus.announcer.bean.AnMediaItem
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.RunningInfo
 import com.microbus.announcer.bean.Station
-import com.microbus.announcer.bean.TrajectoryPoint
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.databinding.DialogRunningInfoBinding
@@ -197,18 +195,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
 import java.io.File
-import java.io.OutputStreamWriter
-import java.net.UnknownHostException
 import java.text.SimpleDateFormat
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -218,7 +210,10 @@ import java.util.Timer
 import java.util.TimerTask
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
+import androidx.core.graphics.createBitmap
+import com.microbus.announcer.announce.AnnouncementPlayer.PlayMode
 
+@SuppressLint("MutableCollectionMutableState")
 class MainFragment : Fragment() {
 
     private var tag = javaClass.simpleName
@@ -979,8 +974,6 @@ class MainFragment : Fragment() {
         updFloatingViewWidth()
     }
 
-    val client = OkHttpClient()
-
     fun Station.toLngLatString(): String {
         val lng = String.format("%.6f", longitude)
         val lat = String.format("%.6f", latitude)
@@ -1367,7 +1360,7 @@ class MainFragment : Fragment() {
      */
     private fun createNumberIcon(number: Int, circleColor: Int): Bitmap {
         val size = 72               // 图标像素尺寸
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
 
         // 画圆
@@ -2959,26 +2952,6 @@ class MainFragment : Fragment() {
 
         findMatchStation()
 
-    }
-
-    private val LOCATION_FILE_NAME = "location_log.txt"
-
-    /**
-     * 追加一条定位记录到应用私有文件
-     * 文件位置：/data/data/<包名>/files/location_log.txt
-     */
-    fun appendLocationToFile(context: Context, line: String) {
-        try {
-            // MODE_APPEND：追加模式；MODE_PRIVATE：私有模式
-            context.openFileOutput(LOCATION_FILE_NAME, Context.MODE_APPEND).use { fos ->
-                OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
-                    writer.write(line)
-                    writer.write("\n")   // 每条一行
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
     }
 
     fun updCurrentDistance() {
@@ -4676,100 +4649,6 @@ class MainFragment : Fragment() {
     }
 
 
-    fun getLineTrajectoryCorrection(onFinish: () -> Unit) {
-        try {
-            CoroutineScope(Dispatchers.IO).launch {
-                // 获取路线轨迹（纠偏）
-                if (utils.getIsLineTrajectoryCorrection() && currentLine.name != resources.getString(
-                        R.string.line_all
-                    )
-                ) {
-
-                    val trajectoryPointList = ArrayList<TrajectoryPoint>()
-                    for (i in currentLineStationList.indices) {
-                        val ag = if (i < currentLineStationList.size - 1)
-                            utils.calculateBearing(
-                                currentLineStationList[i].latitude,
-                                currentLineStationList[i].longitude,
-                                currentLineStationList[i + 1].latitude,
-                                currentLineStationList[i + 1].longitude
-                            ).toInt()
-                        else
-                            0
-
-                        val sp = 1
-
-                        val tm = if (i == 0) {
-                            1735704000  //2025-01-01 12:00:00
-                        } else {
-                            // 米
-                            val distance = utils.calculateDistance(
-                                currentLineStationList[i].latitude,
-                                currentLineStationList[i].longitude,
-                                currentLineStationList[i - 1].latitude,
-                                currentLineStationList[i - 1].longitude
-                            )
-                            if (i == 1) {
-                                (distance / 1000 / sp * 3600).toInt()
-                            } else {
-                                trajectoryPointList.last().tm + (distance / 1000 / sp * 3600).toInt()
-                            }
-                        }
-
-                        trajectoryPointList.add(
-                            TrajectoryPoint(
-                                x = "%.6f".format(currentLineStationList[i].longitude)
-                                    .toDouble(),
-                                y = "%.6f".format(currentLineStationList[i].latitude)
-                                    .toDouble(),
-                                ag = ag,
-                                tm = tm,
-                                sp = sp
-                            )
-                        )
-
-                    }
-
-                    val gson = Gson()
-                    val json = gson.toJson(trajectoryPointList)
-//                    Log.d(tag, "aMapRes: json: $json")
-
-                    val traceRequest = Request.Builder()
-                        .url("https://restapi.amap.com/v4/grasproad/driving?key=${getString(R.string.amapKey_web)}")
-                        .post(
-                            json.toRequestBody("application/json; charset=utf-8".toMediaType())
-                        )
-                        .build()
-                    try {
-                        val res = client.newCall(traceRequest).execute()
-                        if (res.isSuccessful) {
-                            synchronized(traceResJsonStr) {
-                                traceResJsonStr = res.body.string()
-                            }
-                        } else {
-                            requireActivity().runOnUiThread {
-                                utils.showMsg("轨迹获取失败")
-                            }
-                        }
-                    } catch (e: UnknownHostException) {
-                        e.printStackTrace()
-                        requireActivity().runOnUiThread {
-                            utils.showMsg("轨迹获取失败\n（无网络或连接异常）")
-                        }
-                    }
-                }
-
-                withContext(Dispatchers.Main) {
-                    onFinish()
-                }
-
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            utils.showMsg("路线加载异常")
-        }
-    }
-
     fun setOnStationItemClickListener() {
         val adapter = binding.lineStationList.adapter as StationOfLineAdapter
         adapter.setOnItemClickListener(object : StationOfLineAdapter.OnItemClickListener {
@@ -4928,10 +4807,7 @@ class MainFragment : Fragment() {
     fun isStationBearingOK(currentLineStation: Station): Boolean {
 
         // bearing < 0表示未设置方位角，始终判断为有效
-        if (currentLineStation.bearing < 0) {
-            return true
-        }
-
+        if (currentLineStation.bearing < 0) return true
 
         // 已设置方位角，判断夹角22.5度内即为有效
         val angle = (utils.angleBetween(

@@ -24,6 +24,8 @@ import com.microbus.announcer.Utils
 import com.microbus.announcer.bean.AnMediaItem
 import com.microbus.announcer.bean.AudioSourceType
 import com.microbus.announcer.bean.MediaItemStatus
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -36,30 +38,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * 播报播放器（基于 ExoPlayer3）。
+ * 播报播放器（基于 AndroidX Media3 ExoPlayer）。
  *
- * 调度模型：
- *  - 两条队列：[interruptQueue]（打断优先）与 [appendQueue]（追加，等 INTERRUPT 播完）。
- *  - 唯一调度协程 [dispatcherJob] 串行执行 [dispatchLoop]，每次调用 [runOneStage] 推进一步。
- *  - 推进信号：
- *      1) [play] 被调用时 [requestDispatch]；
- *      2) ExoPlayer 触发 [Player.STATE_ENDED] 时 [requestDispatch]。
- *  - 阶段顺序（严格）：
- *      INTERRUPT 队列 → （player 内 INTERRUPT 项播完）→ APPEND 队列 → （player 内 APPEND 项播完）→ Idle + 完成回调。
- *  - INTERRUPT 队列非空时，APPEND 绝不灌入 player。
- *
- * 元素元信息：
- *  - [playerItemMeta] 保存 player 中每个 mediaId 对应的「原始 AnMediaItem + 所属流」，
- *    使得 INTERRUPT 打断时能把未播的 APPEND 项原样回收回 [appendQueue]（保留 source / status）。
+ * 调度规则：
+ * 1. INTERRUPT 和 APPEND 使用独立队列。
+ * 2. INTERRUPT 始终优先；INTERRUPT 队列清空后才处理 APPEND。
+ * 3. 新的 INTERRUPT 会清空旧 INTERRUPT 队列并打断当前任务。
+ * 4. 如果打断时正在处理 APPEND，当前 APPEND 项会放回队首，稍后重新播放。
+ * 5. 每次只向 ExoPlayer 提交一个 AnMediaItem，由唯一调度协程负责串行调度。
  */
 class AnnouncementPlayer @OptIn(UnstableApi::class)
 private constructor(val context: Context) {
 
-    private var utils = Utils(context)
+    private val utils = Utils(context)
 
     private var audioFocusRequest: AudioFocusRequest
     private val audioManager: AudioManager
@@ -69,44 +65,41 @@ private constructor(val context: Context) {
 
     val anResolver = AnnouncementProvider.getInstance(context)
 
-    // ===== 双队列模型 =====
     private val interruptQueue = ArrayDeque<AnMediaItem>()
     private val appendQueue = ArrayDeque<AnMediaItem>()
 
-    /** 所属流类型 */
-    private enum class Owner { INTERRUPT, APPEND }
+    private enum class Owner {
+        INTERRUPT,
+        APPEND
+    }
 
-    /**
-     * player 内每个 mediaId 对应的原始 item + 所属流。
-     * 用于：
-     *  1) INTERRUPT 打断时回收未播的 APPEND 项（保留 source/status）；
-     *  2) 判断 player 里是否还有 INTERRUPT/APPEND 的项在播/待播。
-     */
-    private val playerItemMeta = mutableMapOf<String, Pair<AnMediaItem, Owner>>()
+    /** 当前正在准备或播放的项目及其来源队列。 */
+    private var currentItem: AnMediaItem? = null
+    private var currentOwner: Owner? = null
 
-    /** 唯一的调度协程 */
+    /** 唯一调度协程。 */
     private var dispatcherJob: Job? = null
 
-    /** 有新的调度需求，当前 dispatcher 结束后应再跑一轮 */
-    private var pendingKick = false
+    /** 当前 ExoPlayer 单项播放的完成等待器。 */
+    private var playbackWaiter: CancellableContinuation<Unit>? = null
 
-    /** 调度协程作用域：用 Main，所有对 player 的写操作都在 Main 上 */
+    /** 所有队列和 ExoPlayer 操作均由 Main 线程上的 scope 执行。 */
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     private val ttsTimeoutMs = 30_000L
     private val netWorkTimeoutMs = 15_000L
 
-    /** 外部可用来订阅当前正在播放的字幕文本 */
-    val playingText: StateFlow<String>
-        field = MutableStateFlow("")
+    /** 外部可用来订阅当前正在播放的字幕文本。 */
+    private val _playingText = MutableStateFlow("")
+    val playingText: StateFlow<String> = _playingText
 
-    /** 开始播放的系统时间（毫秒，SystemClock.elapsedRealtime），未播放时为 0 */
-    val playbackStartTime: StateFlow<Long>
-        field = MutableStateFlow(0L)
+    /** 开始播放的系统时间（毫秒），未播放时为 0。 */
+    private val _playbackStartTime = MutableStateFlow(0L)
+    val playbackStartTime: StateFlow<Long> = _playbackStartTime
 
-    /** 当前媒体总时长（毫秒），未知时为 C.TIME_UNSET */
-    val playbackDuration: StateFlow<Long>
-        field = MutableStateFlow(0L)
+    /** 当前媒体总时长（毫秒），未知时为 0。 */
+    private val _playbackDuration = MutableStateFlow(0L)
+    val playbackDuration: StateFlow<Long> = _playbackDuration
 
     init {
 
@@ -147,46 +140,43 @@ private constructor(val context: Context) {
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 when (playbackState) {
-
                     Player.STATE_READY -> {
-                        val dur = player.duration
-                        if (dur != C.TIME_UNSET) playbackDuration.value = dur
-                        playbackStartTime.value = SystemClock.elapsedRealtime()
+                        val duration = player.duration
+                        if (duration != C.TIME_UNSET) {
+                            _playbackDuration.value = duration
+                        }
 
-                        if (utils.getAnSubtitle()) showAnSubtitle()
+                        _playbackStartTime.value = SystemClock.elapsedRealtime()
+
+                        if (utils.getAnSubtitle()) {
+                            showAnSubtitle()
+                        }
+
                         LocalBroadcastManager.getInstance(context)
-                            .sendBroadcast(Intent().setAction(utils.ON_PLAYER_STATE_READY))
+                            .sendBroadcast(
+                                Intent().setAction(utils.ON_PLAYER_STATE_READY)
+                            )
                     }
 
                     Player.STATE_ENDED -> {
-                        Log.d("L1946", "STATE_ENDED")
-                        Log.d(
-                            "L144",
-                            "interruptQueue=${interruptQueue.size}, " +
-                                    "appendQueue=${appendQueue.size}, " +
-                                    "playerItems=${player.mediaItemCount}"
-                        )
-                        // 清理已播完的元信息：player 里不再存在的 mediaId
-                        prunePlayerItemMeta()
-
-                        // 若两条队列都空，说明不会再有任何后续播报，手动停止播报
-                        if (interruptQueue.isEmpty() && appendQueue.isEmpty()) {
-                            stopAnnounce()
+                        // 只通知当前单项播放协程结束，不在 Listener 中调度队列。
+                        val waiter = playbackWaiter
+                        if (waiter?.isActive == true) {
+                            waiter.resumeWith(Result.success(Unit))
                         }
-
-                        // 交给调度器推进：INTERRUPT 播完 → 尝试 APPEND → 或收尾
-                        requestDispatch()
                     }
 
-                    Player.STATE_BUFFERING -> {}
-                    Player.STATE_IDLE -> {}
+                    Player.STATE_BUFFERING -> Unit
+                    Player.STATE_IDLE -> Unit
                 }
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                val dur = player.duration
-                if (dur != C.TIME_UNSET) playbackDuration.value = dur
-                playbackStartTime.value = SystemClock.elapsedRealtime()
+                val duration = player.duration
+                if (duration != C.TIME_UNSET) {
+                    _playbackDuration.value = duration
+                }
+                _playbackStartTime.value = SystemClock.elapsedRealtime()
 
                 if (utils.getAnSubtitle()) {
                     if (reason == 3) return
@@ -196,9 +186,13 @@ private constructor(val context: Context) {
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                Log.e("L1946", "播放异常: ${error.message}", error.cause)
+                Log.e("AnnouncementPlayer", "播放异常: ${error.message}", error)
                 utils.showMsg("播放异常: ${error.message}")
-                stopAnnounce()
+
+                val waiter = playbackWaiter
+                if (waiter?.isActive == true) {
+                    waiter.resumeWith(Result.failure(error))
+                }
             }
 
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
@@ -223,57 +217,74 @@ private constructor(val context: Context) {
         }
     }
 
-    enum class PlayMode { INTERRUPT, APPEND }
+    enum class PlayMode {
+        INTERRUPT,
+        APPEND
+    }
 
     // =========================================================================================
     // 公共 API
     // =========================================================================================
 
     /**
-     * 播放音频。
-     *  - INTERRUPT：清空 interruptQueue（保留 appendQueue），打断当前播放，重新灌入。
-     *  - APPEND：仅追加到 appendQueue，等 INTERRUPT 播完后再播。
+     * 播放一组媒体项目。
+     *
+     * INTERRUPT：清空旧 INTERRUPT 队列，打断当前任务并优先播放新队列。
+     * APPEND：追加到 APPEND 队列，不打断当前播放。
      */
-    @OptIn(UnstableApi::class)
-    fun play(mediaItemList: MutableList<AnMediaItem>, mode: PlayMode = PlayMode.INTERRUPT) {
-        mediaItemList.forEach { Log.d("L176", it.text ?: "") }
+    fun play(
+        mediaItemList: MutableList<AnMediaItem>,
+        mode: PlayMode = PlayMode.INTERRUPT
+    ) {
+        if (mediaItemList.isEmpty()) return
 
-        when (mode) {
-            PlayMode.INTERRUPT -> {
-                // 1) 清空 INTERRUPT 队列，装入新项
-                interruptQueue.clear()
-                interruptQueue.addAll(mediaItemList)
+        // 快照，避免调用方在 play() 返回后继续修改原集合。
+        val items = mediaItemList.toList()
 
-                // 2) 在调度协程内串行处理：取消旧调度 → 回收 APPEND → 清空 player → 重新灌
-                scope.launch {
-                    val old = dispatcherJob
+        scope.launch {
+            when (mode) {
+                PlayMode.INTERRUPT -> {
+                    interruptQueue.clear()
+                    interruptQueue.addAll(items)
+
+                    // 若当前项目来自 APPEND，打断后从该项目开头继续播放。
+                    if (currentOwner == Owner.APPEND) {
+                        currentItem?.let { appendQueue.addFirst(it) }
+                    }
+
+                    // 取消正在进行的准备/播放任务，等待其 finally 完成清理。
+                    val oldJob = dispatcherJob
                     dispatcherJob = null
-                    old?.cancelAndJoin()
-
-                    recycleUnplayedAppendItemsToQueue()
+                    oldJob?.cancelAndJoin()
 
                     player.stop()
                     player.clearMediaItems()
-                    playerItemMeta.clear()
-                    playingText.value = ""
-                    playbackStartTime.value = 0L
+
+                    playbackWaiter = null
+                    currentItem = null
+                    currentOwner = null
+                    _playingText.value = ""
+                    _playbackStartTime.value = 0L
+                    _playbackDuration.value = 0L
 
                     requestDispatch()
                 }
-            }
 
-            PlayMode.APPEND -> {
-                appendQueue.addAll(mediaItemList)
-                // 不打断任何东西；若 INTERRUPT 还在播/待播，runOneStage 会自行 return
-                requestDispatch()
+                PlayMode.APPEND -> {
+                    appendQueue.addAll(items)
+                    requestDispatch()
+                }
             }
         }
     }
 
-    /** 对外：停止一切（含两路队列 + 调度器） */
+    /** 停止播报。默认清空两条队列并取消当前调度任务。 */
     fun stopAnnounce(cancelPlayJob: Boolean = true): Job {
         return scope.launch {
-            stopAnnounceInternal(clearQueues = true, cancelPlayJob = cancelPlayJob)
+            stopAnnounceInternal(
+                clearQueues = true,
+                cancelPlayJob = cancelPlayJob
+            )
         }
     }
 
@@ -282,20 +293,73 @@ private constructor(val context: Context) {
     // =========================================================================================
 
     /**
-     * 请求一次调度。若已有 dispatcher 在跑，只置 [pendingKick]，
-     * 由 dispatcherLoop 结束当前阶段后再跑一轮，保证串行。
+     * 启动唯一调度协程。
+     * 调度协程始终先取 INTERRUPT；只有 INTERRUPT 队列为空才取 APPEND。
      */
     private fun requestDispatch() {
-        if (dispatcherJob?.isActive == true) {
-            pendingKick = true
-            return
-        }
+        if (dispatcherJob?.isActive == true) return
+
         dispatcherJob = scope.launch {
             try {
-                do {
-                    pendingKick = false
-                    runOneStage()
-                } while (pendingKick)
+                while (true) {
+                    currentCoroutineContext().ensureActive()
+
+                    val item: AnMediaItem
+                    val owner: Owner
+
+                    when {
+                        interruptQueue.isNotEmpty() -> {
+                            item = interruptQueue.removeFirst()
+                            owner = Owner.INTERRUPT
+                        }
+
+                        appendQueue.isNotEmpty() -> {
+                            item = appendQueue.removeFirst()
+                            owner = Owner.APPEND
+                        }
+
+                        else -> {
+                            finishIfIdle()
+                            break
+                        }
+                    }
+
+                    currentItem = item
+                    currentOwner = owner
+
+                    try {
+                        // NETWORK / TTS 必须先完成准备，才允许开始播放。
+                        prepareItem(item)
+                        currentCoroutineContext().ensureActive()
+
+                        playPreparedItem(item)
+
+                    } catch (cancel: CancellationException) {
+                        throw cancel
+
+                    } catch (error: Exception) {
+                        // 单个媒体播放失败不影响后续队列项目。
+                        Log.e(
+                            "AnnouncementPlayer",
+                            "播报项目失败: ${item.text}",
+                            error
+                        )
+
+                    } finally {
+                        // 每次只播放一个 MediaItem，结束后清空播放器。
+                        player.stop()
+                        player.clearMediaItems()
+                        playbackWaiter = null
+
+                        if (currentItem === item) {
+                            currentItem = null
+                            currentOwner = null
+                        }
+
+                        _playingText.value = ""
+                        _playbackStartTime.value = 0L
+                    }
+                }
             } finally {
                 dispatcherJob = null
             }
@@ -303,104 +367,46 @@ private constructor(val context: Context) {
     }
 
     /**
-     * 推进一个阶段。阶段顺序：
-     *  1) INTERRUPT 队列非空 → 灌满 INTERRUPT，然后 return（等 ENDED）
-     *  2) player 里仍有 INTERRUPT 项 → return（等 ENDED）
-     *  3) APPEND 队列非空 → 灌满 APPEND，然后 return（等 ENDED）
-     *  4) player 里仍有 APPEND 项 → return（等 ENDED）
-     *  5) 全空 → 收尾
+     * 将单个已准备好的项目交给 ExoPlayer，并挂起直到播放结束。
+     * 播放异常会抛给调度器；协程取消会立即退出等待。
      */
-    private suspend fun runOneStage() {
+    private suspend fun playPreparedItem(item: AnMediaItem) {
+        currentCoroutineContext().ensureActive()
 
-        Log.d("L315", "runOneStage")
+        val exoItem = MediaItem.Builder()
+            .setUri(item.filePath)
+            .setMediaId(item.filePath)
+            .build()
 
-        if (interruptQueue.isNotEmpty()) {
-            pumpQueue(interruptQueue, Owner.INTERRUPT)
-            return
-        }
+        suspendCancellableCoroutine<Unit> { continuation ->
+            playbackWaiter = continuation
 
-        if (playerHasOwnedItems(Owner.INTERRUPT)) {
-            Log.d("L324", "playerHasOwnedItems INTERRUPT")
-            // INTERRUPT 的项还在 player 里播放/待播，等 ENDED 再推进
-            return
-        }
-
-        if (appendQueue.isNotEmpty()) {
-            Log.d("L324", "appendQueue.isNotEmpty")
-            pumpQueue(appendQueue, Owner.APPEND)
-            return
-        }
-
-        if (playerHasOwnedItems(Owner.APPEND)) {
-            // APPEND 的项还在 player 里播放/待播，等 ENDED 再推进
-            return
-        }
-
-        // 全部播完
-        finishIfIdle()
-    }
-
-    /** 把队列里的项依次 prepare 后灌入 player */
-    private suspend fun pumpQueue(queue: ArrayDeque<AnMediaItem>, owner: Owner) {
-        while (queue.isNotEmpty()) {
-            currentCoroutineContext().ensureActive()
-            val item = queue.removeFirst()
-            if (!prepareItem(item)) {
-                // 被 cancel
-                return
+            continuation.invokeOnCancellation {
+                if (playbackWaiter === continuation) {
+                    playbackWaiter = null
+                }
             }
-            enqueueItemToPlayer(item, owner)
-        }
-    }
 
-    /**
-     * 把已准备好的 item 追加到 player 队尾并 kick 播放。
-     * 注意：一律用 append 语义（加到队尾），保证顺序；是否打断由调用者决定。
-     */
-    private suspend fun enqueueItemToPlayer(item: AnMediaItem, owner: Owner) =
-        withContext(Dispatchers.Main) {
-            Log.d("L201", "play ${item.filePath}")
-            val exoItem = MediaItem.Builder()
-                .setUri(item.filePath)
-                .setMediaId(item.filePath)
-                .build()
-
-            // 记录元信息（用 mediaId 作为 key；若 filePath 重复则以后写入的为准）
-            playerItemMeta[item.filePath] = item to owner
-
-            val wasEmpty = player.mediaItemCount == 0
-            player.addMediaItem(exoItem)
-
-            audioManager.requestAudioFocus(audioFocusRequest)
-
-            if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) {
+            try {
+                player.setMediaItem(exoItem)
                 player.prepare()
+
+                audioManager.requestAudioFocus(audioFocusRequest)
+                player.play()
+
+            } catch (error: Exception) {
+                if (playbackWaiter === continuation) {
+                    playbackWaiter = null
+                }
+                if (continuation.isActive) {
+                    continuation.resumeWith(Result.failure(error))
+                }
             }
-            if (wasEmpty) {
-                player.seekTo(0, 0L)
-            }
-            player.play()
         }
 
-    /** player 里是否还有属于指定流的项（未播完） */
-    private fun playerHasOwnedItems(owner: Owner): Boolean {
-        if (player.mediaItemCount == 0) return false
-        // playerItemMeta 只保存当前 player 内的项，key 唯一即可
-        return playerItemMeta.values.any { it.second == owner }
-    }
-
-    /**
-     * 清理 [playerItemMeta]：只保留 player 中当前仍存在的 mediaId。
-     * 由于 mediaId == filePath 可能重复，这里用 mediaId 集合近似：
-     * 对每个 meta key，如果 player 中不存在该 mediaId，则移除。
-     */
-    private fun prunePlayerItemMeta() {
-        if (playerItemMeta.isEmpty()) return
-        val aliveIds = HashSet<String>(player.mediaItemCount)
-        for (i in 0 until player.mediaItemCount) {
-            aliveIds.add(player.getMediaItemAt(i).mediaId)
+        if (playbackWaiter?.isActive == false) {
+            playbackWaiter = null
         }
-        playerItemMeta.keys.retainAll(aliveIds)
     }
 
     // =========================================================================================
@@ -466,97 +472,69 @@ private constructor(val context: Context) {
     }
 
     // =========================================================================================
-    // 打断前的回收
-    // =========================================================================================
-
-    /**
-     * 在打断前，把 player 中「属于 APPEND 且尚未播放」的项回收回 [appendQueue] 队首，
-     * 保证 INTERRUPT 播完后这些项还能继续播。
-     *
-     * 使用 [playerItemMeta] 取原始 AnMediaItem，保留 source / status / networkInfo。
-     *
-     * 判定「尚未播放」：
-     *  - 当前项之前的项：一定已播完，跳过；
-     *  - 当前项：currentPosition > 0 视为已开始，不回收；否则回收；
-     *  - 当前项之后的项：一定未播，全部回收。
-     */
-    private fun recycleUnplayedAppendItemsToQueue() {
-        val count = player.mediaItemCount
-        if (count == 0) return
-
-        val currentIndex = player.currentMediaItemIndex
-        val currentPos = if (currentIndex in 0 until count) player.currentPosition else 0L
-
-        val toRecycle = mutableListOf<AnMediaItem>()
-
-        for (i in 0 until count) {
-            if (i < currentIndex) continue   // 已播完
-            if (i == currentIndex) {
-                val started = currentPos > 0L && currentPos != C.TIME_UNSET
-                if (started) continue
-            }
-            val mi = player.getMediaItemAt(i)
-            val meta = playerItemMeta[mi.mediaId] ?: continue
-            val (item, owner) = meta
-            // 只回收 APPEND 流；INTERRUPT 流直接丢弃（因为已被新 INTERRUPT 取代）
-            if (owner == Owner.APPEND) {
-                toRecycle.add(item)
-            }
-        }
-
-        // 逆序 addFirst，保持原顺序
-        for (i in toRecycle.indices.reversed()) {
-            appendQueue.addFirst(toRecycle[i])
-        }
-    }
-
-    // =========================================================================================
     // 收尾 / 停止
     // =========================================================================================
 
+    /** 只有两条队列均空且当前没有处理项目时才发送完成广播。 */
     private fun finishIfIdle() {
-        // 只有 player 彻底空、两条队列都空时才收尾
-        if (interruptQueue.isNotEmpty() || appendQueue.isNotEmpty()) return
-        if (player.mediaItemCount != 0) return
+        if (interruptQueue.isNotEmpty()) return
+        if (appendQueue.isNotEmpty()) return
+        if (currentItem != null) return
 
-        Log.d("L308", "finishIfIdle")
+        Log.d("AnnouncementPlayer", "finishIfIdle")
+
         audioManager.abandonAudioFocusRequest(audioFocusRequest)
-        playingText.value = ""
-        playbackStartTime.value = 0L
-        playerItemMeta.clear()
+
+        _playingText.value = ""
+        _playbackStartTime.value = 0L
+        _playbackDuration.value = 0L
 
         LocalBroadcastManager.getInstance(context)
-            .sendBroadcast(Intent().setAction(utils.ON_PLAYER_STATE_ENDED))
+            .sendBroadcast(
+                Intent().setAction(utils.ON_PLAYER_STATE_ENDED)
+            )
     }
 
     private suspend fun stopAnnounceInternal(
         clearQueues: Boolean,
         cancelPlayJob: Boolean = true
     ) {
-        Log.d("L308", "stopAnnounce")
+        Log.d("AnnouncementPlayer", "stopAnnounce")
 
         if (clearQueues) {
             interruptQueue.clear()
             appendQueue.clear()
-            playerItemMeta.clear()
-            if (cancelPlayJob) {
-                val old = dispatcherJob
-                dispatcherJob = null
-                old?.cancelAndJoin()
+        }
+
+        if (cancelPlayJob) {
+            val oldJob = dispatcherJob
+            dispatcherJob = null
+            oldJob?.cancelAndJoin()
+        } else {
+            // 不取消调度协程时，唤醒当前等待器，让它检查队列状态后自然结束。
+            val waiter = playbackWaiter
+            if (waiter?.isActive == true) {
+                waiter.resumeWith(Result.success(Unit))
             }
         }
 
-        Log.d("L201", "abandonAudioFocus")
+        playbackWaiter = null
+        currentItem = null
+        currentOwner = null
+
         audioManager.abandonAudioFocusRequest(audioFocusRequest)
 
         player.stop()
         player.clearMediaItems()
 
-        playingText.value = ""
-        playbackStartTime.value = 0L
+        _playingText.value = ""
+        _playbackStartTime.value = 0L
+        _playbackDuration.value = 0L
 
         LocalBroadcastManager.getInstance(context)
-            .sendBroadcast(Intent().setAction(utils.ON_PLAYER_STOP))
+            .sendBroadcast(
+                Intent().setAction(utils.ON_PLAYER_STOP)
+            )
     }
 
     // =========================================================================================
@@ -575,7 +553,7 @@ private constructor(val context: Context) {
         val text = fileName.take(lastDotIndex)
 
         utils.showMsg(text, true)
-        playingText.value = text
+        _playingText.value = text
     }
 
     fun setTargetGain() {
