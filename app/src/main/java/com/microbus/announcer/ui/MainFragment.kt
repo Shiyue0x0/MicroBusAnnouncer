@@ -21,7 +21,6 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.content.res.Resources
-import android.graphics.Color
 import android.graphics.drawable.Icon
 import android.location.Location
 import android.os.Build
@@ -130,7 +129,6 @@ import com.amap.api.maps.model.MultiPointOverlay
 import com.amap.api.maps.model.MultiPointOverlayOptions
 import com.amap.api.maps.model.MyLocationStyle
 import com.amap.api.maps.model.Text
-import com.amap.api.maps.model.TextOptions
 import com.amap.api.maps.model.animation.AnimationSet
 import com.amap.api.maps.model.animation.RotateAnimation
 import com.amap.api.maps.model.animation.TranslateAnimation
@@ -230,7 +228,6 @@ class MainFragment : Fragment() {
 
     private lateinit var aMapUiSettings: UiSettings
     private lateinit var aMapStationClickText: Text
-    private var aMapStationTextList = ArrayList<Text>()
     private var multiPointCustomerId = ""
     private var aMapLastZoom = 0F
     private var aMapCurrentZoom = 0F
@@ -2230,14 +2227,14 @@ class MainFragment : Fragment() {
             }
             multiPointCustomerId = it.customerId
             // 文本颜色
-            val fontColor = getFontColor(multiPointCustomerId.toInt())
-
-            val textOptions =
-                TextOptions()
-                    .text(it.title).fontColor(fontColor).position(it.latLng)
-                    .fontSize(48)
-                    .typeface(requireContext().resources.getFont(R.font.galano_grotesque_bold))
-            aMapStationClickText = aMap.addText(textOptions)!!
+//            val fontColor = getFontColor(multiPointCustomerId.toInt())
+//
+//            val textOptions =
+//                TextOptions()
+//                    .text(it.title).fontColor(fontColor).position(it.latLng)
+//                    .fontSize(48)
+//                    .typeface(requireContext().resources.getFont(R.font.galano_grotesque_bold))
+//            aMapStationClickText = aMap.addText(textOptions)!!
 
             val stationId = currentLineStationList[multiPointCustomerId.toInt()].id ?: -1
 
@@ -2538,11 +2535,13 @@ class MainFragment : Fragment() {
                             aMapCurrentZoom = aMap.cameraPosition!!.zoom
                             // 放大到一定级别
                             if (aMapLastZoom < aMapZoomPoint && aMapCurrentZoom >= aMapZoomPoint) {
-                                refreshMapStationText()
+                                // TODO: 刷新地图Text
+//                                refreshMapStationText()
                             }
                             // 缩小到一定级别
                             else if (aMapLastZoom >= aMapZoomPoint && aMapCurrentZoom < aMapZoomPoint) {
-                                refreshMapStationText()
+                                // TODO: 刷新地图Text
+//                                refreshMapStationText()
                             }
                         }
 
@@ -3412,72 +3411,6 @@ class MainFragment : Fragment() {
 
     }
 
-
-    /**
-     * 刷新地图站点标记文本
-     */
-    private fun refreshMapStationText() {
-
-        aMapView.onPause()
-
-        for (i in aMapStationTextList.indices) {
-
-            // 文本颜色
-            val fontColor = getFontColor(i)
-
-            // 文本序号/ID
-            val indexOrId = if (currentLine.name != resources.getString(R.string.line_all)) {
-                if (i < 9) "0${i + 1}"
-                else "${i + 1}"
-            } else {
-                currentLineStationList[i].id!!.toString()
-            }
-
-            // 文本内容
-            var indexText: String
-            val textContext = if (aMap.cameraPosition!!.zoom > aMapZoomPoint) {
-                if (currentLine.name != resources.getString(R.string.line_all)) {
-                    indexText = if (i < 9) "0${i + 1}"
-                    else "${i + 1}"
-                    "$indexText ${currentLineStationList[i].cnName}"
-                } else {
-                    indexText = if (utils.getIsMapEditLineMode()) {
-                        var findStationIndex = -1
-                        lineEditorStationList.forEachIndexed { findIndex, station ->
-                            if (station.id == currentLineStationList[i].id) {
-                                findStationIndex = findIndex
-                                return@forEachIndexed
-                            }
-                        }
-                        if (findStationIndex >= 0)
-                            "(${findStationIndex + 1})"
-                        else
-                            ""
-                    } else {
-                        ""
-                    }
-                    "${indexText}${currentLineStationList[i].cnName}[${currentLineStationList[i].id!!}]"
-                }
-            } else {
-                indexOrId
-            }
-
-            // 文本框背景
-            val backgroundColor = if (aMap.cameraPosition!!.zoom > aMapZoomPoint) {
-                Color.WHITE
-            } else {
-                Color.TRANSPARENT
-            }
-
-            // 应用Text
-            aMapStationTextList[i].fontColor = fontColor
-            aMapStationTextList[i].text = textContext
-            aMapStationTextList[i].backgroundColor = backgroundColor
-        }
-        if (binding.mapBtn.isChecked)
-            aMapView.onResume()
-    }
-
     fun initLineInterval() {
         currentUpLineStartingIndex = -1
         currentUpLineTerminalIndex = Int.MAX_VALUE
@@ -3902,39 +3835,6 @@ class MainFragment : Fragment() {
 
     fun getCityFromLocation(): String {
         return currentCityName
-    }
-
-    fun getFontColor(i: Int): Int {
-        return if (currentLine.name == resources.getString(R.string.line_all)) {
-
-            if (utils.getIsMapEditLineMode()) {
-                val matchStation =
-                    lineEditorStationList.find { station -> station.id == currentLineStationList[i].id }
-                if (matchStation == null)
-                    Color.rgb(25, 150, 216)
-                else
-                    Color.rgb(55, 178, 103)
-            } else {
-                when (i) {
-                    _currentLineStationCount.value ->
-                        Color.rgb(25, 150, 216)
-
-                    else ->
-                        Color.rgb(55, 178, 103)
-                }
-            }
-        } else {
-            when (i) {
-                in 0 until _currentLineStationCount.value ->
-                    Color.rgb(182, 182, 182)
-
-                _currentLineStationCount.value ->
-                    Color.rgb(25, 150, 216)
-
-                else ->
-                    Color.rgb(55, 178, 103)
-            }
-        }
     }
 
     fun stopSimRunning() {

@@ -26,6 +26,15 @@ class DrivingPlanning(context: Context) {
         /** 高德驾车接口单次最多 16 个途经点 */
         private const val MAX_WAYPOINTS_PER_REQUEST = 16
         private const val URL_DRIVING = "https://restapi.amap.com/v5/direction/driving"
+
+        /** 内存缓存：key = origin|destination|waypoints，value = 成功返回的 JSON */
+        private val routeCache = object : LinkedHashMap<String, String>(16, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean {
+                return size > MAX_CACHE_SIZE
+            }
+        }
+        private const val MAX_CACHE_SIZE = 32
+        private val cacheLock = Any()
     }
 
     /** 分段 */
@@ -67,6 +76,18 @@ class DrivingPlanning(context: Context) {
         destination: String,
         waypoints: String?
     ): String? = withContext(Dispatchers.IO) {
+
+        // 0. 缓存 key（三个参数）
+        val cacheKey = "$origin|$destination|${waypoints ?: ""}"
+
+        // 命中缓存直接返回
+        synchronized(cacheLock) {
+            routeCache[cacheKey]?.let {
+                Log.d("L47", "planDrivingRoute cache hit: $cacheKey")
+                return@withContext it
+            }
+        }
+
         // 1. 解析途经点
         val waypointList: List<String> = waypoints
             ?.split(";")
@@ -121,7 +142,9 @@ class DrivingPlanning(context: Context) {
         }
 
         // 5. 合并：把所有段的 paths[0].steps 拼起来，合并距离/耗时
-        mergeSegmentResponses(segmentResponses.map { it.second })
+        val merged = mergeSegmentResponses(segmentResponses.map { it.second })
+        synchronized(cacheLock) { routeCache[cacheKey] = merged }
+        merged
     }
 
     /**
