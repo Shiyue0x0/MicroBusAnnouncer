@@ -1,4 +1,4 @@
-package com.microbus.announcer
+package com.microbus.announcer.service
 
 import android.content.Context
 import android.util.Log
@@ -11,6 +11,8 @@ import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import com.microbus.announcer.R
+import com.microbus.announcer.Utils
 
 class DrivingPlanning(context: Context) {
 
@@ -49,7 +51,7 @@ class DrivingPlanning(context: Context) {
          *  assistant_action：导航辅助动作指令*/
         val navi: Map<String, String>,
         /**  分路段坐标点列表 */
-        val polyline: List<LatLng>
+        var polyline: List<LatLng>
     )
 
     /**

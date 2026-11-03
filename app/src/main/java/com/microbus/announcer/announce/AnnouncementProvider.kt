@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
-import com.microbus.announcer.HTTPRequest
+import com.microbus.announcer.service.HTTPRequest
 import com.microbus.announcer.Utils
 import com.microbus.announcer.bean.AudioSourceType
 import com.microbus.announcer.bean.AnMediaItem

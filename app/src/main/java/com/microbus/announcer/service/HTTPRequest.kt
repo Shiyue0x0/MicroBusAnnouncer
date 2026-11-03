@@ -1,4 +1,4 @@
-package com.microbus.announcer
+package com.microbus.announcer.service
 
 data class ParsedRequest(
     val name: String,             // 请求名称（第一行）

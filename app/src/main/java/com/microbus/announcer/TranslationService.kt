@@ -14,13 +14,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import okio.IOException
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.core.content.edit
+import com.microbus.announcer.service.HTTPRequest
+import kotlin.io.use
+import kotlin.text.replace
 
 class TranslationService private constructor(context: Context) {
 
@@ -231,7 +232,7 @@ class TranslationService private constructor(context: Context) {
     // 单个翻译请求
     // ---------------------------------------------------------------------
 
-    private suspend fun translateOne(sourceText: String): String {
+    private fun translateOne(sourceText: String): String {
         val requestCode = utils.getOnlineTranslationRequestCode()
         if (requestCode.isBlank()) {
             Log.w(tag, "翻译请求模板为空")
@@ -248,7 +249,7 @@ class TranslationService private constructor(context: Context) {
         val url = parseRequest.url.replace("{{text}}", sourceText)
         val body = parseRequest.body?.replace("{{text}}", sourceText)
 
-        val builder = Request.Builder().url(url)
+        val builder = okhttp3.Request.Builder().url(url)
         parseRequest.headers.forEach { (k, v) -> builder.addHeader(k, v) }
 
         when (parseRequest.method.uppercase()) {
@@ -277,7 +278,7 @@ class TranslationService private constructor(context: Context) {
                 val respBody = resp.body.string()
                 parseTranslationResult(respBody)
             }
-        } catch (e: IOException) {
+        } catch (e: okio.IOException) {
             Log.e(tag, "网络请求失败", e)
             ""
         }

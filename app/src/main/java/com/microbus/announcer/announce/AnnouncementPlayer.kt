@@ -49,8 +49,9 @@ import kotlin.time.Duration.Companion.milliseconds
  * 1. INTERRUPT 和 APPEND 使用独立队列。
  * 2. INTERRUPT 始终优先；INTERRUPT 队列清空后才处理 APPEND。
  * 3. 新的 INTERRUPT 会清空旧 INTERRUPT 队列并打断当前任务。
- * 4. 如果打断时正在处理 APPEND，当前 APPEND 项会放回队首，稍后重新播放。
- * 5. 每次只向 ExoPlayer 提交一个 AnMediaItem，由唯一调度协程负责串行调度。
+ * 4. APPEND 按每次 play() 调用作为一个批次保存。
+ * 5. 如果 INTERRUPT 打断正在处理的 APPEND，整个 APPEND mediaItemList 会重新放回队首，恢复时从头播放。
+ * 6. 每次只向 ExoPlayer 提交一个 AnMediaItem，由唯一调度协程负责串行调度。
  */
 class AnnouncementPlayer @OptIn(UnstableApi::class)
 private constructor(val context: Context) {
@@ -66,7 +67,13 @@ private constructor(val context: Context) {
     val anResolver = AnnouncementProvider.getInstance(context)
 
     private val interruptQueue = ArrayDeque<AnMediaItem>()
-    private val appendQueue = ArrayDeque<AnMediaItem>()
+
+    /** APPEND 按每次 play() 调用分组，保留原始 mediaItemList 的边界。 */
+    private val appendQueue = ArrayDeque<List<AnMediaItem>>()
+
+    /** 当前正在消费的 APPEND 批次及下一个待处理下标。 */
+    private var activeAppendBatch: List<AnMediaItem>? = null
+    private var activeAppendIndex: Int = 0
 
     private enum class Owner {
         INTERRUPT,
@@ -247,9 +254,14 @@ private constructor(val context: Context) {
                     interruptQueue.clear()
                     interruptQueue.addAll(items)
 
-                    // 若当前项目来自 APPEND，打断后从该项目开头继续播放。
+                    // 如果当前正在播放某次 APPEND 调用的批次，
+                    // 将整个原始 mediaItemList 放回队首，恢复时从第一个项目重新播放。
                     if (currentOwner == Owner.APPEND) {
-                        currentItem?.let { appendQueue.addFirst(it) }
+                        activeAppendBatch?.let { batch ->
+                            appendQueue.addFirst(batch)
+                        }
+                        activeAppendBatch = null
+                        activeAppendIndex = 0
                     }
 
                     // 取消正在进行的准备/播放任务，等待其 finally 完成清理。
@@ -271,7 +283,8 @@ private constructor(val context: Context) {
                 }
 
                 PlayMode.APPEND -> {
-                    appendQueue.addAll(items)
+                    // 每次 APPEND 调用独立成批，供 INTERRUPT 打断时整批重播。
+                    appendQueue.addLast(items)
                     requestDispatch()
                 }
             }
@@ -313,14 +326,24 @@ private constructor(val context: Context) {
                             owner = Owner.INTERRUPT
                         }
 
-                        appendQueue.isNotEmpty() -> {
-                            item = appendQueue.removeFirst()
-                            owner = Owner.APPEND
-                        }
-
                         else -> {
-                            finishIfIdle()
-                            break
+                            // 当前 APPEND 批次未消费完时，继续处理该批次；
+                            // 否则取下一次 APPEND 调用形成的完整批次。
+                            if (activeAppendBatch == null && appendQueue.isNotEmpty()) {
+                                activeAppendBatch = appendQueue.removeFirst()
+                                activeAppendIndex = 0
+                            }
+
+                            val batch = activeAppendBatch
+                            if (batch != null && activeAppendIndex < batch.size) {
+                                item = batch[activeAppendIndex++]
+                                owner = Owner.APPEND
+                            } else {
+                                activeAppendBatch = null
+                                activeAppendIndex = 0
+                                finishIfIdle()
+                                break
+                            }
                         }
                     }
 
@@ -358,6 +381,16 @@ private constructor(val context: Context) {
 
                         _playingText.value = ""
                         _playbackStartTime.value = 0L
+                    }
+
+                    // 只有当前项目正常结束/失败并继续调度时才释放已消费完的批次。
+                    // 若被取消（通常是 INTERRUPT），会直接跳出循环，批次已在 play() 中回队。
+                    if (owner == Owner.APPEND) {
+                        val batch = activeAppendBatch
+                        if (batch != null && activeAppendIndex >= batch.size) {
+                            activeAppendBatch = null
+                            activeAppendIndex = 0
+                        }
                     }
                 }
             } finally {
@@ -504,6 +537,8 @@ private constructor(val context: Context) {
         if (clearQueues) {
             interruptQueue.clear()
             appendQueue.clear()
+            activeAppendBatch = null
+            activeAppendIndex = 0
         }
 
         if (cancelPlayJob) {
