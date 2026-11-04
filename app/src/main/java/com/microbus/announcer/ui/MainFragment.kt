@@ -48,7 +48,6 @@ import android.widget.TextView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -128,7 +127,6 @@ import com.amap.api.maps.model.MarkerOptions
 import com.amap.api.maps.model.MultiPointOverlay
 import com.amap.api.maps.model.MultiPointOverlayOptions
 import com.amap.api.maps.model.MyLocationStyle
-import com.amap.api.maps.model.Text
 import com.amap.api.maps.model.animation.AnimationSet
 import com.amap.api.maps.model.animation.RotateAnimation
 import com.amap.api.maps.model.animation.TranslateAnimation
@@ -154,6 +152,7 @@ import com.microbus.announcer.R
 import com.microbus.announcer.SensorHelper
 import com.microbus.announcer.TabSwitchListener
 import com.microbus.announcer.Utils
+import com.microbus.announcer.activity.LineSwitcherActivity
 import com.microbus.announcer.adapter.StationOfLineAdapter
 import com.microbus.announcer.adapter.StationOfRunningInfoAdapter
 import com.microbus.announcer.announce.AnnouncementContext
@@ -197,8 +196,6 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
-import java.util.Timer
-import java.util.TimerTask
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -227,8 +224,6 @@ class MainFragment : Fragment() {
     private val multiPointOverlayList = ArrayList<MultiPointOverlay>()
 
     private lateinit var aMapUiSettings: UiSettings
-    private lateinit var aMapStationClickText: Text
-    private var multiPointCustomerId = ""
     private var aMapLastZoom = 0F
     private var aMapCurrentZoom = 0F
     private val aMapZoomPoint = 16F
@@ -1791,163 +1786,6 @@ class MainFragment : Fragment() {
             return@setOnLongClickListener true
         }
 
-        // 路线站点编辑
-        binding.editLine.setOnClickListener {
-
-            val stationNameList = java.util.ArrayList<String>()
-            lineEditorStationList.forEachIndexed { i, station ->
-                stationNameList.add("(${i + 1})${station.cnName}[${station.id}]")
-            }
-
-            val editorModeStr = when (lineEditorMode) {
-                "update" -> "更新"
-                "new" -> "新增"
-                else -> ""
-            }
-
-            val directionStr = when (lineEditorLineDirection) {
-                LineDirection.ON_UP -> "上行"
-                LineDirection.ON_DOWN -> "下行"
-                else -> ""
-            }
-
-            val dialog =
-                MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                    .setTitle("正在${editorModeStr}路线 $lineEditorLineName $directionStr")
-                    .setItems(stationNameList.toTypedArray()) { _, _ ->
-                        // TODO 删除/移动站点
-
-                    }
-                    .setNegativeButton("继续编辑", null)
-                    .setPositiveButton("提交", null)
-                    .show()
-
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-
-                if (lineEditorStationList.size < 2) {
-                    utils.showMsg("请至少添加2个站点")
-                    return@setOnClickListener
-                }
-
-                var stationIdListStr = ""
-                lineEditorStationList.forEachIndexed { i, station ->
-                    stationIdListStr += station.id.toString()
-                    if (i < lineEditorStationList.size - 1) {
-                        stationIdListStr += " "
-                    }
-                }
-
-                // 添加路线
-                if (lineEditorMode == "new") {
-
-                    // 上行
-                    if (lineEditorLineDirection == LineDirection.ON_UP) {
-                        val continueEditDownDialog = MaterialAlertDialogBuilder(
-                            requireContext(),
-                            R.style.CustomAlertDialogStyle
-                        )
-                            .setTitle("继续编辑下行站点")
-                            .setMessage("如果上下行走向差不多，且对向站点距离都较近，可直接反转上行站点作为下行站点")
-                            .setNegativeButton("继续录入下行", null)
-                            .setPositiveButton("反转上行作为下行", null)
-                            .setNeutralButton("添加为环线，不需要下行", null)
-                            .show()
-
-                        // 继续录入下行
-                        continueEditDownDialog.getButton(AlertDialog.BUTTON_NEGATIVE)
-                            .setOnClickListener {
-                                continueEditDownDialog.dismiss()
-                                // todo
-                            }
-
-                        //反转上行作为下行
-                        continueEditDownDialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                            .setOnClickListener {
-
-
-                                // 上行
-                                lineEditorUpLineStationListStr = stationIdListStr
-
-                                // 下行（反转上行得到）
-                                var stationIdDownListStr = ""
-                                lineEditorStationList.reversed().forEachIndexed { i, station ->
-                                    stationIdDownListStr += station.id.toString()
-                                    if (i < lineEditorStationList.size - 1) {
-                                        stationIdDownListStr += " "
-                                    }
-                                }
-                                lineEditorDownLineStationListStr = stationIdDownListStr
-
-                                addLine()
-
-                                continueEditDownDialog.dismiss()
-                                dialog.dismiss()
-                            }
-
-                        // 添加为环线，不需要下行
-                        continueEditDownDialog.getButton(AlertDialog.BUTTON_NEUTRAL)
-                            .setOnClickListener {
-                                // 上行
-                                lineEditorUpLineStationListStr = stationIdListStr
-
-                                // 下行（空）
-                                lineEditorDownLineStationListStr = ""
-
-                                addLine(true)
-
-                                continueEditDownDialog.dismiss()
-                                dialog.dismiss()
-                            }
-                    }
-
-                    // 下行
-                    else if (lineEditorLineDirection == LineDirection.ON_DOWN) {
-                        // todo
-                        lineEditorDownLineStationListStr = stationIdListStr
-                    }
-
-//                    val clipboard =
-//                        requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-//                    val clipData = ClipData.newPlainText("text", stationIdListStr)
-//                    clipboard.setPrimaryClip(clipData)
-//
-//                    utils.showMsg("当前路线站点序列已复制到剪切板")
-//                    utils.showMsg("现在可以前往“路线”添加路线，或继续规划路线")
-                }
-                //  更新路线
-                else if (lineEditorMode == "update") {
-                    val oldLine = lineDatabaseHelper.queryById(lineEditorLineId).first()
-
-                    when (lineEditorLineDirection) {
-                        LineDirection.ON_UP -> {
-                            oldLine.upLineStation = stationIdListStr
-                        }
-
-                        LineDirection.ON_DOWN -> {
-                            oldLine.downLineStation = stationIdListStr
-                        }
-
-                        else -> {
-                        }
-                    }
-
-                    lineDatabaseHelper.updateById(oldLine.id ?: -1, oldLine)
-                    utils.showMsg("路线 ${oldLine.name} ${directionStr}已更新")
-
-                    // todo 通知LineFrag 刷新
-
-                    binding.editLine.visibility = GONE
-                    lineEditorLineId = -1
-                    lineEditorStationList.clear()
-                    lineEditorLineDirection = LineDirection.ON_UP
-
-                    dialog.dismiss()
-                }
-
-
-            }
-
-        }
 
         // 停止播报
         binding.stopAnnouncement.setOnClickListener {
@@ -2148,18 +1986,6 @@ class MainFragment : Fragment() {
     }
 
 
-    // 当前路线编辑站点列表
-    val lineEditorStationList = ArrayList<Station>()
-    var lineEditorMode = ""
-
-    // 当前路线编辑路线信息
-    var lineEditorLineId = -1
-    var lineEditorLineName = ""
-    var lineEditorLineDirection = LineDirection.ON_UP
-
-    var lineEditorUpLineStationListStr = ""
-    var lineEditorDownLineStationListStr = ""
-
     lateinit var mLocationChangedListener: LocationSource.OnLocationChangedListener
 
 
@@ -2172,7 +1998,7 @@ class MainFragment : Fragment() {
         aMapView.onCreate(savedInstanceState)
         aMap = aMapView.map
 
-        setMapMode(utils.getMapType())
+        utils.setMapMode(aMap, utils.getMapType())
 
 //        aMap.isMyLocationEnabled = false
         aMap.isTrafficEnabled = utils.getIsMapTrafficEnabled()
@@ -2217,135 +2043,16 @@ class MainFragment : Fragment() {
         locationMarker.setAnchor(0.5F, 0.57F)
 
 
-        //标点点击事件
-        // TODO
-        aMap.setOnMultiPointClickListener {
-            if (::aMapStationClickText.isInitialized) aMapStationClickText.remove()
-            if (it.customerId == multiPointCustomerId) {
-                multiPointCustomerId = ""
-                return@setOnMultiPointClickListener true
-            }
-            multiPointCustomerId = it.customerId
-            // 文本颜色
-//            val fontColor = getFontColor(multiPointCustomerId.toInt())
-//
-//            val textOptions =
-//                TextOptions()
-//                    .text(it.title).fontColor(fontColor).position(it.latLng)
-//                    .fontSize(48)
-//                    .typeface(requireContext().resources.getFont(R.font.galano_grotesque_bold))
-//            aMapStationClickText = aMap.addText(textOptions)!!
+        // 标点点击事件
+        aMap.setOnMarkerClickListener { marker ->
+            Log.d("MarkerClick", "${marker.`object`}")
 
-            val stationId = currentLineStationList[multiPointCustomerId.toInt()].id ?: -1
+            val station = (marker.`object` as Station)
+            val stationIndex = currentLineStationList.indexOf(station)
 
-            if (utils.getIsMapEditLineMode()) {
-                if (currentLine.name == resources.getString(R.string.line_all)) {
+            onClickStation(stationIndex)
+            return@setOnMarkerClickListener true
 
-                    if (lineEditorStationList.size >= 2)
-                        binding.editLine.visibility = VISIBLE
-
-                    var findStationIndex = -1
-                    lineEditorStationList.forEachIndexed { i, station ->
-                        if (station.id == stationId) {
-                            findStationIndex = i
-                            return@forEachIndexed
-                        }
-                    }
-
-                    val dialogBuilder =
-                        MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                            .setTitle(it.title)
-
-                    dialogBuilder.setNegativeButton("插入", null)
-                    dialogBuilder.setPositiveButton("添加到末尾", null)
-
-                    // 站点已添加到路线
-                    if (findStationIndex >= 0) {
-                        dialogBuilder.setNeutralButton("删除", null)
-                    }
-
-                    val dialog = dialogBuilder.show()
-
-                    // 删除
-                    dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                        var stationDel = Station()
-                        val res = lineEditorStationList.removeIf { station ->
-                            stationDel = station
-                            station.id == stationId
-                        }
-                        if (res) {
-                            utils.showMsg("${stationDel.cnName}[${stationDel.id}] 已删除")
-                            refreshMarkerAndTrack()
-                        } else {
-                            utils.showMsg("该站点尚未添加到路线")
-                        }
-                        dialog.dismiss()
-                    }
-
-                    // 插入
-                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
-
-                        val stationNameList = java.util.ArrayList<String>()
-                        lineEditorStationList.forEachIndexed { i, station ->
-                            stationNameList.add("(${i + 1})${station.cnName}[${station.id}]")
-                        }
-
-                        MaterialAlertDialogBuilder(
-                            requireContext(),
-                            R.style.CustomAlertDialogStyle
-                        ).setTitle("插入到站点之前")
-                            .setSingleChoiceItems(
-                                stationNameList.toTypedArray(), -1
-                            ) { dialog, which ->
-
-                                val stationList = stationDatabaseHelper.queryById(stationId)
-                                if (stationList.isNotEmpty()) {
-                                    val newStation = stationList.first()
-                                    lineEditorStationList.add(which, newStation)
-                                    utils.showMsg("${newStation.cnName}[${newStation.id}] 添加成功")
-                                    refreshMarkerAndTrack()
-                                } else {
-                                    utils.showMsg("站点不存在")
-                                }
-                                dialog.dismiss()
-                            }
-                            .show()
-                        dialog.dismiss()
-                    }
-
-                    // 添加到末尾
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        val stationList = stationDatabaseHelper.queryById(stationId)
-                        if (stationList.isNotEmpty()) {
-                            val newStation = stationList.first()
-                            lineEditorStationList.add(newStation)
-                            utils.showMsg("${newStation.cnName}[${newStation.id}] 添加成功")
-                            refreshMarkerAndTrack()
-                        } else {
-                            utils.showMsg("站点不存在")
-                        }
-                        dialog.dismiss()
-                    }
-
-                } else {
-                    val dialog = MaterialAlertDialogBuilder(
-                        requireContext(),
-                        R.style.CustomAlertDialogStyle
-                    )
-                        .setTitle("要编辑路线，须切换到“${resources.getString(R.string.line_all)}”")
-                        .setMessage("要现在切换吗？\n或者要退出编辑路线模式，\n请前往“设置”-“定位与地图”")
-                        .setPositiveButton(requireContext().getString(android.R.string.ok), null)
-                        .setNegativeButton(getString(android.R.string.cancel), null).show()
-
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        binding.locationBtnGroup.uncheck(binding.locationBtn.id)
-                        loadLineAll()
-                        dialog.dismiss()
-                    }
-                }
-            }
-
-            return@setOnMultiPointClickListener true
         }
 
         //设置地图缩放比例
@@ -3438,30 +3145,7 @@ class MainFragment : Fragment() {
     }
 
 
-    /**
-     * 更改地图模式
-     * @param mode 地图模式标识
-     * 根据系统UI选择普通或黑夜普通地图，值为0；
-     * MAP_TYPE_NORMAL：普通地图，值为1；
-     * MAP_TYPE_SATELLITE：卫星地图，值为2；
-     * MAP_TYPE_NIGHT 黑夜地图，夜间模式，值为3；
-     * MAP_TYPE_NAVI 导航模式，值为4;
-     * MAP_TYPE_BUS 公交模式，值为5。
-     */
-    fun setMapMode(mode: Int) {
-        if (!this::aMap.isInitialized)
-            return
-        if (mode > 0) {
-            aMap.mapType = mode
-        } else {
-            val uiModeManager =
-                requireContext().getSystemService(UI_MODE_SERVICE) as UiModeManager
-            if (uiModeManager.nightMode == MODE_NIGHT_YES)
-                aMap.mapType = MAP_TYPE_NIGHT
-            else
-                aMap.mapType = MAP_TYPE_NORMAL
-        }
-    }
+
 
     fun pauseAnnounce() {
 
@@ -3646,15 +3330,6 @@ class MainFragment : Fragment() {
                             switchLine(id = intent.getIntExtra("id", -1))
                         }
 
-                        utils.editLineOnMapActionName -> {
-                            startEditLineOnMap(
-                                id = intent.getIntExtra("id", -1),
-                                name = intent.getStringExtra("name") ?: "",
-                                direction = intent.getIntExtra("direction", 0),
-                                type = intent.getStringExtra("type") ?: "update"
-                            )
-                        }
-
                         utils.requestCityFromLocationActionName -> {
 
                             if (!permissionManager.hasLocationPermission()) {
@@ -3769,70 +3444,6 @@ class MainFragment : Fragment() {
     }
 
 
-    fun startEditLineOnMap(
-        id: Int,
-        name: String = "",
-        direction: Int,
-        type: String = "update"
-    ) {
-
-        if (!isAdded)
-            return
-
-        tabSwitchListener?.switchToTab(TabPage.MAIN)
-
-        prefs.edit {
-            putBoolean("mapEditLineMode", true)
-        }
-
-        loadLineAll()
-
-        lineEditorMode = type
-
-        var line = Line()
-        if (type == "update") {
-            line = lineDatabaseHelper.queryById(id).first()
-            lineEditorLineId = line.id ?: -1
-            lineEditorLineName = line.name
-        } else if (type == "new") {
-            line = Line(name = "")
-            lineEditorLineId = -1
-            lineEditorLineName = name
-        }
-
-        lineEditorLineDirection = direction
-
-        //获取当前方向路线站点下标（String形式）序列
-        val currentLineStationIndexStrList = when (lineEditorLineDirection) {
-            LineDirection.ON_UP -> line.upLineStation.split(' ')
-            LineDirection.ON_DOWN -> line.downLineStation.split(' ')
-            else -> List(0) { "" }
-        }
-
-        lineEditorStationList.clear()
-        for (idStr in currentLineStationIndexStrList) {
-            if (idStr.toIntOrNull() != null && idStr.toInt() > 0) {
-                val lineStationList = stationDatabaseHelper.queryById(idStr.toInt())
-                if (lineStationList.isNotEmpty())
-                    lineEditorStationList.add(lineStationList.first())
-            }
-        }
-
-        refreshMarkerAndTrack()
-        binding.editLine.visibility = VISIBLE
-
-
-        // 延迟 1 秒关闭定位
-        val timer = Timer()
-        timer.schedule(object : TimerTask() {
-            override fun run() {
-                requireActivity().runOnUiThread {
-                    binding.locationBtnGroup.uncheck(binding.locationBtn.id)
-                }
-            }
-        }, 1000)
-    }
-
     fun getCityFromLocation(): String {
         return currentCityName
     }
@@ -3843,27 +3454,6 @@ class MainFragment : Fragment() {
         utils.showMsg("模拟运行报站结束")
     }
 
-
-    fun addLine(isRingRoute: Boolean = false) {
-
-        val newLine = Line(
-            name = lineEditorLineName,
-            upLineStation = lineEditorUpLineStationListStr,
-            downLineStation = lineEditorDownLineStationListStr,
-            isRingRoute = isRingRoute
-        )
-
-        lineDatabaseHelper.insert(newLine)
-
-        utils.showMsg("路线 $lineEditorLineName 添加成功")
-
-        // todo 通知LineFrag 刷新
-
-        binding.editLine.visibility = GONE
-        lineEditorLineId = -1
-        lineEditorStationList.clear()
-        lineEditorLineDirection = LineDirection.ON_UP
-    }
 
     // 设置区间线
     fun setShuttleLine(
@@ -3961,111 +3551,112 @@ class MainFragment : Fragment() {
         val adapter = binding.lineStationList.adapter as StationOfLineAdapter
         adapter.setOnItemClickListener(object : StationOfLineAdapter.OnItemClickListener {
             override fun onItemClick(view: View?, position: Int) {
-
-                if (isOperationLock) {
-                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                    return
-                }
-
-                val chosenStationCnName = currentLineStationList[position].cnName
-                val chosenStationEnName = currentLineStationList[position].enName
-
-                var currentLineStartingIndex = when (currentLineDirection) {
-                    LineDirection.ON_UP -> currentUpLineStartingIndex
-                    LineDirection.ON_DOWN -> currentDownLineStartingIndex
-                    else -> 0
-                }
-
-                var currentLineTerminalIndex = when (currentLineDirection) {
-                    LineDirection.ON_UP -> currentUpLineTerminalIndex
-                    LineDirection.ON_DOWN -> currentDownLineTerminalIndex
-                    else -> 0
-                }
-
-                // 上/下行线路
-                val lineList = when (currentLineDirection) {
-                    LineDirection.ON_UP -> currentLine.upLineStation.split(" ")
-                    LineDirection.ON_DOWN -> currentLine.downLineStation.split(" ")
-                    else -> emptyList()
-                }
-
-                val startingId = currentLineStationList[position].id
-
-                MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-                    .setTitle(
-                        "${
-                            String.format(
-                                Locale.CHINA,
-                                "%02d",
-                                position + 1
-                            )
-                        } $chosenStationCnName"
-                    )
-                    .setMessage(chosenStationEnName)
-                    .setPositiveButton(
-                        "设为区间起点",
-                        object : DialogInterface.OnClickListener {
-                            override fun onClick(p0: DialogInterface?, p1: Int) {
-
-                                currentLineStartingIndex =
-                                    lineList.indexOf(startingId.toString())
-
-                                if (currentLineStartingIndex == -1) currentLineStartingIndex = 0
-
-                                if (currentLineTerminalIndex < currentLineStartingIndex || currentLineTerminalIndex == Int.MAX_VALUE) {
-                                    currentLineTerminalIndex = lineList.size - 1
-                                }
-
-                                if (currentLineTerminalIndex - currentLineStartingIndex < 1) {
-                                    utils.showMsg("不能将原终点站设置为起点站")
-                                    return
-                                }
-
-                                setShuttleLine(
-                                    lineList,
-                                    currentLineStartingIndex,
-                                    currentLineTerminalIndex
-                                )
-
-                            }
-                        })
-                    .setNegativeButton(
-                        "设为区间终点",
-                        object : DialogInterface.OnClickListener {
-                            override fun onClick(p0: DialogInterface?, p1: Int) {
-
-                                currentLineTerminalIndex =
-                                    lineList.indexOf(startingId.toString())
-
-                                if (currentLineTerminalIndex == -1) currentLineTerminalIndex =
-                                    lineList.size - 1
-
-                                if (currentLineTerminalIndex < currentLineStartingIndex || currentLineStartingIndex == -1) {
-                                    currentLineStartingIndex = 0
-                                }
-
-                                if (currentLineTerminalIndex - currentLineStartingIndex < 1) {
-                                    utils.showMsg("不能将原起点站设置终点站")
-                                    return
-                                }
-
-                                setShuttleLine(
-                                    lineList,
-                                    currentLineStartingIndex,
-                                    currentLineTerminalIndex
-                                )
-
-                            }
-                        })
-                    .setNeutralButton("设为当前站点") { _, _ ->
-                        setStationAndState(position, _currentLineStationState.value)
-                        refreshLineStationListAndNotice()
-                        utils.haptic(binding.lineStationList)
-                    }.show()
+                onClickStation(position)
             }
-
-
         })
+    }
+
+    fun onClickStation(position: Int) {
+        if (isOperationLock) {
+            utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+            return
+        }
+
+        val chosenStationCnName = currentLineStationList[position].cnName
+        val chosenStationEnName = currentLineStationList[position].enName
+
+        var currentLineStartingIndex = when (currentLineDirection) {
+            LineDirection.ON_UP -> currentUpLineStartingIndex
+            LineDirection.ON_DOWN -> currentDownLineStartingIndex
+            else -> 0
+        }
+
+        var currentLineTerminalIndex = when (currentLineDirection) {
+            LineDirection.ON_UP -> currentUpLineTerminalIndex
+            LineDirection.ON_DOWN -> currentDownLineTerminalIndex
+            else -> 0
+        }
+
+        // 上/下行线路
+        val lineList = when (currentLineDirection) {
+            LineDirection.ON_UP -> currentLine.upLineStation.split(" ")
+            LineDirection.ON_DOWN -> currentLine.downLineStation.split(" ")
+            else -> emptyList()
+        }
+
+        val startingId = currentLineStationList[position].id
+
+        MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
+            .setTitle(
+                "${
+                    String.format(
+                        Locale.CHINA,
+                        "%02d",
+                        position + 1
+                    )
+                } $chosenStationCnName"
+            )
+            .setMessage(chosenStationEnName)
+            .setPositiveButton(
+                "设为区间起点",
+                object : DialogInterface.OnClickListener {
+                    override fun onClick(p0: DialogInterface?, p1: Int) {
+
+                        currentLineStartingIndex =
+                            lineList.indexOf(startingId.toString())
+
+                        if (currentLineStartingIndex == -1) currentLineStartingIndex = 0
+
+                        if (currentLineTerminalIndex < currentLineStartingIndex || currentLineTerminalIndex == Int.MAX_VALUE) {
+                            currentLineTerminalIndex = lineList.size - 1
+                        }
+
+                        if (currentLineTerminalIndex - currentLineStartingIndex < 1) {
+                            utils.showMsg("不能将原终点站设置为起点站")
+                            return
+                        }
+
+                        setShuttleLine(
+                            lineList,
+                            currentLineStartingIndex,
+                            currentLineTerminalIndex
+                        )
+
+                    }
+                })
+            .setNegativeButton(
+                "设为区间终点",
+                object : DialogInterface.OnClickListener {
+                    override fun onClick(p0: DialogInterface?, p1: Int) {
+
+                        currentLineTerminalIndex =
+                            lineList.indexOf(startingId.toString())
+
+                        if (currentLineTerminalIndex == -1) currentLineTerminalIndex =
+                            lineList.size - 1
+
+                        if (currentLineTerminalIndex < currentLineStartingIndex || currentLineStartingIndex == -1) {
+                            currentLineStartingIndex = 0
+                        }
+
+                        if (currentLineTerminalIndex - currentLineStartingIndex < 1) {
+                            utils.showMsg("不能将原起点站设置终点站")
+                            return
+                        }
+
+                        setShuttleLine(
+                            lineList,
+                            currentLineStartingIndex,
+                            currentLineTerminalIndex
+                        )
+
+                    }
+                })
+            .setNeutralButton("设为当前站点") { _, _ ->
+                setStationAndState(position, _currentLineStationState.value)
+                refreshLineStationListAndNotice()
+                utils.haptic(binding.lineStationList)
+            }.show()
     }
 
     fun mapToCenter(enableAnimate: Boolean) {

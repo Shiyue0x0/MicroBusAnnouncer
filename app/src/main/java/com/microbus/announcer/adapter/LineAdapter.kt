@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
+import com.microbus.announcer.activity.LineEditorActivity
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
@@ -406,53 +407,10 @@ class LineAdapter(
                 }
                 .setNegativeButton("到地图编辑") { _, _ ->
 
-                    val upStationList = holder.line.upLineStation.split(" ")
-                    val upStartingStationCnName =
-                        stationDatabaseHelper.queryById(upStationList.first().toInt())
-                            .first().cnName
-                    val upTerminalStationCnName =
-                        stationDatabaseHelper.queryById(upStationList.last().toInt()).first().cnName
-
-                    var message = "上行：${upStartingStationCnName} - ${upTerminalStationCnName}"
-
-                    if (!holder.line.isRingRoute) {
-                        val downStationList = holder.line.downLineStation.split(" ")
-                        val downStartingStationCnName =
-                            stationDatabaseHelper.queryById(downStationList.first().toInt())
-                                .first().cnName
-                        val downTerminalStationCnName =
-                            stationDatabaseHelper.queryById(downStationList.last().toInt())
-                                .first().cnName
-                        message += "\n下行：${downStartingStationCnName} - $downTerminalStationCnName"
-
-                    }
-
-                    val builder =
-                        MaterialAlertDialogBuilder(context, R.style.CustomAlertDialogStyle)
-                            .setTitle("选择要编辑的方向")
-                            .setMessage(message)
-                            .setNeutralButton(context.getString(android.R.string.cancel), null)
-                            .setNegativeButton("上行") { _, _ ->
-                                val intent = Intent()
-                                    .setAction(utils.editLineOnMapActionName)
-                                    .putExtra("id", holder.line.id)
-                                    .putExtra("direction", 0)   //上行
-                                LocalBroadcastManager.getInstance(context)
-                                    .sendBroadcast(intent)
-                            }
-
-                    if (!holder.line.isRingRoute) {
-                        builder.setPositiveButton("下行") { _, _ ->
-                            val intent = Intent()
-                                .setAction(utils.editLineOnMapActionName)
-                                .putExtra("id", holder.line.id)
-                                .putExtra("direction", 1)   //下行
-                            LocalBroadcastManager.getInstance(context)
-                                .sendBroadcast(intent)
-                        }
-                    }
-
-                    builder.show()
+                    // 启动地图编辑活动
+                    val intent = Intent(context, LineEditorActivity::class.java)
+                    intent.putExtra("lineId", holder.line.id)
+                    context.startActivity(intent)
                 }
                 .show()
 

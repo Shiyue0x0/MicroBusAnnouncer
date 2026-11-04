@@ -3,8 +3,11 @@ package com.microbus.announcer
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.UiModeManager
+import android.app.UiModeManager.MODE_NIGHT_YES
 import android.content.ComponentName
 import android.content.Context
+import android.content.Context.UI_MODE_SERVICE
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -64,6 +67,9 @@ import kotlin.math.sqrt
 import com.microbus.announcer.activity.WebviewActivity
 import android.os.Handler
 import android.os.Looper
+import com.amap.api.maps.AMap
+import com.amap.api.maps.AMap.MAP_TYPE_NIGHT
+import com.amap.api.maps.AMap.MAP_TYPE_NORMAL
 
 class Utils(private val context: Context) {
 
@@ -1739,6 +1745,30 @@ GET https://api.mymemory.translated.net/get?q={{text}}&langpair=zh-CN|en""".trim
         val distance = calculateDistance(a.longitude, a.latitude, b.longitude, b.latitude)
         val eps = 10
         return distance < eps
+    }
+
+
+    /**
+     * 更改地图模式
+     * @param mode 地图模式标识
+     * 根据系统UI选择普通或黑夜普通地图，值为0；
+     * MAP_TYPE_NORMAL：普通地图，值为1；
+     * MAP_TYPE_SATELLITE：卫星地图，值为2；
+     * MAP_TYPE_NIGHT 黑夜地图，夜间模式，值为3；
+     * MAP_TYPE_NAVI 导航模式，值为4;
+     * MAP_TYPE_BUS 公交模式，值为5。
+     */
+    fun setMapMode(aMap: AMap, mode: Int) {
+        if (mode > 0) {
+            aMap.mapType = mode
+        } else {
+            val uiModeManager =
+                context.getSystemService(UI_MODE_SERVICE) as UiModeManager
+            if (uiModeManager.nightMode == MODE_NIGHT_YES)
+                aMap.mapType = MAP_TYPE_NIGHT
+            else
+                aMap.mapType = MAP_TYPE_NORMAL
+        }
     }
 
 }

@@ -1,4 +1,4 @@
-package com.microbus.announcer.ui
+package com.microbus.announcer.activity
 
 import android.content.Intent
 import android.content.SharedPreferences

@@ -188,6 +188,7 @@ class LinePathAndStationPointService private constructor(context: Context) {
                     .icon(icon)
                     .anchor(0.5f, 0.5f)
             )
+            marker.`object` = station
             stationPointList.add(marker)
         }
 
@@ -254,7 +255,6 @@ class LinePathAndStationPointService private constructor(context: Context) {
             startIndex = 0
             endIndex = stationList.size - 1
         }
-
 
         if (startIndex > endIndex) {
             val temp = startIndex

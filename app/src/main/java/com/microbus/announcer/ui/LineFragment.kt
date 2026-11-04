@@ -28,6 +28,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.ScrollEventBus
 import com.microbus.announcer.Utils
+import com.microbus.announcer.activity.LineEditorActivity
 import com.microbus.announcer.adapter.LineAdapter
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.database.LineDatabaseHelper
@@ -248,35 +249,8 @@ class LineFragment : Fragment() {
                         dialog.dismiss()
                         when (which) {
                             0 -> {
-                                val binding =
-                                    DialogInputBinding.inflate(LayoutInflater.from(context))
-                                val lineNameDialog = MaterialAlertDialogBuilder(
-                                    requireContext(),
-                                    R.style.CustomAlertDialogStyle
-                                )
-                                    .setTitle("设置路线名称").setView(binding.root)
-                                    .setNegativeButton(getString(android.R.string.cancel), null)
-                                    .setPositiveButton("确定", null)
-                                    .show()
-
-                                lineNameDialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                                    .setOnClickListener {
-                                        val lineName = binding.editText.text.toString()
-                                        if (lineName == "") {
-                                            utils.showMsg("请输入路线名称")
-                                            return@setOnClickListener
-                                        }
-                                        lineNameDialog.dismiss()
-
-                                        val intent = Intent()
-                                            .setAction(utils.editLineOnMapActionName)
-                                            .putExtra("id", -1)
-                                            .putExtra("name", lineName)   //名称
-                                            .putExtra("direction", 0)   //上行
-                                            .putExtra("type", "new")   //新增
-                                        LocalBroadcastManager.getInstance(requireContext())
-                                            .sendBroadcast(intent)
-                                    }
+                                val intent = Intent(context, LineEditorActivity::class.java)
+                                requireContext().startActivity(intent)
                             }
 
                             1 -> {

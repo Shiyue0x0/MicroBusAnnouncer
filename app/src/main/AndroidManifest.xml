@@ -99,15 +99,21 @@
             android:value="@string/amapKey_android" />
 
         <activity
-            android:name=".ui.LineSwitcherActivity"
+            android:name=".activity.LineSwitcherActivity"
             android:exported="false"
             android:label="LineSwitcherActivity"
             android:theme="@style/Theme.MicroBusAnnouncer"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".ui.AnFormatEditorActivity"
+            android:name=".activity.AnFormatEditorActivity"
             android:exported="false"
-            android:label="@string/title_activity_an_format_editor"
+            android:label="AnFormatEditorActivity"
+            android:theme="@style/Theme.MicroBusAnnouncer"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activity.LineEditorActivity"
+            android:exported="false"
+            android:label="LineEditorActivity"
             android:theme="@style/Theme.MicroBusAnnouncer"
             android:windowSoftInputMode="adjustResize" />
     </application>

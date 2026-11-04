@@ -34,13 +34,12 @@ import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
 import com.microbus.announcer.databinding.DialogInputBinding
-import com.microbus.announcer.ui.AnFormatEditorActivity
+import com.microbus.announcer.activity.AnFormatEditorActivity
 import com.microbus.announcer.ui.compose.AnSmallTopAppBar
 import com.microbus.announcer.ui.compose.BaseSettingItem
 import top.yukonga.miuix.kmp.basic.Scaffold

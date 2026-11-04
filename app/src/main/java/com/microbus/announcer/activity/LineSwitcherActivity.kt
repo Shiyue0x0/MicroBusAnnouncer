@@ -1,4 +1,4 @@
-package com.microbus.announcer.ui
+package com.microbus.announcer.activity
 
 import android.content.Intent
 import android.content.SharedPreferences
@@ -56,7 +56,6 @@ import com.amap.api.services.busline.BusLineSearch
 import com.microbus.announcer.BaseActivity
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
-import com.microbus.announcer.activity.FragmentContainerActivity
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper

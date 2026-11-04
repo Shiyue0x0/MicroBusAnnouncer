@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 import kotlin.collections.ArrayList
 import kotlin.properties.Delegates
 
-class NavigationService private constructor(private val context: Context) {
+class NavigationService private constructor(context: Context) {
 
     companion object {
         @SuppressLint("StaticFieldLeak")
@@ -154,16 +154,15 @@ class NavigationService private constructor(private val context: Context) {
     /** 驶出路段起点 */
     private fun onExitStart(index: Int) {
         val step = stepList?.getOrNull(index) ?: return
-        Log.d("L59", "驶出路段起点: ${step}")
+        Log.d("L59", "驶出路段起点: $step")
 
         val navVoiceList = mutableListOf<String>()
         navVoiceList.add("向${step.orientation}")
         if (step.road_name.isNotBlank()) {
-            navVoiceList.add("沿")
+            navVoiceList.add("进入")
             // TODO 路段名称进入road文件夹
             navVoiceList.add(step.road_name)
         }
-        navVoiceList.add("行驶")
 
         if (false) {
             val stepDistanceInt = step.step_distance.toIntOrNull()
@@ -183,11 +182,11 @@ class NavigationService private constructor(private val context: Context) {
     /** 驶入路段终点 */
     private fun onEnterEnd(index: Int) {
         val step = stepList?.getOrNull(index) ?: return
-        Log.d("L59", "驶入路段终点: ${step}")
+        Log.d("L59", "驶入路段终点: $step")
 
-//        if (step.navi["assistant_action"] != null && step.navi["assistant_action"] == "到达途经地") {
-//            return
-//        }
+        if (step.navi["assistant_action"] != null && step.navi["assistant_action"] == "到达途经地") {
+            return
+        }
 
         val navVoiceList = mutableListOf<String>()
         if (step.navi["action"] != null) {
