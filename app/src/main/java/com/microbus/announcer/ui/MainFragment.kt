@@ -2372,7 +2372,7 @@ class MainFragment : Fragment() {
             var hasLoad = false
             val onlineLine = Line()
             onlineLine.id = -1
-            onlineLine.isUpAndDownInvert = false
+//            onlineLine.isUpAndDownInvert = false
             cloudStationList.clear()
             CoroutineScope(Dispatchers.IO).launch {
                 for (i in 0..1) {
@@ -3454,7 +3454,7 @@ class MainFragment : Fragment() {
         val newLine = Line(
             id = originLine.id,
             name = originLine.name,
-            isUpAndDownInvert = originLine.isUpAndDownInvert,
+//            isUpAndDownInvert = originLine.isUpAndDownInvert,
             upLineStation = originLine.upLineStation,
             downLineStation = originLine.downLineStation
         )

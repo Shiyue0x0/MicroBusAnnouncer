@@ -1,6 +1,9 @@
 package com.microbus.announcer.service
 
+import android.app.UiModeManager
+import android.app.UiModeManager.MODE_NIGHT_YES
 import android.content.Context
+import android.content.Context.UI_MODE_SERVICE
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -37,9 +40,19 @@ class StationMarkerFactory(
         private val COLOR_FORWARD = "#37B267".toColorInt()
     }
 
+
     // ==================== Paint 复用 ====================
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
+        val uiModeManager =
+            appContext.getSystemService(UI_MODE_SERVICE) as UiModeManager
+        val backgroundColor = if(uiModeManager.nightMode == MODE_NIGHT_YES){
+            // 灰色
+            "#36425A".toColorInt()
+        }else{
+            Color.WHITE
+        }
+
+        color = backgroundColor
         style = Paint.Style.FILL
     }
 
@@ -110,7 +123,7 @@ class StationMarkerFactory(
         val radius = MARKER_SIZE / 2f
         val drawRadius = radius - strokePaint.strokeWidth / 2f
 
-        // 白色填充圆
+        // 背景颜色填充圆
         canvas.drawCircle(radius, radius, drawRadius, fillPaint)
 
         // 彩色描边圆

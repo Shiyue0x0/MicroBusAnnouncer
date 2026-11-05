@@ -277,20 +277,20 @@
                 app:strokeColor="@color/md_theme_surface_tran2"
                 app:strokeWidth="2dp">
 
-<!--                <com.microbus.announcer.ui.view.NestedScrollableHost-->
-<!--                    android:layout_width="wrap_content"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:layout_gravity="center">-->
+                <!--                <com.microbus.announcer.ui.view.NestedScrollableHost-->
+                <!--                    android:layout_width="wrap_content"-->
+                <!--                    android:layout_height="wrap_content"-->
+                <!--                    android:layout_gravity="center">-->
 
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/lineStationList"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_margin="8dp"
-                        android:fadingEdgeLength="20dp"
-                        android:requiresFadingEdge="horizontal" />
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/lineStationList"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:fadingEdgeLength="20dp"
+                    android:requiresFadingEdge="horizontal" />
 
-<!--                </com.microbus.announcer.ui.view.NestedScrollableHost>-->
+                <!--                </com.microbus.announcer.ui.view.NestedScrollableHost>-->
 
 
             </com.google.android.material.card.MaterialCardView>
@@ -705,99 +705,6 @@
 
                     </LinearLayout>
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/mainSwitchGroup"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp"
-                        android:layout_marginBottom="4dp"
-                        app:cardBackgroundColor="@color/an_contain_bg_tran"
-                        app:cardCornerRadius="24dp"
-                        app:strokeWidth="0dp">
-
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:orientation="horizontal"
-                            android:padding="4dp">
-
-                            <com.google.android.material.button.MaterialButtonToggleGroup
-                                android:id="@+id/locationBtnGroup"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="4dp"
-                                android:layout_marginEnd="8dp"
-                                android:layout_weight="1">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/locationBtn"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/switch_location"
-                                    android:textColor="@color/text_color_selector"
-                                    app:icon="@drawable/location_on"
-                                    app:iconTint="@color/text_color_selector" />
-
-                            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-
-                            <com.google.android.material.button.MaterialButtonToggleGroup
-                                android:id="@+id/mapBtnGroup"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="8dp"
-                                android:layout_weight="1"
-                                android:visibility="gone">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/mapBtn"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/switch_map"
-                                    android:textColor="@color/text_color_selector"
-                                    app:icon="@drawable/map"
-                                    app:iconTint="@color/text_color_selector" />
-
-                            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-                            <com.google.android.material.button.MaterialButtonToggleGroup
-                                android:id="@+id/lineDirectionBtnGroup"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="4dp"
-                                app:selectionRequired="true"
-                                app:singleSelection="true">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/lineDirectionBtnUp"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:minWidth="0dp"
-                                    android:text="@string/up_line"
-                                    android:textColor="@color/text_color_selector"
-                                    app:iconTint="@color/text_color_selector" />
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/lineDirectionBtnDown"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:minWidth="0dp"
-                                    android:text="@string/down_line"
-                                    android:textColor="@color/text_color_selector"
-                                    app:iconTint="@color/text_color_selector" />
-
-                            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-
-                        </LinearLayout>
-
-
-                    </com.google.android.material.card.MaterialCardView>
-
-
                     <LinearLayout
                         android:id="@+id/lineStationController"
                         android:layout_width="match_parent"
@@ -880,6 +787,101 @@
                             app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
 
                     </LinearLayout>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/mainSwitchGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp"
+                        android:layout_marginBottom="4dp"
+                        app:cardBackgroundColor="@color/an_contain_bg_tran"
+                        app:cardCornerRadius="24dp"
+                        app:strokeWidth="0dp">
+
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:orientation="horizontal"
+                            android:padding="4dp">
+
+                            <com.google.android.material.button.MaterialButtonToggleGroup
+                                android:id="@+id/locationBtnGroup"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="1">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/locationBtn"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/switch_location"
+                                    android:textColor="@color/text_color_selector"
+                                    app:backgroundTint="@color/button_color_selector"
+                                    app:icon="@drawable/location_on"
+                                    app:iconTint="@color/text_color_selector" />
+
+                            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+
+                            <com.google.android.material.button.MaterialButtonToggleGroup
+                                android:id="@+id/mapBtnGroup"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="1"
+                                android:visibility="gone">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/mapBtn"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/switch_map"
+                                    android:textColor="@color/text_color_selector"
+                                    app:icon="@drawable/map"
+                                    app:iconTint="@color/text_color_selector" />
+
+                            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                            <com.google.android.material.button.MaterialButtonToggleGroup
+                                android:id="@+id/lineDirectionBtnGroup"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="4dp"
+                                app:selectionRequired="true"
+                                app:singleSelection="true">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/lineDirectionBtnUp"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:minWidth="0dp"
+                                    android:text="@string/up_line"
+                                    android:textColor="@color/text_color_selector"
+                                    app:backgroundTint="@color/button_color_selector"
+                                    app:iconTint="@color/text_color_selector" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/lineDirectionBtnDown"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:minWidth="0dp"
+                                    android:text="@string/down_line"
+                                    android:textColor="@color/text_color_selector"
+                                    app:backgroundTint="@color/button_color_selector"
+                                    app:iconTint="@color/text_color_selector" />
+
+                            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+
+                        </LinearLayout>
+
+
+                    </com.google.android.material.card.MaterialCardView>
 
                     <!--            <com.google.android.material.card.MaterialCardView-->
                     <!--                android:layout_width="match_parent"-->

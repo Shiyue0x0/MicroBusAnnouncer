@@ -18,6 +18,9 @@ import com.microbus.announcer.model.StationStatus
 import androidx.core.graphics.createBitmap
 import com.amap.api.maps.model.Circle
 import com.amap.api.maps.model.CircleOptions
+import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.model.LatLngBounds
+import com.microbus.announcer.Utils
 
 class LinePathAndStationPointService private constructor(context: Context) {
 
@@ -42,6 +45,8 @@ class LinePathAndStationPointService private constructor(context: Context) {
 
     /** 半径（米） */
     private val STEP_CIRCLE_RADIUS_METERS = 100.0
+
+    private val utils = Utils(appContext)
 
     enum class MapZoomLevel {
         SMALL,
@@ -93,6 +98,8 @@ class LinePathAndStationPointService private constructor(context: Context) {
         if (lineName != appContext.resources.getString(R.string.line_all)) {
             val mSteps = getLinePath(stationList, steps)
             drawLinePath(aMap, mSteps)
+            // todo 切换地图相机，完整显示路线
+            fitLinePath(aMap)
         }
 
         // 站点标点
@@ -201,6 +208,44 @@ class LinePathAndStationPointService private constructor(context: Context) {
         // debug 模式：绘制每个 Step 的下标
         if (debug) {
             drawStepIndexMarkers(aMap, steps)
+        }
+    }
+
+    /**
+     * 移动相机，使已绘制的整条路线完整显示在屏幕内
+     */
+    private fun fitLinePath(aMap: AMap) {
+        val builder = LatLngBounds.Builder()
+        var hasPoint = false
+        linePathList.forEach { polyline ->
+            polyline.points.forEach { builder.include(it); hasPoint = true }
+        }
+        if (!hasPoint) return
+
+        val bounds = builder.build()
+        val dm = appContext.resources.displayMetrics
+        val screenW = dm.widthPixels
+        val screenH = dm.heightPixels
+
+        // 左右各不留，上下各留 120px
+        val paddingLeftRight = 0
+        val paddingTopBottom = utils.dp2px(300f)
+
+        // newLatLngBounds(bounds, width, height, padding) 的 width/height
+        // 是用于计算缩放的"有效视口"，padding 是四边统一留白。
+        // 这里用"缩小有效视口"来间接实现"上下多留"：
+        val effectiveW = screenW - 0
+        val effectiveH = screenH - paddingTopBottom * 2
+
+        try {
+            aMap.animateCamera(
+                CameraUpdateFactory.newLatLngBounds(bounds, effectiveW, effectiveH, 0)
+            )
+        } catch (e: Exception) {
+            Log.w("fitLinePath", "fit bounds failed: ${e.message}")
+            linePathList.firstOrNull()?.points?.firstOrNull()?.let {
+                aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, 14f))
+            }
         }
     }
 
@@ -436,11 +481,13 @@ class LinePathAndStationPointService private constructor(context: Context) {
         val station = stationList.getOrNull(stationIndex) ?: return
 
         val icon =
-            BitmapDescriptorFactory.fromBitmap(createStationMarkerBitmap(
-                stationIndex,
-                station,
-                zoomLevel
-            ))
+            BitmapDescriptorFactory.fromBitmap(
+                createStationMarkerBitmap(
+                    stationIndex,
+                    station,
+                    zoomLevel
+                )
+            )
 
         marker.setIcon(icon)
 

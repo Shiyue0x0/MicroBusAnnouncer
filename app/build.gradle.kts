@@ -114,7 +114,7 @@ dependencies {
 
 
     //AMap
-    implementation(files("libs/AMap3DMap_11.2.100_AMapSearch_9.8.1_AMapLocation_11.2.100_20260805.jar"))
+    implementation(files("libs/AMap3DMap_11.3.100_AMapSearch_9.8.1_AMapLocation_11.3.101_20260924.jar"))
 
     // miuix
     implementation(libs.miuix.ui.android)
@@ -127,7 +127,6 @@ dependencies {
     //liquidglass
     implementation(libs.backdrop)
     implementation(libs.liquidglass)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
 
     // Test
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
