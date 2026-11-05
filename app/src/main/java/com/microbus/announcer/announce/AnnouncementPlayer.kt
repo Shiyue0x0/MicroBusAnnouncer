@@ -66,13 +66,19 @@ private constructor(val context: Context) {
 
     val anResolver = AnnouncementProvider.getInstance(context)
 
-    private val interruptQueue = ArrayDeque<AnMediaItem>()
+    /** 每次 play() 对应一个独立批次，便于精确执行播放超时清理。 */
+    private class PlayBatch(val items: List<AnMediaItem>) {
+        var started: Boolean = false
+        var timeoutJob: Job? = null
+    }
 
-    /** APPEND 按每次 play() 调用分组，保留原始 mediaItemList 的边界。 */
-    private val appendQueue = ArrayDeque<List<AnMediaItem>>()
+    private val interruptQueue = ArrayDeque<PlayBatch>()
+    private val appendQueue = ArrayDeque<PlayBatch>()
 
-    /** 当前正在消费的 APPEND 批次及下一个待处理下标。 */
-    private var activeAppendBatch: List<AnMediaItem>? = null
+    private var activeInterruptBatch: PlayBatch? = null
+    private var activeInterruptIndex: Int = 0
+
+    private var activeAppendBatch: PlayBatch? = null
     private var activeAppendIndex: Int = 0
 
     private enum class Owner {
@@ -83,6 +89,7 @@ private constructor(val context: Context) {
     /** 当前正在准备或播放的项目及其来源队列。 */
     private var currentItem: AnMediaItem? = null
     private var currentOwner: Owner? = null
+    private var currentBatch: PlayBatch? = null
 
     /** 唯一调度协程。 */
     private var dispatcherJob: Job? = null
@@ -144,6 +151,14 @@ private constructor(val context: Context) {
             .build()
 
         player.addListener(object : Player.Listener {
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) {
+                    currentBatch?.started = true
+                    currentBatch?.timeoutJob?.cancel()
+                    currentBatch?.timeoutJob = null
+                }
+            }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 when (playbackState) {
@@ -225,7 +240,9 @@ private constructor(val context: Context) {
     }
 
     enum class PlayMode {
+        /** 立即播放 */
         INTERRUPT,
+        /** 追加播放，会等待INTERRUPT队列播放完成 */
         APPEND
     }
 
@@ -239,59 +256,126 @@ private constructor(val context: Context) {
      * INTERRUPT：清空旧 INTERRUPT 队列，打断当前任务并优先播放新队列。
      * APPEND：追加到 APPEND 队列，不打断当前播放。
      */
+    /**
+     * @param playTimeoutSeconds 播放超时秒数；null 表示不启用。
+     * 从调用 play() 开始计时，若本批次尚未真正开始播放，则清空本批次。
+     */
     fun play(
         mediaItemList: MutableList<AnMediaItem>,
-        mode: PlayMode = PlayMode.INTERRUPT
+        mode: PlayMode = PlayMode.INTERRUPT,
+        playTimeoutSeconds: Int? = null
     ) {
         if (mediaItemList.isEmpty()) return
+        require(playTimeoutSeconds == null || playTimeoutSeconds >= 0) {
+            "playTimeoutSeconds 不能小于 0"
+        }
 
-        // 快照，避免调用方在 play() 返回后继续修改原集合。
-        val items = mediaItemList.toList()
+        val batch = PlayBatch(mediaItemList.toList())
+        val timeoutDeadline = playTimeoutSeconds?.let {
+            SystemClock.elapsedRealtime() + it * 1000L
+        }
 
         scope.launch {
             when (mode) {
                 PlayMode.INTERRUPT -> {
+                    interruptQueue.forEach { it.timeoutJob?.cancel() }
                     interruptQueue.clear()
-                    interruptQueue.addAll(items)
+                    interruptQueue.addLast(batch)
 
-                    // 如果当前正在播放某次 APPEND 调用的批次，
-                    // 将整个原始 mediaItemList 放回队首，恢复时从第一个项目重新播放。
                     if (currentOwner == Owner.APPEND) {
-                        activeAppendBatch?.let { batch ->
-                            appendQueue.addFirst(batch)
-                        }
+                        activeAppendBatch?.let { appendQueue.addFirst(it) }
                         activeAppendBatch = null
                         activeAppendIndex = 0
                     }
 
-                    // 取消正在进行的准备/播放任务，等待其 finally 完成清理。
+                    activeInterruptBatch?.timeoutJob?.cancel()
+                    activeInterruptBatch = null
+                    activeInterruptIndex = 0
+
                     val oldJob = dispatcherJob
                     dispatcherJob = null
                     oldJob?.cancelAndJoin()
 
                     player.stop()
                     player.clearMediaItems()
-
                     playbackWaiter = null
                     currentItem = null
                     currentOwner = null
+                    currentBatch = null
+                    activeInterruptBatch = null
+                    activeInterruptIndex = 0
                     _playingText.value = ""
                     _playbackStartTime.value = 0L
                     _playbackDuration.value = 0L
-
                     requestDispatch()
                 }
 
                 PlayMode.APPEND -> {
-                    // 每次 APPEND 调用独立成批，供 INTERRUPT 打断时整批重播。
-                    appendQueue.addLast(items)
+                    appendQueue.forEach { it.timeoutJob?.cancel() }
+                    appendQueue.clear()
+                    appendQueue.addLast(batch)
                     requestDispatch()
+                }
+            }
+
+            if (playTimeoutSeconds != null && !batch.started) {
+                batch.timeoutJob = scope.launch {
+                    val remaining = (timeoutDeadline!! - SystemClock.elapsedRealtime())
+                        .coerceAtLeast(0L)
+                    delay(remaining.milliseconds)
+                    clearBatchIfNotStarted(batch)
                 }
             }
         }
     }
 
-    /** 停止播报。默认清空两条队列并取消当前调度任务。 */
+    private suspend fun clearBatchIfNotStarted(batch: PlayBatch) {
+        if (batch.started) return
+
+        interruptQueue.remove(batch)
+        appendQueue.remove(batch)
+
+        val isActiveBatch =
+            activeInterruptBatch === batch || activeAppendBatch === batch
+
+        if (!isActiveBatch) {
+            batch.timeoutJob = null
+            return
+        }
+
+        batch.timeoutJob = null
+
+        val wasCurrent = currentBatch === batch
+
+        if (activeInterruptBatch === batch) {
+            activeInterruptBatch = null
+            activeInterruptIndex = 0
+        }
+        if (activeAppendBatch === batch) {
+            activeAppendBatch = null
+            activeAppendIndex = 0
+        }
+
+        if (wasCurrent) {
+            val oldJob = dispatcherJob
+            dispatcherJob = null
+            oldJob?.cancelAndJoin()
+
+            player.stop()
+            player.clearMediaItems()
+            playbackWaiter = null
+            currentItem = null
+            currentOwner = null
+            currentBatch = null
+            _playingText.value = ""
+            _playbackStartTime.value = 0L
+            _playbackDuration.value = 0L
+        }
+
+        Log.d("AnnouncementPlayer", "播放超时，已清空本次 play() 队列")
+        requestDispatch()
+    }
+
     fun stopAnnounce(cancelPlayJob: Boolean = true): Job {
         return scope.launch {
             stopAnnounceInternal(
@@ -319,24 +403,36 @@ private constructor(val context: Context) {
 
                     val item: AnMediaItem
                     val owner: Owner
+                    val batch: PlayBatch
 
                     when {
-                        interruptQueue.isNotEmpty() -> {
-                            item = interruptQueue.removeFirst()
-                            owner = Owner.INTERRUPT
+                        interruptQueue.isNotEmpty() || activeInterruptBatch != null -> {
+                            if (activeInterruptBatch == null) {
+                                activeInterruptBatch = interruptQueue.removeFirst()
+                                activeInterruptIndex = 0
+                            }
+                            val active = activeInterruptBatch!!
+                            if (activeInterruptIndex < active.items.size) {
+                                batch = active
+                                item = active.items[activeInterruptIndex++]
+                                owner = Owner.INTERRUPT
+                            } else {
+                                active.timeoutJob?.cancel()
+                                activeInterruptBatch = null
+                                activeInterruptIndex = 0
+                                continue
+                            }
                         }
 
                         else -> {
-                            // 当前 APPEND 批次未消费完时，继续处理该批次；
-                            // 否则取下一次 APPEND 调用形成的完整批次。
                             if (activeAppendBatch == null && appendQueue.isNotEmpty()) {
                                 activeAppendBatch = appendQueue.removeFirst()
                                 activeAppendIndex = 0
                             }
-
-                            val batch = activeAppendBatch
-                            if (batch != null && activeAppendIndex < batch.size) {
-                                item = batch[activeAppendIndex++]
+                            val active = activeAppendBatch
+                            if (active != null && activeAppendIndex < active.items.size) {
+                                batch = active
+                                item = active.items[activeAppendIndex++]
                                 owner = Owner.APPEND
                             } else {
                                 activeAppendBatch = null
@@ -349,27 +445,17 @@ private constructor(val context: Context) {
 
                     currentItem = item
                     currentOwner = owner
+                    currentBatch = batch
 
                     try {
-                        // NETWORK / TTS 必须先完成准备，才允许开始播放。
                         prepareItem(item)
                         currentCoroutineContext().ensureActive()
-
                         playPreparedItem(item)
-
                     } catch (cancel: CancellationException) {
                         throw cancel
-
                     } catch (error: Exception) {
-                        // 单个媒体播放失败不影响后续队列项目。
-                        Log.e(
-                            "AnnouncementPlayer",
-                            "播报项目失败: ${item.text}",
-                            error
-                        )
-
+                        Log.e("AnnouncementPlayer", "播报项目失败: ${item.text}", error)
                     } finally {
-                        // 每次只播放一个 MediaItem，结束后清空播放器。
                         player.stop()
                         player.clearMediaItems()
                         playbackWaiter = null
@@ -377,17 +463,23 @@ private constructor(val context: Context) {
                         if (currentItem === item) {
                             currentItem = null
                             currentOwner = null
+                            currentBatch = null
                         }
-
                         _playingText.value = ""
                         _playbackStartTime.value = 0L
                     }
 
-                    // 只有当前项目正常结束/失败并继续调度时才释放已消费完的批次。
-                    // 若被取消（通常是 INTERRUPT），会直接跳出循环，批次已在 play() 中回队。
-                    if (owner == Owner.APPEND) {
-                        val batch = activeAppendBatch
-                        if (batch != null && activeAppendIndex >= batch.size) {
+                    if (owner == Owner.INTERRUPT) {
+                        val active = activeInterruptBatch
+                        if (active != null && activeInterruptIndex >= active.items.size) {
+                            active.timeoutJob?.cancel()
+                            activeInterruptBatch = null
+                            activeInterruptIndex = 0
+                        }
+                    } else {
+                        val active = activeAppendBatch
+                        if (active != null && activeAppendIndex >= active.items.size) {
+                            active.timeoutJob?.cancel()
                             activeAppendBatch = null
                             activeAppendIndex = 0
                         }
@@ -399,10 +491,6 @@ private constructor(val context: Context) {
         }
     }
 
-    /**
-     * 将单个已准备好的项目交给 ExoPlayer，并挂起直到播放结束。
-     * 播放异常会抛给调度器；协程取消会立即退出等待。
-     */
     private suspend fun playPreparedItem(item: AnMediaItem) {
         currentCoroutineContext().ensureActive()
 
@@ -411,7 +499,7 @@ private constructor(val context: Context) {
             .setMediaId(item.filePath)
             .build()
 
-        suspendCancellableCoroutine<Unit> { continuation ->
+        suspendCancellableCoroutine { continuation ->
             playbackWaiter = continuation
 
             continuation.invokeOnCancellation {
@@ -535,8 +623,14 @@ private constructor(val context: Context) {
         Log.d("AnnouncementPlayer", "stopAnnounce")
 
         if (clearQueues) {
+            interruptQueue.forEach { it.timeoutJob?.cancel() }
+            appendQueue.forEach { it.timeoutJob?.cancel() }
+            activeInterruptBatch?.timeoutJob?.cancel()
+            activeAppendBatch?.timeoutJob?.cancel()
             interruptQueue.clear()
             appendQueue.clear()
+            activeInterruptBatch = null
+            activeInterruptIndex = 0
             activeAppendBatch = null
             activeAppendIndex = 0
         }
@@ -556,6 +650,7 @@ private constructor(val context: Context) {
         playbackWaiter = null
         currentItem = null
         currentOwner = null
+        currentBatch = null
 
         audioManager.abandonAudioFocusRequest(audioFocusRequest)
 

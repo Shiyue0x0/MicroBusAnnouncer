@@ -84,35 +84,71 @@ class NavigationService private constructor(context: Context) {
         updDistance(currentSteps, currentLocation)
 
         if (currentStepIndex != -1) {
-            // [currentStepIndex - 1, currentStepIndex + 1]
-            for (i in (currentStepIndex - 1).coerceAtLeast(0)..(currentStepIndex + 1).coerceAtMost(
-                currentSteps.size - 1
-            )) {
 
-                // 上次定位是否位于点内
-                val lastInside = lastStepStartDistanceList[i] <= 20
-                // 当前定位是否位于点外
-                val curOutside = curStepStartDistanceList[i] >= 20
+            // 下一路段预报
+            val nextStep = currentSteps.getOrNull(currentStepIndex + 1)
 
-                if (lastInside && curOutside) {
-                    // 驶出路段起点
-                    onExitStart(i)
-                }
-
-                // 上次定位是否位于点外
-                val lastOutside = lastStepEndDistanceList[i] >= 80
-                // 当前定位是否位于点内
-                val curInside = curStepEndDistanceList[i] <= 80
-
-                if (lastOutside && curInside) {
-                    // 驶入路段终点
-                    onEnterEnd(i)
+            if (nextStep != null) {
+                val targetStepIndex = currentStepIndex + 1
+                listOf(200.0, 100.0, 30.0).forEach { threshold ->
+                    checkEnterStart(
+                        lastStepStartDistanceList,
+                        curStepStartDistanceList,
+                        targetStepIndex,
+                        threshold
+                    )
                 }
             }
 
-
         }
 
+
+    }
+
+    private fun checkEnterStart(
+        lastList: List<Double>,
+        curList: List<Double>,
+        index: Int,
+        threshold: Double
+    ) {
+        val lastOutside = lastList[index] >= threshold
+        val curInside = curList[index] <= threshold
+        if (lastOutside && curInside) {
+            onEnterStart(index, threshold)
+        }
+    }
+
+    fun onEnterStart(index: Int, threshold: Double) {
+        val step = stepList?.getOrNull(index) ?: return
+        Log.d("L59", "驶入路段起点: $step")
+
+        if (step.navi["assistant_action"] != null && step.navi["assistant_action"] == "到达途经地") {
+            return
+        }
+
+        val navVoiceList = mutableListOf<String>()
+
+        if (threshold > 30) {
+            navVoiceList.add("${threshold.toInt()}米后")
+        }
+
+        if (step.navi["action"] != null && step.navi["action"] != "") {
+            navVoiceList.add(step.navi["action"]!!)
+        }
+
+        if (step.navi["assistant_action"] != null && step.navi["assistant_action"] != "") {
+            navVoiceList.add(step.navi["assistant_action"]!!)
+        }
+
+        if (step.road_name.isNotBlank()) {
+            navVoiceList.add("进入")
+            navVoiceList.add(step.road_name)
+        }
+
+        navVoiceList.removeAll { it.isEmpty() }
+
+        Log.d("L59", "驶入路段起点 导航播报: ${navVoiceList.joinToString("|")}")
+        playNaviVoice(navVoiceList)
 
     }
 
@@ -123,11 +159,11 @@ class NavigationService private constructor(context: Context) {
 
         // 计算路段起点距离当前位置距离
         curStepStartDistanceList.clear()
-        for (step in currentSteps) {
+        for ((_, _, _, _, _, _, polyline) in currentSteps) {
             curStepStartDistanceList.add(
                 utils.calculateDistance(
-                    step.polyline.first().longitude,
-                    step.polyline.first().latitude,
+                    polyline.first().longitude,
+                    polyline.first().latitude,
                     currentLocation.longitude,
                     currentLocation.latitude
                 )
@@ -139,74 +175,16 @@ class NavigationService private constructor(context: Context) {
         lastStepEndDistanceList.addAll(curStepEndDistanceList)
 
         curStepEndDistanceList.clear()
-        for (step in currentSteps) {
+        for ((_, _, _, _, _, _, polyline) in currentSteps) {
             curStepEndDistanceList.add(
                 utils.calculateDistance(
-                    step.polyline.last().longitude,
-                    step.polyline.last().latitude,
+                    polyline.last().longitude,
+                    polyline.last().latitude,
                     currentLocation.longitude,
                     currentLocation.latitude
                 )
             )
         }
-    }
-
-    /** 驶出路段起点 */
-    private fun onExitStart(index: Int) {
-        val step = stepList?.getOrNull(index) ?: return
-        Log.d("L59", "驶出路段起点: $step")
-
-        val navVoiceList = mutableListOf<String>()
-        navVoiceList.add("向${step.orientation}")
-        if (step.road_name.isNotBlank()) {
-            navVoiceList.add("进入")
-            // TODO 路段名称进入road文件夹
-            navVoiceList.add(step.road_name)
-        }
-
-        if (false) {
-            val stepDistanceInt = step.step_distance.toIntOrNull()
-            if (stepDistanceInt != null) {
-                navVoiceList.add(step.step_distance)
-            }
-            navVoiceList.add("米")
-        }
-
-        navVoiceList.removeAll { it.isEmpty() }
-
-        Log.d("L59", "驶出路段起点 导航播报: ${navVoiceList.joinToString("|")}")
-        playNaviVoice(navVoiceList)
-
-    }
-
-    /** 驶入路段终点 */
-    private fun onEnterEnd(index: Int) {
-        val step = stepList?.getOrNull(index) ?: return
-        Log.d("L59", "驶入路段终点: $step")
-
-        if (step.navi["assistant_action"] != null && step.navi["assistant_action"] == "到达途经地") {
-            return
-        }
-
-        val navVoiceList = mutableListOf<String>()
-        if (step.navi["action"] != null) {
-            navVoiceList.add(step.navi["action"]!!)
-        }
-
-        if (step.navi["assistant_action"] != null) {
-            navVoiceList.add(step.navi["assistant_action"]!!)
-        }
-
-        val nextStep = stepList?.getOrNull(index + 1)
-        if (nextStep != null && nextStep.road_name.isNotBlank()) {
-            navVoiceList.add("进入")
-            navVoiceList.add(nextStep.road_name)
-        }
-
-        navVoiceList.removeAll { it.isEmpty() }
-
-        Log.d("L59", "驶入路段终点 导航播报: ${navVoiceList.joinToString("|")}")
-        playNaviVoice(navVoiceList)
     }
 
     private fun playNaviVoice(navVoiceList: MutableList<String>) {
@@ -246,7 +224,7 @@ class NavigationService private constructor(context: Context) {
                 navVoiceListStr,
                 announcementContext
             )
-            anPlayer.play(filePathList, AnnouncementPlayer.PlayMode.APPEND)
+            anPlayer.play(filePathList, AnnouncementPlayer.PlayMode.APPEND, 20)
         }
 
     }
@@ -278,7 +256,7 @@ class NavigationService private constructor(context: Context) {
             currentPos.latitude
         )
 
-        return (distance < 10)
+        return (distance < 20)
 
     }
 

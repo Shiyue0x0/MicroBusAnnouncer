@@ -1,7 +1,9 @@
 package com.microbus.announcer.service
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.util.Log
 import com.amap.api.maps.AMap
 import com.amap.api.maps.model.BitmapDescriptorFactory
@@ -13,6 +15,9 @@ import com.amap.api.maps.model.PolylineOptions
 import com.microbus.announcer.R
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.model.StationStatus
+import androidx.core.graphics.createBitmap
+import com.amap.api.maps.model.Circle
+import com.amap.api.maps.model.CircleOptions
 
 class LinePathAndStationPointService private constructor(context: Context) {
 
@@ -24,6 +29,27 @@ class LinePathAndStationPointService private constructor(context: Context) {
     private val stationPointList = ArrayList<Marker>()
     private val stationMarkerFactory = StationMarkerFactory(appContext)
 
+    // ====== debug 模式 ======
+    /** 是否开启 debug 模式（默认取 BuildConfig.DEBUG） */
+    private var debug: Boolean = false
+
+    /** debug 下标标记 */
+    private val stepIndexMarkerList = ArrayList<Marker>()
+
+
+    /** debug Step 起点圆圈（半径 200m） */
+    private val stepCircleList = ArrayList<Circle>()
+
+    /** 半径（米） */
+    private val STEP_CIRCLE_RADIUS_METERS = 100.0
+
+    enum class MapZoomLevel {
+        SMALL,
+        LAGER
+    }
+
+    private var mapZoomLevel = MapZoomLevel.LAGER
+
     companion object {
         @Volatile
         private var INSTANCE: LinePathAndStationPointService? = null
@@ -32,6 +58,16 @@ class LinePathAndStationPointService private constructor(context: Context) {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: LinePathAndStationPointService(context).also { INSTANCE = it }
             }
+        }
+    }
+
+    /** 手动开启/关闭 debug 模式 */
+    fun setDebug(enable: Boolean) {
+        if (debug == enable) return
+        debug = enable
+        // 关闭时需要清除已绘制的下标标记
+        if (!debug) {
+            clearStepIndexMarkers()
         }
     }
 
@@ -162,25 +198,116 @@ class LinePathAndStationPointService private constructor(context: Context) {
 
         Log.d("drawLinePath", "drawLinePath: ${linePathList.size}")
 
+        // debug 模式：绘制每个 Step 的下标
+        if (debug) {
+            drawStepIndexMarkers(aMap, steps)
+        }
     }
 
+    // ====== debug 相关 ======
+
+    private fun drawStepIndexMarkers(aMap: AMap, steps: List<DrivingPlanning.Step>) {
+        clearStepIndexMarkers()
+
+        steps.forEachIndexed { index, step ->
+            val polyline = step.polyline
+            if (polyline.isEmpty()) return@forEachIndexed
+
+            val startPoint = polyline.first()
+
+            // ===== 新增：绘制半径 200m 的半透明圆 =====
+            val circle = aMap.addCircle(
+                CircleOptions()
+                    .center(startPoint)
+                    .radius(STEP_CIRCLE_RADIUS_METERS)
+                    .fillColor(Color.argb(60, 0, 122, 255))   // 半透明蓝色填充
+                    .strokeColor(Color.argb(140, 0, 122, 255)) // 边框稍深
+                    .strokeWidth(2f)
+                    .zIndex(9f)                                // 在路径之上、标记之下
+            )
+            stepCircleList.add(circle)
+
+            // ===== 原有的下标标记 =====
+            val marker = aMap.addMarker(
+                MarkerOptions()
+                    .position(startPoint)
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                    .anchor(0.5f, 0.5f)
+                    .title("Step ${index + 1}")
+                    .snippet("waypoint_index=${step.waypoint_index}, size=${polyline.size}")
+                    .zIndex(10f)
+            )
+            marker.setIcon(
+                BitmapDescriptorFactory.fromBitmap(createStepIndexBitmap("${index + 1}"))
+            )
+
+            stepIndexMarkerList.add(marker)
+        }
+
+        Log.d(
+            "drawStepIndexMarkers",
+            "markers=${stepIndexMarkerList.size}, circles=${stepCircleList.size}"
+        )
+    }
+
+    /**
+     * 创建下标小圆点 Bitmap
+     */
+    @SuppressLint("UseKtx")
+    private fun createStepIndexBitmap(text: String): Bitmap {
+        val size = 64
+        val bitmap = createBitmap(size, size)
+        val canvas = android.graphics.Canvas(bitmap)
+        val paint = android.graphics.Paint().apply {
+            isAntiAlias = true
+        }
+
+        // 红色圆底
+        paint.color = Color.RED
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f - 2f, paint)
+
+        // 白色文字
+        paint.color = Color.WHITE
+        paint.textSize = if (text.length > 2) size * 0.28f else size * 0.4f
+        paint.textAlign = android.graphics.Paint.Align.CENTER
+        val y = size / 2f - (paint.descent() + paint.ascent()) / 2f
+        canvas.drawText(text, size / 2f, y, paint)
+
+        return bitmap
+    }
+
+    private fun clearStepIndexMarkers() {
+        stepIndexMarkerList.forEach { it.remove() }
+        stepIndexMarkerList.clear()
+
+        // 同步清理圆
+        stepCircleList.forEach { it.remove() }
+        stepCircleList.clear()
+    }
+    // ====== end debug ======
 
     private fun clearLinePath() {
         linePathList.forEach { it.remove() }
         linePathList.clear()
+
+        // 同步清除 debug 下标标记
+        clearStepIndexMarkers()
     }
 
     /**
      * 绘制站点标点
      */
-    /**
-     * 绘制站点标点（普通 Marker 方案）
-     */
     private fun drawStationPoint(aMap: AMap, stationList: ArrayList<Station>) {
 
         stationList.forEachIndexed { index, station ->
 
-            val icon = BitmapDescriptorFactory.fromBitmap(createStationMarkerBitmap(index))
+            val icon = BitmapDescriptorFactory.fromBitmap(
+                createStationMarkerBitmap(
+                    index,
+                    station,
+                    mapZoomLevel
+                )
+            )
 
             val marker = aMap.addMarker(
                 MarkerOptions()
@@ -200,10 +327,16 @@ class LinePathAndStationPointService private constructor(context: Context) {
         stationPointList.clear()
     }
 
-    private fun createStationMarkerBitmap(stationIndex: Int): Bitmap {
+    private fun createStationMarkerBitmap(
+        stationIndex: Int,
+        station: Station,
+        zoomLevel: MapZoomLevel
+    ): Bitmap {
         val bitmap = stationMarkerFactory.createStationMarkerBitmap(
             stationIndex = stationIndex,
-            newStationIndex = newStationIndex
+            station = station,
+            newStationIndex = newStationIndex,
+            zoomLevel = zoomLevel
         )
         return bitmap
     }
@@ -244,7 +377,6 @@ class LinePathAndStationPointService private constructor(context: Context) {
             return
         }
 
-//        Log.d("updView", "StationState: $oldStationState -> $newStationState")
         Log.d("updView", "StationIndex: $oldStationIndex -> $newStationIndex")
 
 
@@ -266,20 +398,12 @@ class LinePathAndStationPointService private constructor(context: Context) {
         val updRange = startIndex..endIndex
         Log.d("updView", "updRange: $updRange")
         for (i in updRange) {
-            updStationPoint(i)
             updLinePath(i)
+            updStationPoint(i, mapZoomLevel)
         }
 
     }
 
-    private fun updStationPoint(stationIndex: Int) {
-        val marker = stationPointList.getOrNull(stationIndex) ?: return
-
-        val icon = BitmapDescriptorFactory.fromBitmap(createStationMarkerBitmap(stationIndex))
-
-        marker.setIcon(icon)
-
-    }
 
     private fun updLinePath(stationIndex: Int) {
         val polyline = linePathList.getOrNull(stationIndex) ?: return
@@ -307,5 +431,25 @@ class LinePathAndStationPointService private constructor(context: Context) {
         polyline.setCustomTexture(customTexture)
     }
 
-}
+    private fun updStationPoint(stationIndex: Int, zoomLevel: MapZoomLevel) {
+        val marker = stationPointList.getOrNull(stationIndex) ?: return
+        val station = stationList.getOrNull(stationIndex) ?: return
 
+        val icon =
+            BitmapDescriptorFactory.fromBitmap(createStationMarkerBitmap(
+                stationIndex,
+                station,
+                zoomLevel
+            ))
+
+        marker.setIcon(icon)
+
+    }
+
+    fun updAllStationPoint(zoomLevel: MapZoomLevel) {
+        this.mapZoomLevel = zoomLevel
+        stationPointList.forEachIndexed { index, marker ->
+            updStationPoint(index, zoomLevel)
+        }
+    }
+}

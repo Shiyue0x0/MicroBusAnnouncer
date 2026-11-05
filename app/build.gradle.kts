@@ -16,7 +16,7 @@ android {
         applicationId = "com.microbus.announcer"
         minSdk = 26
         targetSdk = 37
-        versionCode = 322
+        versionCode = 330
         versionName =
             versionCode.toString().toCharArray().joinToString(".") + "-" + LocalDateTime.now()
                 //noinspection WrongGradleMethod

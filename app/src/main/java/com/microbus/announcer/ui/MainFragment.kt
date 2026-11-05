@@ -6,15 +6,12 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.app.UiModeManager
-import android.app.UiModeManager.MODE_NIGHT_YES
 import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.Context.NOTIFICATION_SERVICE
-import android.content.Context.UI_MODE_SERVICE
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
@@ -112,8 +109,6 @@ import com.amap.api.location.AMapLocation
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.location.AMapLocationClientOption
 import com.amap.api.maps.AMap
-import com.amap.api.maps.AMap.MAP_TYPE_NIGHT
-import com.amap.api.maps.AMap.MAP_TYPE_NORMAL
 import com.amap.api.maps.AMapOptions
 import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.LocationSource
@@ -224,9 +219,7 @@ class MainFragment : Fragment() {
     private val multiPointOverlayList = ArrayList<MultiPointOverlay>()
 
     private lateinit var aMapUiSettings: UiSettings
-    private var aMapLastZoom = 0F
-    private var aMapCurrentZoom = 0F
-    private val aMapZoomPoint = 16F
+    private val aMapZoomPoint = 14F
 
 
     private lateinit var lineDatabaseHelper: LineDatabaseHelper
@@ -1079,16 +1072,8 @@ class MainFragment : Fragment() {
 
         lineArriveStationIdList.clear()
 
-
-        // 删除网络加载列表
-//        anResolver.clearPreloadingNetworkMediaFileList()
-
-//        preloadingCommonText()
-
         //切换当前站点为最近站点
         switchToNearestStation()
-
-//        preloadingStation()
 
         val viewList = ArrayList<View>()
 
@@ -1209,7 +1194,7 @@ class MainFragment : Fragment() {
                 }
 
                 // 全站路线
-                if (currentLine.name != resources.getString(R.string.line_all)){
+                if (currentLine.name != resources.getString(R.string.line_all)) {
                     navigationService.startNavigation(steps)
                 }
 
@@ -1223,7 +1208,12 @@ class MainFragment : Fragment() {
 
 
     private fun drawLinePathAndStationPoint(onlineSteps: List<DrivingPlanning.Step>?) {
-        linePathAndStationPointService.draw(aMap, currentLineStationList, onlineSteps, currentLine.name)
+        linePathAndStationPointService.draw(
+            aMap,
+            currentLineStationList,
+            onlineSteps,
+            currentLine.name
+        )
         observeStationState(viewLifecycleOwner.lifecycleScope)
     }
 
@@ -1547,7 +1537,6 @@ class MainFragment : Fragment() {
             if (isChecked) {
                 aMapView.visibility = VISIBLE
                 aMapView.onResume()
-//                initMap()
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 1f
 
@@ -1555,7 +1544,6 @@ class MainFragment : Fragment() {
                 if (this::locationMarker.isInitialized)
                     locationMarker.alpha = 0f
                 aMapView.onPause()
-//                aMapView.onDestroy()
                 aMapView.visibility = INVISIBLE
             }
         }
@@ -2193,26 +2181,16 @@ class MainFragment : Fragment() {
 
                             if (this@MainFragment::locationMarker.isInitialized) {
 
+                                if (this@MainFragment::locationMarker.isInitialized) {
+                                    // 直接设置位置，无 TranslateAnimation
+                                    locationMarker.position = currentLngLat
 
-                                val set = AnimationSet(false).apply {
-
-                                    //更新蓝点位置
-                                    addAnimation(TranslateAnimation(currentLngLat))
-
-                                    //更新蓝点方位
+                                    // 直接设置朝向，无 RotateAnimation
                                     if (updRotate) {
-                                        addAnimation(
-                                            RotateAnimation(
-                                                locationMarker.rotateAngle,
-                                                -rotateAngle
-                                            )
-                                        )
+                                        locationMarker.rotateAngle = -rotateAngle
                                     }
-
-                                    setDuration(100L)
                                 }
-                                locationMarker.setAnimation(set)
-                                locationMarker.startAnimation()
+
                             }
 
                             // 更新地图
@@ -2225,31 +2203,14 @@ class MainFragment : Fragment() {
                                     .tilt(aMap.cameraPosition.tilt)
                                     .build()
 
-                                aMap.animateCamera(
+
+                                aMap.moveCamera(
                                     CameraUpdateFactory.newCameraPosition(cameraPosition),
-                                    100,
-                                    null
+//                                    utils.getLocationInterval().toLong(),
                                 )
                             }
 
 
-                        }
-
-                        // 每隔1s刷新地图Text
-                        if (binding.mapBtn.isChecked) {
-                            // 获取地图缩放级别
-                            aMapLastZoom = aMapCurrentZoom
-                            aMapCurrentZoom = aMap.cameraPosition!!.zoom
-                            // 放大到一定级别
-                            if (aMapLastZoom < aMapZoomPoint && aMapCurrentZoom >= aMapZoomPoint) {
-                                // TODO: 刷新地图Text
-//                                refreshMapStationText()
-                            }
-                            // 缩小到一定级别
-                            else if (aMapLastZoom >= aMapZoomPoint && aMapCurrentZoom < aMapZoomPoint) {
-                                // TODO: 刷新地图Text
-//                                refreshMapStationText()
-                            }
                         }
 
                         if (::aMap.isInitialized && aMap.isTrafficEnabled != utils.getIsMapTrafficEnabled()) {
@@ -2257,13 +2218,43 @@ class MainFragment : Fragment() {
                         }
 
                     }
-                    delay(1000.milliseconds)
+                    delay(utils.getLocationInterval().toLong().milliseconds)
                 }
             }
         }
 
+        var curZoomLevel = LinePathAndStationPointService.MapZoomLevel.LAGER
 
-//0
+        aMap.setOnCameraChangeListener(object : AMap.OnCameraChangeListener {
+            override fun onCameraChange(cameraPosition: CameraPosition?) {
+                // 视角变化过程中回调，频率高，谨慎做耗时操作
+            }
+
+            override fun onCameraChangeFinish(cameraPosition: CameraPosition?) {
+                val currentZoom = cameraPosition?.zoom ?: return
+
+                if (binding.mapBtn.isChecked) {
+                    if (currentZoom >= aMapZoomPoint) {
+                        // 放大到较高级别，显示详细内容
+                        if (curZoomLevel == LinePathAndStationPointService.MapZoomLevel.LAGER) {
+                            linePathAndStationPointService.updAllStationPoint(
+                                LinePathAndStationPointService.MapZoomLevel.SMALL
+                            )
+                        }
+                        curZoomLevel = LinePathAndStationPointService.MapZoomLevel.SMALL
+                    } else {
+                        // 缩小状态，显示概略内容
+                        if (curZoomLevel == LinePathAndStationPointService.MapZoomLevel.SMALL) {
+                            linePathAndStationPointService.updAllStationPoint(
+                                LinePathAndStationPointService.MapZoomLevel.LAGER
+                            )
+                        }
+                        curZoomLevel = LinePathAndStationPointService.MapZoomLevel.LAGER
+                    }
+                }
+
+            }
+        })
 
     }
 
@@ -2519,6 +2510,7 @@ class MainFragment : Fragment() {
         if (::mLocationChangedListener.isInitialized) {
             mLocationChangedListener.onLocationChanged(location)
         }
+
 
         findMatchStation()
 
@@ -3145,8 +3137,6 @@ class MainFragment : Fragment() {
     }
 
 
-
-
     fun pauseAnnounce() {
 
         binding.stopAnnouncement.visibility = GONE
@@ -3587,15 +3577,7 @@ class MainFragment : Fragment() {
         val startingId = currentLineStationList[position].id
 
         MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogStyle)
-            .setTitle(
-                "${
-                    String.format(
-                        Locale.CHINA,
-                        "%02d",
-                        position + 1
-                    )
-                } $chosenStationCnName"
-            )
+            .setTitle("${position + 1} $chosenStationCnName")
             .setMessage(chosenStationEnName)
             .setPositiveButton(
                 "设为区间起点",
