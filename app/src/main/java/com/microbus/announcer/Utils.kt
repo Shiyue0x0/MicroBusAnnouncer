@@ -5,7 +5,6 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.UiModeManager
 import android.app.UiModeManager.MODE_NIGHT_YES
-import android.content.ComponentName
 import android.content.Context
 import android.content.Context.UI_MODE_SERVICE
 import android.content.Intent
@@ -70,6 +69,7 @@ import android.os.Looper
 import com.amap.api.maps.AMap
 import com.amap.api.maps.AMap.MAP_TYPE_NIGHT
 import com.amap.api.maps.AMap.MAP_TYPE_NORMAL
+import com.microbus.announcer.service.LinePathAndStationPointService
 
 class Utils(private val context: Context) {
 
@@ -106,6 +106,8 @@ class Utils(private val context: Context) {
     val ON_PLAYER_STATE_ENDED = "${baseActionName}.PLAYER_STATE_ENDED"
 
     val ON_PLAYER_STOP = "${baseActionName}.PLAYER_STOP"
+
+    val ON_LINE_CHANGED = "${baseActionName}.LINE_CHANGED"
 
 
     val LOAD_LOCAL_LINE = 0
@@ -333,9 +335,12 @@ class Utils(private val context: Context) {
             else -> 30F
         }
         when (action) {
-            "WillIn" -> default *= 2.4F
-            "In" -> default *= 1.0F
-            "Out" -> default *= 3.0F
+//            "WillIn" -> default *= 2.4F
+//            "In" -> default *= 1.0F
+//            "Out" -> default *= 3.0F
+            "WillIn" -> default *= 4.0F
+            "In" -> default *= 3.0F
+            "Out" -> default *= 1.0F
         }
 
         if (useDefault) {
@@ -514,6 +519,7 @@ GET https://api.mymemory.translated.net/get?q={{text}}&langpair=zh-CN|en""".trim
             putBoolean("enableOnlineNavigation", value)
         }
     }
+
     /**
      * 振动
      */
@@ -1768,6 +1774,43 @@ GET https://api.mymemory.translated.net/get?q={{text}}&langpair=zh-CN|en""".trim
                 aMap.mapType = MAP_TYPE_NIGHT
             else
                 aMap.mapType = MAP_TYPE_NORMAL
+        }
+    }
+
+    fun getUnknownStation(): Station {
+        return Station(
+            id = Int.MAX_VALUE,
+            cnName = "未知站点",
+            enName = "unknown"
+        )
+    }
+
+    fun onAMapMarkerZoomChange(
+        linePathAndStationPointService: List<LinePathAndStationPointService>,
+        currentZoom: Float,
+        aMapZoomPoint: Float,
+        curZoomLevel: LinePathAndStationPointService.MapZoomLevel
+    ): LinePathAndStationPointService.MapZoomLevel {
+        if (currentZoom >= aMapZoomPoint) {
+            // 放大到较高级别，显示详细内容
+            if (curZoomLevel == LinePathAndStationPointService.MapZoomLevel.LAGER) {
+                linePathAndStationPointService.forEach {
+                    it.updAllStationPoint(
+                        LinePathAndStationPointService.MapZoomLevel.SMALL
+                    )
+                }
+            }
+            return LinePathAndStationPointService.MapZoomLevel.SMALL
+        } else {
+            // 缩小状态，显示概略内容
+            if (curZoomLevel == LinePathAndStationPointService.MapZoomLevel.SMALL) {
+                linePathAndStationPointService.forEach {
+                    it.updAllStationPoint(
+                        LinePathAndStationPointService.MapZoomLevel.LAGER
+                    )
+                }
+            }
+            return LinePathAndStationPointService.MapZoomLevel.LAGER
         }
     }
 

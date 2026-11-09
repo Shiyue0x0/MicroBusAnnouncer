@@ -89,6 +89,26 @@ class TranslationService private constructor(context: Context) {
     }
 
     /**
+     * 编辑单条缓存译文。
+     * 若原文不存在该缓存则新增一条；若 [translated] 为空白则等价于移除该缓存。
+     * @return 编辑后是否存在该缓存项
+     */
+    fun updateCacheEntry(sourceText: String, translated: String): Boolean {
+        if (sourceText.isBlank()) return false
+
+        val key = KEY_PREFIX + sourceText
+        if (!prefs.contains(key)) return false
+
+        if (translated.isBlank()) {
+            prefs.edit { remove(key) }
+            return false
+        }
+
+        prefs.edit { putString(key, translated) }
+        return true
+    }
+
+    /**
      * 获取全部翻译缓存的只读快照。
      * key 为原文（已去掉 KEY_PREFIX），value 为译文。
      */

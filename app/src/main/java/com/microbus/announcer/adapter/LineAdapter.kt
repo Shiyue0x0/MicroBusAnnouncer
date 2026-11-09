@@ -8,6 +8,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -48,6 +50,16 @@ class LineAdapter(
 
     val utils = Utils(context)
 
+    // 新增回调接口
+    interface OnEditLineOnMapListener {
+        fun onEditLineOnMap(lineId: Int?)
+    }
+
+    private var onEditLineOnMapListener: OnEditLineOnMapListener? = null
+
+    fun setOnEditLineOnMapListener(listener: OnEditLineOnMapListener?) {
+        this.onEditLineOnMapListener = listener
+    }
 
 //    var firstVisibleItem = -1
 //
@@ -270,13 +282,15 @@ class LineAdapter(
                 switchDirection(holder)
             }
 
-            val lp = holder.lineCard.layoutParams as RecyclerView.LayoutParams
-            if (position + 1 == itemCount - 1) {
-                lp.bottomMargin = utils.dp2px(96f)
-            } else {
-                lp.bottomMargin = utils.dp2px(8f)
+            if (utils.getIsShowBottomBar()) {
+                val lp = holder.lineCard.layoutParams as RecyclerView.LayoutParams
+                if (position + 1 == itemCount - 1) {
+                    lp.bottomMargin = utils.dp2px(96f)
+                } else {
+                    lp.bottomMargin = utils.dp2px(8f)
+                }
+                holder.lineCard.layoutParams = lp
             }
-            holder.lineCard.layoutParams = lp
 
         }
     }
@@ -303,13 +317,7 @@ class LineAdapter(
             if (stationRes.isNotEmpty())
                 stationList.add(stationRes[0])
             else
-                stationList.add(
-                    Station(
-                        id = Int.MAX_VALUE,
-                        cnName = "未知站点",
-                        enName = "unknown"
-                    )
-                )
+                stationList.add(utils.getUnknownStation())
         }
 
         if (stationList.isNotEmpty()) {
@@ -406,11 +414,7 @@ class LineAdapter(
                     notifyItemRangeChanged(position + 1, itemCount - (position + 1))
                 }
                 .setNegativeButton("到地图编辑") { _, _ ->
-
-                    // 启动地图编辑活动
-                    val intent = Intent(context, LineEditorActivity::class.java)
-                    intent.putExtra("lineId", holder.line.id)
-                    context.startActivity(intent)
+                    onEditLineOnMapListener?.onEditLineOnMap(holder.line.id)
                 }
                 .show()
 
@@ -426,5 +430,6 @@ class LineAdapter(
 
         utils.haptic(holder.lineCard)
     }
+
 
 }

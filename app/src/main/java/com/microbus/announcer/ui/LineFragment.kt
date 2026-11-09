@@ -1,6 +1,7 @@
 package com.microbus.announcer.ui
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
@@ -8,6 +9,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -174,8 +176,19 @@ class LineFragment : Fragment() {
             requireContext(),
             requireActivity(),
             lineDatabaseHelper,
-            showStationPoint = false
+            showStationPoint = false,
         )
+
+        // 新增：编辑路线（地图编辑）回调
+        adapter.setOnEditLineOnMapListener(object : LineAdapter.OnEditLineOnMapListener {
+            override fun onEditLineOnMap(lineId: Int?) {
+                val intent = Intent(requireContext(), LineEditorActivity::class.java).apply {
+                    putExtra("lineId", lineId)
+                }
+                lineEditorLauncher.launch(intent)
+            }
+        })
+
 
         //点击路线切换到主控并运行
         adapter.setOnItemClickListener(object : LineAdapter.OnItemClickListener {
@@ -219,6 +232,11 @@ class LineFragment : Fragment() {
 
     }
 
+    private val lineEditorLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        refreshTotalLineList()
+    }
     private fun addLine() {
 
 //        val adapter = ArrayAdapter<String>(
@@ -250,7 +268,7 @@ class LineFragment : Fragment() {
                         when (which) {
                             0 -> {
                                 val intent = Intent(context, LineEditorActivity::class.java)
-                                requireContext().startActivity(intent)
+                                lineEditorLauncher.launch(intent)
                             }
 
                             1 -> {
@@ -290,13 +308,17 @@ class LineFragment : Fragment() {
      */
     private fun initSwipeRefreshLayout() {
         binding.swipeRefreshLayout.setOnRefreshListener {
-            refreshLineList("")
-            @SuppressLint("NotifyDataSetChanged")
-            binding.lineRecyclerView.adapter!!.notifyDataSetChanged()
-            binding.swipeRefreshLayout.isRefreshing = false
-            utils.showMsg("刷新成功")
-            utils.haptic(binding.swipeRefreshLayout)
+            refreshTotalLineList()
         }
+    }
+
+    private fun refreshTotalLineList() {
+        refreshLineList("")
+        @SuppressLint("NotifyDataSetChanged")
+        binding.lineRecyclerView.adapter!!.notifyDataSetChanged()
+        binding.swipeRefreshLayout.isRefreshing = false
+        utils.showMsg("刷新成功")
+        utils.haptic(binding.swipeRefreshLayout)
     }
 
     // 与用户交互时

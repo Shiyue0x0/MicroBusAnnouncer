@@ -56,10 +56,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -70,6 +72,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +85,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -92,6 +96,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
+import androidx.core.view.doOnPreDraw
 import androidx.core.view.isVisible
 import androidx.core.view.setPadding
 import androidx.core.widget.NestedScrollView
@@ -122,9 +127,6 @@ import com.amap.api.maps.model.MarkerOptions
 import com.amap.api.maps.model.MultiPointOverlay
 import com.amap.api.maps.model.MultiPointOverlayOptions
 import com.amap.api.maps.model.MyLocationStyle
-import com.amap.api.maps.model.animation.AnimationSet
-import com.amap.api.maps.model.animation.RotateAnimation
-import com.amap.api.maps.model.animation.TranslateAnimation
 import com.amap.api.services.busline.BusLineQuery
 import com.amap.api.services.busline.BusLineResult
 import com.amap.api.services.busline.BusLineSearch
@@ -134,6 +136,7 @@ import com.amap.api.services.route.DriveRouteResult
 import com.amap.api.services.route.RideRouteResult
 import com.amap.api.services.route.RouteSearch
 import com.amap.api.services.route.WalkRouteResult
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -192,6 +195,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
 @SuppressLint("MutableCollectionMutableState")
@@ -240,10 +244,9 @@ class MainFragment : Fragment() {
     private var currentLine by mutableStateOf(Line())
 
     /**当前路线站点运行方向（上下行）*/
-    var currentLineDirection = LineDirection.ON_UP
+    var currentLineDirection by mutableStateOf(LineDirection.ON_UP)
 
     /**当前路线运行方向站点列表*/
-    @get:SuppressLint("MutableCollectionMutableState")
     private var currentLineStationList by mutableStateOf(ArrayList<Station>())
 
     /**当前路线站点*/
@@ -342,6 +345,9 @@ class MainFragment : Fragment() {
     val lineName = mutableStateOf("")
 
     private var prefListener: SharedPreferences.OnSharedPreferenceChangeListener
+
+    private lateinit var bottomSheetBehavior: BottomSheetBehavior<*>
+
 
     init {
         startLineSwitcherForResult =
@@ -549,27 +555,13 @@ class MainFragment : Fragment() {
 
                                     isAnimating = esIsAnimating.value,
                                     onHeaderClick = {
-                                        if (isOperationLock) {
-                                            utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                                            return@EsHeaderCompose
-                                        }
-
-                                        val intent =
-                                            Intent(
-                                                requireContext(),
-                                                LineSwitcherActivity::class.java
-                                            )
-                                        intent.putExtra("currentLineId", currentLine.id)
-                                        startLineSwitcherForResult.launch(intent)
-
-                                        return@EsHeaderCompose
+                                        startLineSwitcher()
                                     },
                                     onHeaderLongClick = {
 
                                         with(binding) {
                                             val visibility = if (hideBottomBar) VISIBLE else GONE
-                                            leftButtonGroup.visibility = visibility
-                                            rightButtonGroup.visibility = visibility
+                                            topButtonRow.visibility = visibility
                                             mainSwitchGroup.visibility = visibility
                                             lineStationController.visibility = visibility
                                         }
@@ -736,7 +728,6 @@ class MainFragment : Fragment() {
 
     fun initView(savedInstanceState: Bundle?) {
 
-
         utils = Utils(requireContext())
 
         sensorHelper = SensorHelper(requireContext())
@@ -789,7 +780,11 @@ class MainFragment : Fragment() {
         binding.lineName = getString(R.string.main_line_0)
 
         // 横屏/竖屏适配
-        updFloatingViewWidth()
+        updFloatingViewWidthAndMarginBottom()
+
+        setupBottomSheet()
+
+        initBottomInfoBox()
 
         // 初始化定位
         initLocation()
@@ -864,7 +859,7 @@ class MainFragment : Fragment() {
 //        binding.headerLeftNew.startAnimation()
 //        binding.headerMiddleNew.startAnimation()
 //        binding.headerRightNew.startAnimation()
-        binding.navStationName.startAnimation()
+//        binding.navStationName.startAnimation()
 
         esIsAnimating.value = true
 
@@ -874,8 +869,10 @@ class MainFragment : Fragment() {
 
         if (utils.getIsNavMode()) {
             binding.navCard.visibility = VISIBLE
+            binding.cardRow.visibility = GONE
         } else {
             binding.navCard.visibility = GONE
+            binding.cardRow.visibility = VISIBLE
         }
 
     }
@@ -921,7 +918,7 @@ class MainFragment : Fragment() {
 //        binding.headerLeftNew.stopAnimation()
 //        binding.headerMiddleNew.stopAnimation()
 //        binding.headerRightNew.stopAnimation()
-        binding.navStationName.stopAnimation()
+//        binding.navStationName.stopAnimation()
 
         esIsAnimating.value = false
 
@@ -958,7 +955,7 @@ class MainFragment : Fragment() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        updFloatingViewWidth()
+        updFloatingViewWidthAndMarginBottom()
     }
 
     fun Station.toLngLatString(): String {
@@ -1005,13 +1002,7 @@ class MainFragment : Fragment() {
                 if (lineStationList.isNotEmpty())
                     currentLineStationList.add(lineStationList.first())
                 else
-                    currentLineStationList.add(
-                        Station(
-                            id = Int.MAX_VALUE,
-                            cnName = "未知站点",
-                            enName = "unknown"
-                        )
-                    )
+                    currentLineStationList.add(utils.getUnknownStation())
 //                Log.d(
 //                    "L855",
 //                    "${currentLineStationList.last().cnName} ${currentLineStationList.last().bearing}"
@@ -1024,13 +1015,7 @@ class MainFragment : Fragment() {
                 if (cloudStation != null) {
                     currentLineStationList.add(cloudStation.copy())
                 } else {
-                    currentLineStationList.add(
-                        Station(
-                            id = Int.MAX_VALUE,
-                            cnName = "未知站点",
-                            enName = "unknown"
-                        )
-                    )
+                    currentLineStationList.add(utils.getUnknownStation())
                 }
             }
 
@@ -1861,7 +1846,7 @@ class MainFragment : Fragment() {
     private lateinit var linePathAndStationPointService: LinePathAndStationPointService
     private fun initLinePathService() {
         linePathAndStationPointService =
-            LinePathAndStationPointService.getInstance(requireContext())
+            LinePathAndStationPointService(requireContext())
 
     }
 
@@ -2007,7 +1992,7 @@ class MainFragment : Fragment() {
 //        myLocationStyle.interval(1000);
         aMap.myLocationStyle = myLocationStyle
 
-        binding.mapContainer.setScrollView(binding.main)
+        binding.mapContainer.setScrollView(binding.root)
 
         mapToCenter(false)
 
@@ -2232,25 +2217,13 @@ class MainFragment : Fragment() {
 
             override fun onCameraChangeFinish(cameraPosition: CameraPosition?) {
                 val currentZoom = cameraPosition?.zoom ?: return
-
                 if (binding.mapBtn.isChecked) {
-                    if (currentZoom >= aMapZoomPoint) {
-                        // 放大到较高级别，显示详细内容
-                        if (curZoomLevel == LinePathAndStationPointService.MapZoomLevel.LAGER) {
-                            linePathAndStationPointService.updAllStationPoint(
-                                LinePathAndStationPointService.MapZoomLevel.SMALL
-                            )
-                        }
-                        curZoomLevel = LinePathAndStationPointService.MapZoomLevel.SMALL
-                    } else {
-                        // 缩小状态，显示概略内容
-                        if (curZoomLevel == LinePathAndStationPointService.MapZoomLevel.SMALL) {
-                            linePathAndStationPointService.updAllStationPoint(
-                                LinePathAndStationPointService.MapZoomLevel.LAGER
-                            )
-                        }
-                        curZoomLevel = LinePathAndStationPointService.MapZoomLevel.LAGER
-                    }
+                    curZoomLevel = utils.onAMapMarkerZoomChange(
+                        listOf(linePathAndStationPointService),
+                        currentZoom,
+                        aMapZoomPoint,
+                        curZoomLevel
+                    )
                 }
 
             }
@@ -3670,7 +3643,154 @@ class MainFragment : Fragment() {
         return finalLngLat
     }
 
-    fun updFloatingViewWidth() {
+    /**
+     * 初始化底部抽屉
+     */
+    private fun setupBottomSheet() {
+        bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheetContainer)
+
+        bottomSheetBehavior.apply {
+            state = BottomSheetBehavior.STATE_EXPANDED
+            peekHeight = 0
+            isHideable = false
+            skipCollapsed = false
+            isFitToContents = true
+            halfExpandedRatio = 0.55f
+            isDraggable = true
+        }
+
+        binding.bottomSheetContainer.doOnPreDraw {
+            val topRowHeight = binding.topButtonRow.height
+            val cardRowHeight = binding.cardRow.height
+
+            // 卡片行上下 margin（各 8dp）
+            val cardRowLp = binding.cardRow.layoutParams as ViewGroup.MarginLayoutParams
+            val cardRowMargin = cardRowLp.topMargin + cardRowLp.bottomMargin
+
+            // 拖动把手高度 + 其 margin
+            val dragHandleHeight = binding.dragHandle.height
+            val dragHandleLp = binding.dragHandle.layoutParams as ViewGroup.MarginLayoutParams
+            val dragHandleMargin = dragHandleLp.topMargin + dragHandleLp.bottomMargin
+
+            // 底部导航栏填充高度
+            val bottomNavFillHeight = binding.bottomNavFill.height
+            val bottomNavFillLP = binding.bottomNavFill.layoutParams as ViewGroup.MarginLayoutParams
+            val bottomNavFillMargin = bottomNavFillLP.topMargin + bottomNavFillLP.bottomMargin
+
+            // 额外再加 8dp
+            val extraPx = (8 * resources.displayMetrics.density).roundToInt()
+
+            val foldHeight = dragHandleHeight + dragHandleMargin +
+                    topRowHeight + cardRowHeight + cardRowMargin +
+                    bottomNavFillHeight + bottomNavFillMargin +
+                    extraPx
+
+            Log.d(
+                "BottomSheet",
+                "handle=$dragHandleHeight+margin=$dragHandleMargin, " +
+                        "topRow=$topRowHeight, cardRow=$cardRowHeight+margin=$cardRowMargin, " +
+                        "extra=$extraPx, fold=$foldHeight"
+            )
+
+            bottomSheetBehavior.peekHeight = foldHeight
+        }
+
+        binding.dragHandle.setOnClickListener {
+            toggleBottomSheet()
+        }
+
+        bottomSheetBehavior.addBottomSheetCallback(object :
+            BottomSheetBehavior.BottomSheetCallback() {
+            override fun onStateChanged(view: View, newState: Int) { /* ... */
+            }
+
+            override fun onSlide(bottomSheet: View, slideOffset: Float) { /* ... */
+            }
+        })
+    }
+
+    /**
+     * 切换抽屉状态
+     */
+    private fun toggleBottomSheet() {
+        when (bottomSheetBehavior.state) {
+            BottomSheetBehavior.STATE_COLLAPSED ->
+                bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+
+            BottomSheetBehavior.STATE_EXPANDED,
+            BottomSheetBehavior.STATE_HALF_EXPANDED ->
+                bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+
+            BottomSheetBehavior.STATE_DRAGGING -> {
+                TODO()
+            }
+
+            BottomSheetBehavior.STATE_HIDDEN -> {
+                TODO()
+            }
+
+            BottomSheetBehavior.STATE_SETTLING -> {
+                TODO()
+            }
+        }
+    }
+
+    private fun initBottomInfoBox() {
+        binding.bottomInfoBox.setContent {
+            BottomInfoBox()
+        }
+    }
+
+    @Composable
+    private fun BottomInfoBox() {
+        var lineName by remember { mutableStateOf("") }
+        var lastStationCnName by remember { mutableStateOf("") }
+
+        LaunchedEffect(currentLine, currentLineDirection) {
+            lineName = currentLine.name
+            if (currentLineStationList.isNotEmpty()) {
+                lastStationCnName = currentLineStationList.last().cnName
+            }
+        }
+
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp,
+                    top = 0.dp
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            top.yukonga.miuix.kmp.basic.Card(
+                colors = top.yukonga.miuix.kmp.basic.CardDefaults.defaultColors(
+                    color = colorResource(R.color.an_contain_bg_tran)
+                ),
+                insideMargin = PaddingValues(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { startLineSwitcher() },
+                content = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "$lineName 开往 $lastStationCnName",
+                            style = TextStyle(fontSize = 14.sp)
+                        )
+
+                    }
+                }
+            )
+        }
+    }
+
+
+    fun updFloatingViewWidthAndMarginBottom() {
         val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
         val width = if (isLandscape) {
@@ -3679,9 +3799,15 @@ class MainFragment : Fragment() {
             ViewGroup.LayoutParams.MATCH_PARENT
         }
 
-        listOf(binding.floatingView, binding.floatingViewBottom).forEach { view ->
+        listOf(binding.bottomNavFill).forEach { view ->
             view.layoutParams = view.layoutParams.apply { this.width = width }
-            utils.applyOrientation(resources.configuration.orientation, view)
+            if (utils.getIsShowBottomBar()) {
+                utils.applyOrientation(resources.configuration.orientation, view)
+            }
+        }
+
+        listOf(binding.floatingView, binding.bottomSheetContainer).forEach { view ->
+            view.layoutParams = view.layoutParams.apply { this.width = width }
         }
     }
 
@@ -3773,6 +3899,22 @@ class MainFragment : Fragment() {
         allStationTextList.forEach { item ->
             anResolver.preloadingNetworkMedia(item)
         }
+    }
+
+    private fun startLineSwitcher() {
+
+        if (isOperationLock) {
+            utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+            return
+        }
+
+        val intent =
+            Intent(
+                requireContext(),
+                LineSwitcherActivity::class.java
+            )
+        intent.putExtra("currentLineId", currentLine.id)
+        startLineSwitcherForResult.launch(intent)
     }
 
 }

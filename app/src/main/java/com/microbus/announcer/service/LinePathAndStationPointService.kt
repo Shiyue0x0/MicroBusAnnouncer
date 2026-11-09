@@ -22,7 +22,7 @@ import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.model.LatLngBounds
 import com.microbus.announcer.Utils
 
-class LinePathAndStationPointService private constructor(context: Context) {
+class LinePathAndStationPointService(context: Context) {
 
     private val appContext: Context = context.applicationContext
 
@@ -54,17 +54,6 @@ class LinePathAndStationPointService private constructor(context: Context) {
     }
 
     private var mapZoomLevel = MapZoomLevel.LAGER
-
-    companion object {
-        @Volatile
-        private var INSTANCE: LinePathAndStationPointService? = null
-
-        fun getInstance(context: Context): LinePathAndStationPointService {
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: LinePathAndStationPointService(context).also { INSTANCE = it }
-            }
-        }
-    }
 
     /** 手动开启/关闭 debug 模式 */
     fun setDebug(enable: Boolean) {

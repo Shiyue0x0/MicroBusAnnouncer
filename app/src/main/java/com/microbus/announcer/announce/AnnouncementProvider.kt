@@ -555,7 +555,7 @@ class AnnouncementProvider private constructor(context: Context) {
         val text = textWithPath.substringAfterLast("/")
         val voiceText = utils.getVoiceText(text)
 
-        val networkDir = File("${utils.appRootPath}/networkMedia/$urlKey/$basePath")
+        val networkDir = File("${utils.appRootPath}/NetworkMedia/$urlKey/$basePath")
         val networkFileName = "${voiceText}.wav"
 
         if (!networkDir.exists()) {

@@ -1,25 +1,35 @@
 package com.microbus.announcer.ui.settings
 
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AlertDialog
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.colorResource
@@ -28,23 +38,27 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.TranslationService
 import com.microbus.announcer.Utils
-import com.microbus.announcer.databinding.DialogInputBinding
-import com.microbus.announcer.ui.compose.BaseSettingItem
 import com.microbus.announcer.ui.compose.AnSmallTopAppBar
+import com.microbus.announcer.ui.compose.BaseSettingItem
 import com.microbus.announcer.ui.compose.SwitchSettingItem
+import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
+import kotlin.time.Duration.Companion.milliseconds
 
 class TranslationSettings : Fragment() {
 
@@ -93,7 +107,7 @@ class TranslationSettings : Fragment() {
         }
 
         DisposableEffect(prefs) {
-            val listener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
 
                 when (key) {
                     "enableOnlineTranslation" -> {
@@ -205,121 +219,302 @@ class TranslationSettings : Fragment() {
 
     @Composable
     fun OnlineTranslationRequestCodeItem(value: String) {
+        var showDialog by remember { mutableStateOf(false) }
+
         BaseSettingItem(
             "翻译API", value, painterResource(id = R.drawable.lang),
-            {
-                val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
-                val dialog = MaterialAlertDialogBuilder(
-                    requireContext(),
-                    R.style.CustomAlertDialogStyle
-                ).setTitle("设置翻译API").setView(binding.root)
-                    .setPositiveButton("保存", null)
-                    .setNegativeButton(getString(android.R.string.cancel), null).show()
-
-                binding.editText.isSingleLine = false
-                binding.editText.setText(value)
-                binding.textInputLayout.hint = "请输入翻译API"
-
-                dialog.setCanceledOnTouchOutside(false)
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-
-                    val newValue = binding.editText.text.toString()
-
-                    if (newValue == "") {
-                        utils.showMsg("请输入翻译API")
-                        return@setOnClickListener
-                    }
-
-                    if (!newValue.contains("{{text}}")) {
-                        utils.showMsg("请将API中要翻译的文本替换为{{text}}")
-                        return@setOnClickListener
-                    }
-
-                    prefs.edit {
-                        putString("onlineTranslationRequestCode", newValue)
-                    }
-                    utils.showMsg("翻译API设置成功")
-                    dialog.dismiss()
-
-                }
-
-                binding.textInputLayout.requestFocus()
-                WindowCompat.getInsetsController(requireActivity().window, binding.editText)
-                    .show(WindowInsetsCompat.Type.ime())
-            },
+            { showDialog = true }
         )
+
+        if (showDialog) {
+            var input by remember(value) { mutableStateOf(value) }
+
+            OverlayDialog(
+                title = "设置翻译API",
+                show = true,
+                onDismissRequest = { showDialog = false },
+                defaultWindowInsetsPadding = false
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    TextField(
+                        value = input,
+                        onValueChange = { input = it },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    TextButton(
+                        text = "保存",
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            val newValue = input.trim()
+
+                            if (newValue.isEmpty()) {
+                                utils.showMsg("请输入翻译API")
+                                return@TextButton
+                            }
+
+                            if (!newValue.contains("{{text}}")) {
+                                utils.showMsg("请将API中要翻译的文本替换为{{text}}")
+                                return@TextButton
+                            }
+
+                            prefs.edit {
+                                putString("onlineTranslationRequestCode", newValue)
+                            }
+                            utils.showMsg("翻译API设置成功")
+                            showDialog = false
+                        }
+                    )
+                }
+            }
+        }
     }
 
     @Composable
     fun OnlineTranslationResponseJSONPathItem(value: String) {
+        var showDialog by remember { mutableStateOf(false) }
+
         BaseSettingItem(
             "翻译结果JSONPath", value, painterResource(id = R.drawable.lang),
-            {
-                val binding = DialogInputBinding.inflate(LayoutInflater.from(context))
-                val dialog = MaterialAlertDialogBuilder(
-                    requireContext(),
-                    R.style.CustomAlertDialogStyle
-                ).setTitle("设置翻译结果JSONPath").setView(binding.root)
-                    .setPositiveButton("保存", null)
-                    .setNegativeButton(getString(android.R.string.cancel), null).show()
-
-                binding.editText.isSingleLine = false
-                binding.editText.setText(value)
-                binding.textInputLayout.hint = "请输入文本"
-
-                dialog.setCanceledOnTouchOutside(false)
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-
-                    val newValue = binding.editText.text.toString()
-
-                    if (newValue == "") {
-                        utils.showMsg("请输入翻译结果JSONPath")
-                        return@setOnClickListener
-                    }
-
-                    prefs.edit {
-                        putString("onlineTranslationResponseJSONPath", newValue)
-                    }
-                    utils.showMsg("翻译结果JSONPath设置成功")
-                    dialog.dismiss()
-
-                }
-
-                binding.textInputLayout.requestFocus()
-                WindowCompat.getInsetsController(requireActivity().window, binding.editText)
-                    .show(WindowInsetsCompat.Type.ime())
-            },
+            { showDialog = true }
         )
+
+        if (showDialog) {
+            var input by remember(value) { mutableStateOf(value) }
+
+            OverlayDialog(
+                title = "设置翻译结果JSONPath",
+                show = true,
+                onDismissRequest = { showDialog = false },
+                defaultWindowInsetsPadding = false
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    TextField(
+                        value = input,
+                        onValueChange = { input = it },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    TextButton(
+                        text = "保存",
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            val newValue = input.trim()
+
+                            if (newValue.isEmpty()) {
+                                utils.showMsg("请输入翻译结果JSONPath")
+                                return@TextButton
+                            }
+
+                            prefs.edit {
+                                putString("onlineTranslationResponseJSONPath", newValue)
+                            }
+                            utils.showMsg("翻译结果JSONPath设置成功")
+                            showDialog = false
+                        }
+                    )
+                }
+            }
+        }
     }
 
     @Composable
     fun ViewTranslationCacheItem() {
+        var showDialog by remember { mutableStateOf(false) }
+        var editingSourceText by remember { mutableStateOf<String?>(null) }
+        var refreshKey by remember { mutableIntStateOf(0) }
+        val translationService = TranslationService.getInstance(requireContext())
+
         BaseSettingItem(
             "查看翻译缓存", "", painterResource(id = R.drawable.lang),
-            {
-                val translationService = TranslationService.getInstance(requireContext())
-                val cache = translationService.getAllCache() // 见下方 TranslationService 修改
-
-                if (cache.isEmpty()) {
+            clickFun = {
+                if (translationService.getAllCache().isEmpty()) {
                     utils.showMsg("暂无翻译缓存")
-                    return@BaseSettingItem
+                } else {
+                    showDialog = true
                 }
-
-                val entries = cache.entries.toList()
-                val messages = entries.joinToString("\n\n") { (k, v) ->
-                    "原文：$k\n译文：$v"
-                }
-
-                MaterialAlertDialogBuilder(
-                    requireContext(),
-                    R.style.CustomAlertDialogStyle
-                )
-                    .setTitle("翻译缓存（共 ${entries.size} 条）")
-                    .setMessage(messages)
-                    .setPositiveButton("关闭", null)
-                    .show()
-            },
+            }
         )
+
+        val cache = remember(refreshKey, showDialog) {
+            translationService.getAllCache()
+        }
+
+        if (showDialog) {
+            TranslationCacheDialog(
+                entries = cache.entries.toList(),
+                onDismiss = { showDialog = false },
+                onEdit = { sourceText ->
+                    editingSourceText = sourceText
+                }
+            )
+        }
+
+        editingSourceText?.let { sourceText ->
+            EditTranslationDialog(
+                translationService = translationService,
+                sourceText = sourceText,
+                onDismiss = { editingSourceText = null },
+                onSaved = {
+                    editingSourceText = null
+                    refreshKey++
+                }
+            )
+        }
+    }
+
+    @Composable
+    private fun TranslationCacheDialog(
+        entries: List<Map.Entry<String, String>>,
+        onDismiss: () -> Unit,
+        onEdit: (String) -> Unit
+    ) {
+        // 输入框中的即时值
+        var searchInput by remember { mutableStateOf("") }
+        // 实际用于过滤的关键字
+        var searchKeyword by remember { mutableStateOf("") }
+        // 上次执行搜索的时间戳
+        var lastSearchTime by remember { mutableLongStateOf(0L) }
+
+        // 节流搜索：距上次搜索 >= 1 秒则立即搜索，否则等剩余时间后再搜索
+        LaunchedEffect(searchInput) {
+            val now = System.currentTimeMillis()
+            val elapsed = now - lastSearchTime
+            if (elapsed < 1000L) {
+                delay((1000L - elapsed).milliseconds)
+            }
+            lastSearchTime = System.currentTimeMillis()
+            searchKeyword = searchInput.trim()
+        }
+
+        // 按原文/译文模糊过滤；关键字为空时返回全部
+        val filteredEntries = remember(entries, searchKeyword) {
+            if (searchKeyword.isBlank()) {
+                entries
+            } else {
+                entries.filter { (sourceText, translated) ->
+                    sourceText.contains(searchKeyword, ignoreCase = true) ||
+                            translated.contains(searchKeyword, ignoreCase = true)
+                }
+            }
+        }
+
+        OverlayDialog(
+            title = "翻译缓存（共 ${filteredEntries.size} 条）",
+            show = true,
+            onDismissRequest = onDismiss
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextField(
+                    value = searchInput,
+                    onValueChange = { searchInput = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "搜索原文或译文"
+                )
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp)
+                ) {
+                    if (filteredEntries.isEmpty()) {
+                        Text(
+                            text = if (searchKeyword.isBlank()) "暂无翻译缓存" else "未找到匹配的缓存",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            fontSize = 14.sp
+                        )
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                            items(filteredEntries, key = { it.key }) { (sourceText, translated) ->
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp)
+                                        .clickable { onEdit(sourceText) }
+                                ) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = sourceText,
+                                            fontSize = 14.sp,
+                                            color = MiuixTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = translated,
+                                            fontSize = 14.sp,
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                TextButton(
+                    text = "关闭",
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onDismiss
+                )
+            }
+        }
+    }
+
+
+    @Composable
+    private fun EditTranslationDialog(
+        translationService: TranslationService,
+        sourceText: String,
+        onDismiss: () -> Unit,
+        onSaved: () -> Unit
+    ) {
+        val currentTranslation = translationService.getAllCache()[sourceText] ?: ""
+        var input by remember(sourceText) { mutableStateOf(currentTranslation) }
+
+        OverlayDialog(
+            title = "编辑译文：$sourceText",
+            show = true,
+            onDismissRequest = onDismiss,
+            // 关键修改：关闭默认的窗口插入处理
+            defaultWindowInsetsPadding = false
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                // 可选：给内容底部增加一点间距，视觉上更舒适
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                TextField(
+                    value = input,
+                    onValueChange = { input = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TextButton(
+                    text = "保存",
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        val newValue = input.trim()
+
+                        if (newValue.isEmpty()) {
+                            utils.showMsg("译文不能为空")
+                            return@TextButton
+                        }
+
+                        if (translationService.updateCacheEntry(sourceText, newValue)) {
+                            utils.showMsg("译文已更新")
+                            onSaved()
+                        } else {
+                            utils.showMsg("更新失败：该缓存可能已被移除")
+                            onDismiss()
+                        }
+                    }
+                )
+            }
+        }
     }
 
     @Composable
@@ -346,4 +541,3 @@ class TranslationSettings : Fragment() {
 
 
 }
-

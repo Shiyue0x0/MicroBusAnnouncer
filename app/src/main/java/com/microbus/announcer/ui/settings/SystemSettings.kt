@@ -17,16 +17,20 @@ import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.colorResource
@@ -49,7 +53,14 @@ import com.microbus.announcer.ui.compose.SwitchSettingItem
 import com.microbus.announcer.databinding.DialogInputBinding
 import com.microbus.announcer.databinding.DialogSliderBinding
 import com.microbus.announcer.ui.compose.AnSmallTopAppBar
+import top.yukonga.miuix.kmp.basic.DropdownImpl
+import top.yukonga.miuix.kmp.basic.ListPopupColumn
+import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.overlay.OverlayListPopup
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
@@ -203,6 +214,7 @@ class SystemSettings : Fragment() {
                                 NoticeItem(notice, setNotice)
                                 IsNavModeItem(isNavMode, setIsNavMode)
                                 LineAllStationTypeItem()
+                                RestoreDefaultItem()
                             }
                         }
                     })
@@ -563,6 +575,83 @@ class SystemSettings : Fragment() {
         )
     }
 
+    @Composable
+    fun RestoreDefaultItem() {
+        val keys = prefs.all.keys.sorted()
+        var showListPopup by remember { mutableStateOf(false) }
+        var pendingKey by remember { mutableStateOf<String?>(null) }
+
+        TextButton(
+            text = "恢复设置项默认值",
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                if (keys.isEmpty()) {
+                    utils.showMsg("暂无设置项可恢复")
+                } else {
+                    showListPopup = true
+                }
+            }
+        )
+
+        OverlayListPopup(
+            show = showListPopup,
+            alignment = PopupPositionProvider.Align.Start,
+            onDismissRequest = { showListPopup = false }
+        ) {
+            ListPopupColumn {
+                keys.forEachIndexed { index, key ->
+                    DropdownImpl(
+                        text = key,
+                        optionSize = keys.size,
+                        isSelected = false,
+                        index = index,
+                        onSelectedIndexChange = {
+                            showListPopup = false
+                            pendingKey = key
+                        }
+                    )
+                }
+            }
+        }
+
+        val confirmKey = pendingKey
+        if (confirmKey != null) {
+            OverlayDialog(
+                title = "恢复设置项默认值",
+                show = true,
+                onDismissRequest = { pendingKey = null },
+                defaultWindowInsetsPadding = false
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    Text("是否恢复默认值？")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextButton(
+                            text = "取消",
+                            modifier = Modifier.weight(1f),
+                            onClick = { pendingKey = null }
+                        )
+                        TextButton(
+                            text = "确定",
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                prefs.edit {
+                                    remove(confirmKey)
+                                }
+                                utils.showMsg("已恢复默认值")
+                                pendingKey = null
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
 
 }
-

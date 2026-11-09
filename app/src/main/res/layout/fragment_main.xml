@@ -11,8 +11,8 @@
             type="String" />
     </data>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/main"
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/root"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
@@ -23,11 +23,7 @@
         <com.microbus.announcer.ui.view.Container
             android:id="@+id/mapContainer"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            android:layout_height="match_parent">
 
             <com.amap.api.maps.TextureMapView
                 android:id="@+id/map"
@@ -41,10 +37,9 @@
             android:id="@+id/floatingView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_gravity="end"
             android:layout_marginBottom="16dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
+            app:layout_constraintEnd_toEndOf="parent">
 
             <!--  状态栏填充  -->
             <LinearLayout
@@ -53,14 +48,6 @@
                 android:layout_height="10dp"
                 android:orientation="horizontal"
                 app:layout_constraintTop_toTopOf="parent" />
-
-            <!--            <LinearLayout-->
-            <!--                android:id="@+id/topFill"-->
-            <!--                android:layout_width="match_parent"-->
-            <!--                android:layout_height="8dp"-->
-            <!--                android:orientation="horizontal"-->
-            <!--                app:layout_constraintTop_toBottomOf="@+id/bar" />-->
-
 
             <LinearLayout
                 android:id="@+id/fill2"
@@ -79,13 +66,12 @@
                 android:layout_marginEnd="16dp"
                 android:clickable="true"
                 android:focusable="true"
-                android:visibility="gone"
+                android:visibility="visible"
                 app:cardBackgroundColor="@color/an_contain_bg_tran"
                 app:cardCornerRadius="24dp"
                 app:layout_constraintTop_toBottomOf="@+id/fill2"
                 app:strokeColor="@color/md_theme_surface_tran2"
-                app:strokeWidth="2dp"
-                tools:layout_editor_absoluteX="16dp">
+                app:strokeWidth="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -119,6 +105,7 @@
                             android:textStyle="bold"
                             app:background="@color/an_contain_bg" />
 
+
                         <com.microbus.announcer.ui.view.ESView
                             android:id="@+id/navStationName"
                             android:layout_width="wrap_content"
@@ -127,7 +114,7 @@
                             android:ellipsize="marquee"
                             android:gravity="start"
                             android:marqueeRepeatLimit="marquee_forever"
-                            android:maxWidth="160dp"
+                            android:maxWidth="100sp"
                             android:singleLine="true"
                             android:text="Station"
                             android:textColor="@color/md_theme_onSurface"
@@ -138,64 +125,48 @@
                             android:id="@+id/navStationCard"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
                             android:clickable="true"
                             android:focusable="true"
+                            android:minWidth="60dp"
                             app:cardBackgroundColor="@color/an_contain_bg_tran"
                             app:cardCornerRadius="16dp"
-                            app:layout_constraintTop_toBottomOf="@+id/topFill"
                             app:strokeWidth="0dp">
 
-                            <androidx.constraintlayout.widget.ConstraintLayout
-                                android:layout_width="match_parent"
+                            <LinearLayout
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_margin="8dp"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal">
 
-                                <com.microbus.announcer.ui.view.ScrollingTextView
+                                <TextView
                                     android:id="@+id/navStationDistanceValue"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:ellipsize="marquee"
                                     android:gravity="center"
-                                    android:marqueeRepeatLimit="marquee_forever"
                                     android:singleLine="true"
                                     android:text="100"
                                     android:textColor="@color/md_theme_onSurface"
                                     android:textSize="20sp"
-                                    android:textStyle="bold"
-                                    app:layout_constraintStart_toStartOf="parent"
-                                    app:layout_constraintTop_toTopOf="parent" />
+                                    android:textStyle="bold" />
 
-                                <com.microbus.announcer.ui.view.ScrollingTextView
+                                <TextView
                                     android:id="@+id/navStationDistanceUnit"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:ellipsize="marquee"
                                     android:gravity="center"
-                                    android:marqueeRepeatLimit="marquee_forever"
                                     android:singleLine="true"
                                     android:text="m"
                                     android:textColor="@color/md_theme_onSurface"
                                     android:textSize="16sp"
-                                    android:textStyle="bold"
-                                    app:layout_constraintBaseline_toBaselineOf="@id/navStationDistanceValue"
-                                    app:layout_constraintStart_toEndOf="@+id/navStationDistanceValue" />
+                                    android:textStyle="bold" />
 
-                            </androidx.constraintlayout.widget.ConstraintLayout>
+                            </LinearLayout>
 
                         </com.google.android.material.card.MaterialCardView>
 
                     </LinearLayout>
-
-
-                    <!--            <LinearLayout-->
-                    <!--                android:id="@+id/navCardFill"-->
-                    <!--                android:layout_width="0dp"-->
-                    <!--                android:layout_height="match_parent"-->
-                    <!--                android:layout_weight="1"-->
-                    <!--                android:orientation="horizontal"-->
-                    <!--                app:layout_constraintTop_toTopOf="parent" />-->
 
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/navSpeedCard"
@@ -205,15 +176,12 @@
                         android:focusable="true"
                         app:cardBackgroundColor="@color/an_contain_bg_tran"
                         app:cardCornerRadius="16dp"
-                        app:layout_constraintTop_toBottomOf="@+id/topFill"
                         app:strokeWidth="0dp">
 
                         <androidx.constraintlayout.widget.ConstraintLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_margin="8dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
+                            android:layout_margin="8dp">
 
                             <com.microbus.announcer.ui.view.ScrollingTextView
                                 android:id="@+id/navStationSpeedValue"
@@ -249,7 +217,6 @@
 
                     </com.google.android.material.card.MaterialCardView>
 
-
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
@@ -277,11 +244,6 @@
                 app:strokeColor="@color/md_theme_surface_tran2"
                 app:strokeWidth="2dp">
 
-                <!--                <com.microbus.announcer.ui.view.NestedScrollableHost-->
-                <!--                    android:layout_width="wrap_content"-->
-                <!--                    android:layout_height="wrap_content"-->
-                <!--                    android:layout_gravity="center">-->
-
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/lineStationList"
                     android:layout_width="wrap_content"
@@ -290,227 +252,100 @@
                     android:fadingEdgeLength="20dp"
                     android:requiresFadingEdge="horizontal" />
 
-                <!--                </com.microbus.announcer.ui.view.NestedScrollableHost>-->
-
-
             </com.google.android.material.card.MaterialCardView>
-
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!--  悬浮组件 下方  -->
+        <!-- ============ 底部抽屉 BottomSheet ============ -->
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/floatingViewBottom"
+            android:id="@+id/bottomSheetContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_gravity="end"
+            app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <!--  控制栏  -->
-            <LinearLayout
-                android:id="@+id/leftButtonGroup"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginBottom="4dp"
-                android:orientation="horizontal"
-                app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
-                app:layout_constraintStart_toStartOf="parent">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/mapLocation"
-                    style="?attr/materialIconButtonFilledStyle"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:contentDescription=""
-                    app:backgroundTint="@color/an_contain_bg_tran"
-                    app:icon="@drawable/location"
-                    app:iconGravity="textTop"
-                    app:iconSize="22dp"
-                    app:iconTint="@color/md_theme_primary" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/switchPowerSavingMode"
-                    style="?attr/materialIconButtonFilledStyle"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:contentDescription=""
-                    app:backgroundTint="@color/an_contain_bg_tran"
-                    app:icon="@drawable/power_saving"
-                    app:iconGravity="textTop"
-                    app:iconSize="22dp"
-                    app:iconTint="@color/md_theme_primary" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/editLine"
-                    style="?attr/materialIconButtonFilledStyle"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:contentDescription="@string/starting_station"
-                    android:visibility="gone"
-                    app:backgroundTint="@color/an_contain_bg_tran"
-                    app:icon="@drawable/edit"
-                    app:iconGravity="textTop"
-                    app:iconSize="22dp"
-                    app:iconTint="@color/md_theme_primary" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/stopAnnouncement"
-                    style="?attr/materialIconButtonFilledStyle"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:contentDescription="@string/starting_station"
-                    android:visibility="gone"
-                    app:backgroundTint="@color/an_contain_bg_tran"
-                    app:icon="@drawable/stop"
-                    app:iconGravity="textTop"
-                    app:iconSize="22dp"
-                    app:iconTint="@color/md_theme_primary" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/rightButtonGroup"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="16dp"
-                android:layout_marginBottom="4dp"
-                android:orientation="horizontal"
-                app:layout_constraintBottom_toTopOf="@+id/nestedScrollView2"
-                app:layout_constraintEnd_toEndOf="parent">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/runningInfo"
-                    style="?attr/materialIconButtonFilledStyle"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:contentDescription=""
-                    app:backgroundTint="@color/an_contain_bg_tran"
-                    app:icon="@drawable/list"
-                    app:iconGravity="textTop"
-                    app:iconSize="22dp"
-                    app:iconTint="@color/md_theme_primary" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/serviceBtn"
-                    style="?attr/materialIconButtonFilledStyle"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:contentDescription=""
-                    app:backgroundTint="@color/an_contain_bg_tran"
-                    app:icon="@drawable/service"
-                    app:iconGravity="textTop"
-                    app:iconSize="22dp"
-                    app:iconTint="@color/md_theme_primary" />
-
-            </LinearLayout>
-
-            <androidx.core.widget.NestedScrollView
-                android:id="@+id/nestedScrollView2"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/bottomSheetCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:layout_constraintBottom_toTopOf="@+id/bottomFill">
+                app:cardBackgroundColor="@color/an_contain_bg_tran"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:orientation="vertical">
 
+                    <!-- 拖动把手 -->
                     <LinearLayout
+                        android:id="@+id/dragHandle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp"
-                        android:layout_marginBottom="8dp"
-                        android:gravity="center"
-                        android:orientation="horizontal">
+                        android:gravity="center_horizontal">
 
                         <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/terminalCard"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:layout_weight="1"
+                            android:layout_width="64dp"
+                            android:layout_height="4dp"
+                            android:layout_marginTop="16dp"
+                            android:layout_marginBottom="16dp"
                             android:clickable="true"
                             android:focusable="true"
-                            app:cardBackgroundColor="@color/an_contain_bg_tran"
-                            app:cardCornerRadius="24dp"
-                            app:strokeWidth="0dp">
+                            app:cardBackgroundColor="@color/md_theme_outline"
+                            app:cardCornerRadius="2dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="0dp" />
 
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:layout_marginTop="12dp"
-                                android:layout_marginBottom="12dp"
-                                android:gravity="center"
-                                android:orientation="vertical">
+                    </LinearLayout>
 
-                                <TextView
-                                    android:id="@+id/terminalTitle"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/to" />
+                    <!-- 运行信息卡片 -->
+                    <androidx.core.widget.NestedScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
 
-                                <com.microbus.announcer.ui.view.ScrollingTextView
-                                    android:id="@+id/terminalName"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:ellipsize="marquee"
-                                    android:gravity="center"
-                                    android:marqueeRepeatLimit="marquee_forever"
-                                    android:paddingLeft="8dp"
-                                    android:paddingRight="8dp"
-                                    android:singleLine="true"
-                                    android:text="@string/main_to_station_name"
-                                    android:textColor="@color/md_theme_onSurface"
-                                    android:textSize="@dimen/middleFontSize"
-                                    android:textStyle="bold" />
-
-
-                            </LinearLayout>
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/currentStationCard"
-                            android:layout_width="0dp"
+                        <LinearLayout
+                            android:id="@+id/cardRow"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:layout_weight="2"
-                            android:clickable="true"
-                            android:focusable="true"
+                            android:layout_marginStart="16dp"
+                            android:layout_marginEnd="16dp"
+                            android:layout_marginBottom="4dp"
+                            android:gravity="center"
+                            android:orientation="horizontal">
 
-                            app:cardBackgroundColor="@color/an_contain_bg_tran"
-                            app:cardCornerRadius="24dp"
-                            app:strokeWidth="0dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:baselineAligned="false"
-                                android:orientation="horizontal"
-                                android:paddingStart="8dp"
-                                android:paddingEnd="8dp">
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/terminalCard"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                app:cardBackgroundColor="@color/an_contain_bg_tran"
+                                app:cardCornerRadius="24dp"
+                                app:strokeWidth="0dp">
 
                                 <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
                                     android:layout_marginTop="12dp"
                                     android:layout_marginBottom="12dp"
-                                    android:layout_weight="1"
                                     android:gravity="center"
                                     android:orientation="vertical">
 
-
                                     <TextView
-                                        android:id="@+id/currentStationState"
+                                        android:id="@+id/terminalTitle"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-
-                                        android:text="@string/next" />
+                                        android:text="@string/to" />
 
                                     <com.microbus.announcer.ui.view.ScrollingTextView
-                                        android:id="@+id/currentStationName"
+                                        android:id="@+id/terminalName"
                                         android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
                                         android:ellipsize="marquee"
@@ -519,23 +354,133 @@
                                         android:paddingLeft="8dp"
                                         android:paddingRight="8dp"
                                         android:singleLine="true"
-                                        android:text="@string/main_next_station_name"
+                                        android:text="@string/main_to_station_name"
                                         android:textColor="@color/md_theme_onSurface"
                                         android:textSize="@dimen/middleFontSize"
                                         android:textStyle="bold" />
 
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/currentStationCard"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="2"
+                                android:clickable="true"
+                                android:focusable="true"
+                                app:cardBackgroundColor="@color/an_contain_bg_tran"
+                                app:cardCornerRadius="24dp"
+                                app:strokeWidth="0dp">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:baselineAligned="false"
+                                    android:orientation="horizontal"
+                                    android:paddingStart="8dp"
+                                    android:paddingEnd="8dp">
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="12dp"
+                                        android:layout_marginBottom="12dp"
+                                        android:layout_weight="1"
+                                        android:gravity="center"
+                                        android:orientation="vertical">
+
+                                        <TextView
+                                            android:id="@+id/currentStationState"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="@string/next" />
+
+                                        <com.microbus.announcer.ui.view.ScrollingTextView
+                                            android:id="@+id/currentStationName"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:ellipsize="marquee"
+                                            android:gravity="center"
+                                            android:marqueeRepeatLimit="marquee_forever"
+                                            android:paddingLeft="8dp"
+                                            android:paddingRight="8dp"
+                                            android:singleLine="true"
+                                            android:text="@string/main_next_station_name"
+                                            android:textColor="@color/md_theme_onSurface"
+                                            android:textSize="@dimen/middleFontSize"
+                                            android:textStyle="bold" />
+
+                                    </LinearLayout>
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="12dp"
+                                        android:layout_marginBottom="12dp"
+                                        android:layout_weight="1"
+                                        android:gravity="center"
+                                        android:orientation="vertical">
+
+                                        <LinearLayout
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:gravity="center"
+                                            android:orientation="horizontal">
+
+                                            <TextView
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content"
+                                                android:text="@string/main_distance_title" />
+
+                                            <TextView
+                                                android:id="@+id/currentDistanceToCurrentStationUnit"
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content"
+                                                android:text="@string/main_distance_unit"
+                                                android:textSize="12sp" />
+                                        </LinearLayout>
+
+                                        <com.microbus.announcer.ui.view.ScrollingTextView
+                                            android:id="@+id/currentDistanceToCurrentStationValue"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:ellipsize="marquee"
+                                            android:gravity="center"
+                                            android:marqueeRepeatLimit="marquee_forever"
+                                            android:paddingLeft="8dp"
+                                            android:paddingRight="8dp"
+                                            android:singleLine="true"
+                                            android:text="@string/main_distance_value"
+                                            android:textColor="@color/md_theme_onSurface"
+                                            android:textSize="@dimen/middleFontSize"
+                                            android:textStyle="bold" />
+
+                                    </LinearLayout>
 
                                 </LinearLayout>
 
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/speedCard"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                app:cardBackgroundColor="@color/an_contain_bg_tran"
+                                app:cardCornerRadius="24dp"
+                                app:strokeWidth="0dp">
+
                                 <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
                                     android:layout_marginTop="12dp"
                                     android:layout_marginBottom="12dp"
-                                    android:layout_weight="1"
                                     android:gravity="center"
                                     android:orientation="vertical">
-
 
                                     <LinearLayout
                                         android:layout_width="match_parent"
@@ -544,22 +489,21 @@
                                         android:orientation="horizontal">
 
                                         <TextView
+                                            android:id="@+id/speedTitle"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-
-                                            android:text="@string/main_distance_title" />
+                                            android:text="@string/main_speed_title" />
 
                                         <TextView
-                                            android:id="@+id/currentDistanceToCurrentStationUnit"
+                                            android:id="@+id/speedUnit"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-
-                                            android:text="@string/main_distance_unit"
+                                            android:text="@string/main_speed_unit"
                                             android:textSize="12sp" />
                                     </LinearLayout>
 
                                     <com.microbus.announcer.ui.view.ScrollingTextView
-                                        android:id="@+id/currentDistanceToCurrentStationValue"
+                                        android:id="@+id/speedValue"
                                         android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
                                         android:ellipsize="marquee"
@@ -568,284 +512,257 @@
                                         android:paddingLeft="8dp"
                                         android:paddingRight="8dp"
                                         android:singleLine="true"
-                                        android:text="@string/main_distance_value"
+                                        android:text="@string/main_speed_value"
                                         android:textColor="@color/md_theme_onSurface"
                                         android:textSize="@dimen/middleFontSize"
                                         android:textStyle="bold" />
 
-
                                 </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
 
-                            </LinearLayout>
+                        </LinearLayout>
+                    </androidx.core.widget.NestedScrollView>
 
-
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <!--                <com.google.android.material.card.MaterialCardView-->
-                        <!--                    android:id="@+id/currentDistanceToCurrentStationCard"-->
-                        <!--                    android:layout_width="0dp"-->
-                        <!--                    android:layout_height="wrap_content"-->
-                        <!--                    android:layout_marginEnd="8dp"-->
-                        <!--                    android:layout_weight="1"-->
-                        <!--                    android:clickable="true"-->
-                        <!--                    android:focusable="true"-->
-                        <!--                    app:cardBackgroundColor="@color/an_contain_bg"-->
-                        <!--                    app:cardCornerRadius="24dp"-->
-
-                        <!--                    app:strokeWidth="0dp">-->
-
-                        <!--                    <LinearLayout-->
-                        <!--                        android:layout_width="match_parent"-->
-                        <!--                        android:layout_height="match_parent"-->
-                        <!--                        android:layout_marginTop="12dp"-->
-                        <!--                        android:layout_marginBottom="12dp"-->
-                        <!--                        android:gravity="center"-->
-                        <!--                        android:orientation="vertical">-->
-
-
-                        <!--                        <LinearLayout-->
-                        <!--                            android:layout_width="match_parent"-->
-                        <!--                            android:layout_height="match_parent"-->
-                        <!--                            android:gravity="center"-->
-                        <!--                            android:orientation="horizontal">-->
-
-                        <!--                            <TextView-->
-                        <!--                                android:layout_width="wrap_content"-->
-                        <!--                                android:layout_height="wrap_content"-->
-
-                        <!--                                android:text="@string/main_distance_title" />-->
-
-                        <!--                            <TextView-->
-                        <!--                                android:id="@+id/currentDistanceToCurrentStationUnit"-->
-                        <!--                                android:layout_width="wrap_content"-->
-                        <!--                                android:layout_height="wrap_content"-->
-
-                        <!--                                android:text="@string/main_distance_unit"-->
-                        <!--                                android:textSize="12sp" />-->
-                        <!--                        </LinearLayout>-->
-
-                        <!--                        <com.microbus.announcer.ui.view.ScrollingTextView-->
-                        <!--                            android:id="@+id/currentDistanceToCurrentStationValue"-->
-                        <!--                            android:layout_width="match_parent"-->
-                        <!--                            android:layout_height="wrap_content"-->
-                        <!--                            android:ellipsize="marquee"-->
-                        <!--                            android:gravity="center"-->
-                        <!--                            android:marqueeRepeatLimit="marquee_forever"-->
-                        <!--                            android:paddingLeft="8dp"-->
-                        <!--                            android:paddingRight="8dp"-->
-                        <!--                            android:singleLine="true"-->
-                        <!--                            android:text="@string/main_distance_value"-->
-                        <!--                            android:textColor="@color/md_theme_onSurface"-->
-                        <!--                            android:textSize="@dimen/middleFontSize"-->
-                        <!--                            android:textStyle="bold" />-->
-
-
-                        <!--                    </LinearLayout>-->
-                        <!--                </com.google.android.material.card.MaterialCardView>-->
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/speedCard"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:clickable="true"
-                            android:focusable="true"
-                            app:cardBackgroundColor="@color/an_contain_bg_tran"
-                            app:cardCornerRadius="24dp"
-
-                            app:strokeWidth="0dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-
-                                android:layout_height="match_parent"
-                                android:layout_marginTop="12dp"
-                                android:layout_marginBottom="12dp"
-                                android:gravity="center"
-                                android:orientation="vertical">
-
-
-                                <LinearLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="match_parent"
-                                    android:gravity="center"
-                                    android:orientation="horizontal">
-
-                                    <TextView
-                                        android:id="@+id/speedTitle"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="@string/main_speed_title" />
-
-                                    <TextView
-                                        android:id="@+id/speedUnit"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="@string/main_speed_unit"
-                                        android:textSize="12sp" />
-                                </LinearLayout>
-
-                                <com.microbus.announcer.ui.view.ScrollingTextView
-                                    android:id="@+id/speedValue"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:ellipsize="marquee"
-                                    android:gravity="center"
-                                    android:marqueeRepeatLimit="marquee_forever"
-                                    android:paddingLeft="8dp"
-                                    android:paddingRight="8dp"
-                                    android:singleLine="true"
-                                    android:text="@string/main_speed_value"
-                                    android:textColor="@color/md_theme_onSurface"
-                                    android:textSize="@dimen/middleFontSize"
-                                    android:textStyle="bold" />
-
-                            </LinearLayout>
-                        </com.google.android.material.card.MaterialCardView>
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/lineStationController"
+                    <!-- 站点控制按钮行 -->
+                    <androidx.core.widget.NestedScrollView
+                        android:id="@+id/nestedScrollView"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp"
-                        android:gravity="center"
-                        android:orientation="horizontal">
-
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/startingStation"
-                            style="?attr/materialIconButtonFilledStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:layout_weight="1"
-                            android:contentDescription="@string/starting_station"
-                            android:visibility="gone"
-                            app:backgroundTint="@color/an_contain_bg_tran"
-                            app:icon="@drawable/start"
-                            app:iconGravity="textTop"
-                            app:iconTint="@color/md_theme_primary"
-                            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/lastStation"
-                            style="?attr/materialIconButtonFilledStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:layout_weight="1"
-                            android:contentDescription="@string/last_station"
-                            app:backgroundTint="@color/an_contain_bg_tran"
-                            app:icon="@drawable/arrow_left"
-                            app:iconGravity="textTop"
-                            app:iconTint="@color/md_theme_primary"
-                            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/voiceAnnouncement"
-                            style="?attr/materialIconButtonFilledStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:layout_weight="1"
-                            android:contentDescription="@string/announce_current_station"
-                            app:backgroundTint="@color/an_contain_bg_tran"
-                            app:icon="@drawable/notifications"
-                            app:iconGravity="textTop"
-                            app:iconTint="@color/md_theme_primary"
-                            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/nextStation"
-                            style="?attr/materialIconButtonFilledStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:layout_weight="1"
-                            android:contentDescription="@string/next_station"
-                            app:backgroundTint="@color/an_contain_bg_tran"
-                            app:icon="@drawable/arrow_right"
-                            app:iconGravity="textTop"
-                            app:iconTint="@color/md_theme_primary"
-                            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/terminal"
-                            style="?attr/materialIconButtonFilledStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:contentDescription="@string/terminal"
-                            android:visibility="gone"
-                            app:backgroundTint="@color/an_contain_bg_tran"
-                            app:icon="@drawable/start"
-                            app:iconGravity="textTop"
-                            app:iconTint="@color/md_theme_primary"
-                            app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
-
-                    </LinearLayout>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/mainSwitchGroup"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp"
-                        android:layout_marginBottom="4dp"
-                        app:cardBackgroundColor="@color/an_contain_bg_tran"
-                        app:cardCornerRadius="24dp"
-                        app:strokeWidth="0dp">
-
+                        android:layout_height="wrap_content">
 
                         <LinearLayout
+                            android:id="@+id/lineStationController"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center"
+                            android:layout_marginStart="16dp"
+                            android:layout_marginEnd="16dp"
                             android:orientation="horizontal"
-                            android:padding="4dp">
+                            android:paddingBottom="0dp">
 
-                            <com.google.android.material.button.MaterialButtonToggleGroup
-                                android:id="@+id/locationBtnGroup"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="4dp"
-                                android:layout_marginEnd="8dp"
-                                android:layout_weight="1">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/locationBtn"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/switch_location"
-                                    android:textColor="@color/text_color_selector"
-                                    app:backgroundTint="@color/button_color_selector"
-                                    app:icon="@drawable/location_on"
-                                    app:iconTint="@color/text_color_selector" />
-
-                            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-
-                            <com.google.android.material.button.MaterialButtonToggleGroup
-                                android:id="@+id/mapBtnGroup"
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/startingStation"
+                                style="?attr/materialIconButtonFilledStyle"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginEnd="8dp"
                                 android:layout_weight="1"
-                                android:visibility="gone">
+                                android:visibility="gone"
+                                app:backgroundTint="@color/an_contain_bg_tran"
+                                app:icon="@drawable/start"
+                                app:iconGravity="textTop"
+                                app:iconTint="@color/md_theme_primary"
+                                app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/mapBtn"
-                                    android:layout_width="match_parent"
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/lastStation"
+                                style="?attr/materialIconButtonFilledStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="2"
+                                app:backgroundTint="@color/an_contain_bg_tran"
+                                app:icon="@drawable/arrow_left"
+                                app:iconGravity="textTop"
+                                app:iconTint="@color/md_theme_primary"
+                                app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/voiceAnnouncement"
+                                style="?attr/materialIconButtonFilledStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="3"
+                                app:backgroundTint="@color/an_contain_bg_tran"
+                                app:icon="@drawable/notifications"
+                                app:iconGravity="textTop"
+                                app:iconTint="@color/md_theme_primary"
+                                app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/nextStation"
+                                style="?attr/materialIconButtonFilledStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="2"
+                                app:backgroundTint="@color/an_contain_bg_tran"
+                                app:icon="@drawable/arrow_right"
+                                app:iconGravity="textTop"
+                                app:iconTint="@color/md_theme_primary"
+                                app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/terminal"
+                                style="?attr/materialIconButtonFilledStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:visibility="gone"
+                                app:backgroundTint="@color/an_contain_bg_tran"
+                                app:icon="@drawable/start"
+                                app:iconGravity="textTop"
+                                app:iconTint="@color/md_theme_primary"
+                                app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small.Wide" />
+
+                        </LinearLayout>
+
+                    </androidx.core.widget.NestedScrollView>
+
+                    <!-- 按钮行 -->
+                    <androidx.core.widget.NestedScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <LinearLayout
+                            android:id="@+id/topButtonRow"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingStart="16dp"
+                            android:paddingTop="4dp"
+                            android:paddingEnd="16dp">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/mapLocation"
+                                style="?attr/materialIconButtonFilledStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                app:backgroundTint="@color/an_contain_bg_tran"
+                                app:icon="@drawable/location"
+                                app:iconGravity="textTop"
+                                app:iconSize="22dp"
+                                app:iconTint="@color/md_theme_primary" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/switchPowerSavingMode"
+                                style="?attr/materialIconButtonFilledStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                app:backgroundTint="@color/an_contain_bg_tran"
+                                app:icon="@drawable/power_saving"
+                                app:iconGravity="textTop"
+                                app:iconSize="22dp"
+                                app:iconTint="@color/md_theme_primary" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/editLine"
+                                style="?attr/materialIconButtonFilledStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:visibility="gone"
+                                app:backgroundTint="@color/an_contain_bg_tran"
+                                app:icon="@drawable/edit"
+                                app:iconGravity="textTop"
+                                app:iconSize="22dp"
+                                app:iconTint="@color/md_theme_primary" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/stopAnnouncement"
+                                style="?attr/materialIconButtonFilledStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:visibility="gone"
+                                app:backgroundTint="@color/an_contain_bg_tran"
+                                app:icon="@drawable/stop"
+                                app:iconGravity="textTop"
+                                app:iconSize="22dp"
+                                app:iconTint="@color/md_theme_primary" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/runningInfo"
+                                style="?attr/materialIconButtonFilledStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                app:backgroundTint="@color/an_contain_bg_tran"
+                                app:icon="@drawable/list"
+                                app:iconGravity="textTop"
+                                app:iconSize="22dp"
+                                app:iconTint="@color/md_theme_primary" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/serviceBtn"
+                                style="?attr/materialIconButtonFilledStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                app:backgroundTint="@color/an_contain_bg_tran"
+                                app:icon="@drawable/service"
+                                app:iconGravity="textTop"
+                                app:iconSize="22dp"
+                                app:iconTint="@color/md_theme_primary" />
+
+                        </LinearLayout>
+
+                    </androidx.core.widget.NestedScrollView>
+
+                    <!-- 开关组 -->
+                    <androidx.core.widget.NestedScrollView
+                        android:id="@+id/nestedScrollView2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/mainSwitchGroup"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="16dp"
+                            android:layout_marginEnd="16dp"
+                            android:layout_marginBottom="16dp"
+                            app:cardBackgroundColor="@color/an_contain_bg_tran"
+                            app:cardCornerRadius="24dp"
+                            app:strokeWidth="0dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:orientation="horizontal"
+                                android:padding="4dp">
+
+                                <com.google.android.material.button.MaterialButtonToggleGroup
+                                    android:id="@+id/locationBtnGroup"
+                                    android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:text="@string/switch_map"
-                                    android:textColor="@color/text_color_selector"
-                                    app:icon="@drawable/map"
-                                    app:iconTint="@color/text_color_selector" />
+                                    android:layout_marginStart="4dp"
+                                    android:layout_marginEnd="8dp"
+                                    android:layout_weight="1">
 
-                            </com.google.android.material.button.MaterialButtonToggleGroup>
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/locationBtn"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/switch_location"
+                                        android:textColor="@color/text_color_selector"
+                                        app:backgroundTint="@color/button_color_selector"
+                                        app:icon="@drawable/location_on"
+                                        app:iconTint="@color/text_color_selector" />
+
+                                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                                <com.google.android.material.button.MaterialButtonToggleGroup
+                                    android:id="@+id/mapBtnGroup"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginEnd="8dp"
+                                    android:layout_weight="1"
+                                    android:visibility="gone">
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/mapBtn"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/switch_map"
+                                        android:textColor="@color/text_color_selector"
+                                        app:icon="@drawable/map"
+                                        app:iconTint="@color/text_color_selector" />
+
+                                </com.google.android.material.button.MaterialButtonToggleGroup>
 
                             <com.google.android.material.button.MaterialButtonToggleGroup
                                 android:id="@+id/lineDirectionBtnGroup"
@@ -855,90 +772,51 @@
                                 app:selectionRequired="true"
                                 app:singleSelection="true">
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/lineDirectionBtnUp"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:minWidth="0dp"
-                                    android:text="@string/up_line"
-                                    android:textColor="@color/text_color_selector"
-                                    app:backgroundTint="@color/button_color_selector"
-                                    app:iconTint="@color/text_color_selector" />
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/lineDirectionBtnUp"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:minWidth="0dp"
+                                        android:text="@string/up_line"
+                                        android:textColor="@color/text_color_selector"
+                                        app:backgroundTint="@color/button_color_selector"
+                                        app:iconTint="@color/text_color_selector" />
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/lineDirectionBtnDown"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:minWidth="0dp"
-                                    android:text="@string/down_line"
-                                    android:textColor="@color/text_color_selector"
-                                    app:backgroundTint="@color/button_color_selector"
-                                    app:iconTint="@color/text_color_selector" />
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/lineDirectionBtnDown"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:minWidth="0dp"
+                                        android:text="@string/down_line"
+                                        android:textColor="@color/text_color_selector"
+                                        app:backgroundTint="@color/button_color_selector"
+                                        app:iconTint="@color/text_color_selector" />
 
-                            </com.google.android.material.button.MaterialButtonToggleGroup>
+                                </com.google.android.material.button.MaterialButtonToggleGroup>
 
+                            </LinearLayout>
 
-                        </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
 
+                    </androidx.core.widget.NestedScrollView>
 
-                    </com.google.android.material.card.MaterialCardView>
+                    <androidx.compose.ui.platform.ComposeView
+                        android:id="@+id/bottomInfoBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
 
-                    <!--            <com.google.android.material.card.MaterialCardView-->
-                    <!--                android:layout_width="match_parent"-->
-                    <!--                android:layout_height="wrap_content"-->
-                    <!--                android:layout_marginStart="16dp"-->
-                    <!--                android:layout_marginEnd="16dp"-->
-
-                    <!--                android:layout_marginBottom="12dp"-->
-                    <!--                android:clickable="true"-->
-                    <!--                android:focusable="true"-->
-                    <!--                android:visibility="gone"-->
-
-                    <!--                app:cardCornerRadius="24dp">-->
-
-
-                    <!--                <LinearLayout-->
-                    <!--                    android:layout_width="match_parent"-->
-                    <!--                    android:layout_height="wrap_content"-->
-                    <!--                    android:layout_marginBottom="12dp"-->
-                    <!--                    android:orientation="vertical">-->
-
-                    <!--                    <TextView-->
-                    <!--                        android:layout_width="wrap_content"-->
-                    <!--                        android:layout_height="wrap_content"-->
-                    <!--                        android:layout_marginStart="12dp"-->
-                    <!--                        android:layout_marginTop="12dp"-->
-                    <!--                        android:layout_marginEnd="12dp" />-->
-
-                    <!--                    <TextView-->
-                    <!--                        android:id="@+id/lineStationChangeInfo"-->
-                    <!--                        android:layout_width="wrap_content"-->
-                    <!--                        android:layout_height="wrap_content"-->
-                    <!--                        android:layout_marginStart="12dp"-->
-                    <!--                        android:layout_marginEnd="12dp"-->
-                    <!--                        android:layout_marginBottom="12dp" />-->
-
-                    <!--                </LinearLayout>-->
-
-                    <!--            </com.google.android.material.card.MaterialCardView>-->
+                    <!-- 底部导航栏填充 -->
+                    <View
+                        android:id="@+id/bottomNavFill"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp" />
 
                 </LinearLayout>
 
+            </com.google.android.material.card.MaterialCardView>
 
-            </androidx.core.widget.NestedScrollView>
-
-            <LinearLayout
-                android:id="@+id/bottomFill"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:orientation="horizontal"
-                app:layout_constraintBottom_toBottomOf="parent">
-
-            </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
 </layout>
