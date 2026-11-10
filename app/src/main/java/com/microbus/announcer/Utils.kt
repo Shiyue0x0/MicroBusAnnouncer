@@ -213,7 +213,7 @@ class Utils(private val context: Context) {
      * 从设置中获取是否启用巡航模式
      */
     fun getIsNavMode(): Boolean {
-        return prefs.getBoolean("isNavMode", false)
+        return prefs.getBoolean("isNavMode", true)
     }
 
     /**

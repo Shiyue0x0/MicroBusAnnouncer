@@ -82,7 +82,9 @@ class LinePathAndStationPointService(context: Context) {
         steps: List<DrivingPlanning.Step>?,
         lineName: String,
         markerTitlePrefix: String = "marker",
-        markerNumberType: MarkerNumberType = MarkerNumberType.INDEX
+        markerNumberType: MarkerNumberType = MarkerNumberType.INDEX,
+        moveMapToLine: Boolean = true,
+        showInUpperHalf: Boolean = false
     ) {
 
         oldStationIndex = null
@@ -98,8 +100,9 @@ class LinePathAndStationPointService(context: Context) {
         if (lineName != appContext.resources.getString(R.string.line_all)) {
             val mSteps = getLinePath(stationList, steps)
             drawLinePath(aMap, mSteps)
-            // todo 切换地图相机，完整显示路线
-            fitLinePath(aMap)
+            if (moveMapToLine) {
+                moveMapToLine(aMap, showInUpperHalf)
+            }
         }
 
         // 站点标点
@@ -213,8 +216,10 @@ class LinePathAndStationPointService(context: Context) {
 
     /**
      * 移动相机，使已绘制的整条路线完整显示在屏幕内
+     *
+     * @param showInUpperHalf 是否让路线显示在屏幕上半部分（默认 false，整屏居中）
      */
-    private fun fitLinePath(aMap: AMap) {
+    fun moveMapToLine(aMap: AMap, showInUpperHalf: Boolean = false) {
         val builder = LatLngBounds.Builder()
         var hasPoint = false
         linePathList.forEach { polyline ->
@@ -222,19 +227,29 @@ class LinePathAndStationPointService(context: Context) {
         }
         if (!hasPoint) return
 
-        val bounds = builder.build()
+        var bounds = builder.build()
+
         val dm = appContext.resources.displayMetrics
         val screenW = dm.widthPixels
         val screenH = dm.heightPixels
 
-        // 左右各不留，上下各留 120px
         val paddingTopBottom = utils.dp2px(300f)
 
-        // newLatLngBounds(bounds, width, height, padding) 的 width/height
-        // 是用于计算缩放的"有效视口"，padding 是四边统一留白。
-        // 这里用"缩小有效视口"来间接实现"上下多留"：
         val effectiveW = screenW - 0
-        val effectiveH = screenH - paddingTopBottom * 2
+        var effectiveH = screenH - paddingTopBottom * 2
+
+        if (showInUpperHalf) {
+            val latSpan = bounds.northeast.latitude - bounds.southwest.latitude
+            // 向下扩展一倍：西南角纬度变小
+            val newSouthwest = LatLng(
+                bounds.southwest.latitude - latSpan,
+                bounds.southwest.longitude
+            )
+            // ⚠️ 注意参数顺序：第一个是西南角（纬度小），第二个是东北角（纬度大）
+            bounds = LatLngBounds(newSouthwest, bounds.northeast)
+
+            effectiveH = screenH - paddingTopBottom * 2
+        }
 
         try {
             aMap.animateCamera(

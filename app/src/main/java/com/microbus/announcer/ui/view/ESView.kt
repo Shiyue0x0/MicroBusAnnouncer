@@ -300,8 +300,8 @@ class ESView : View {
 //        }
     }
 
-    // 文字滚动完毕的时机（通过最后一个字的位置来判定）。0：最后一个字进入屏幕时；0.5：最后一个字到达屏幕中央时；1：最后一个字离开屏幕时。
-    var finishPositionOfLastWord = 0.5F
+    // 文字滚动完毕的时机（通过最后一个字的位置来判定）。0：最后一个字离开屏幕时；0.5：最后一个字到达屏幕中央时；1：最后一个字进入屏幕时。
+    var finishPositionOfLastWord = 0F
 
     fun nextText(textNew: String) {
         stopAnimation()

@@ -68,7 +68,6 @@ import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.model.StationStatus
 import com.microbus.announcer.service.LinePathAndStationPointService
-import com.microbus.announcer.ui.compose.AnSmallTopAppBar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import sh.calvin.reorderable.ReorderableItem
@@ -81,7 +80,6 @@ import top.yukonga.miuix.kmp.basic.CardColors
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -94,7 +92,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Edit
 import top.yukonga.miuix.kmp.icon.extended.ListView
-import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.LocalDismissState
@@ -239,17 +236,21 @@ class LineEditorActivity : BaseActivity() {
     private fun preloadStationCache() {
         stationCache.clear()
         (upEntries + downEntries).map { it.stationId }.distinct().forEach { id ->
-            val st = stationDatabaseHelper.queryById(id).firstOrNull()
-            if (st != null) stationCache[id] = st
+            val station = stationDatabaseHelper.queryById(id).firstOrNull()
+            if (station != null) {
+                station.cnName = utils.getStationNameFromCn(station.cnName, "cn", station)
+                stationCache[id] = station
+            }
         }
     }
 
     private fun getStationDisplayName(id: Int): String {
         stationCache[id]?.let { return it.cnName }
-        val st = stationDatabaseHelper.queryById(id).firstOrNull()
-        return if (st != null) {
-            stationCache[id] = st
-            st.cnName
+        val station = stationDatabaseHelper.queryById(id).firstOrNull()
+        return if (station != null) {
+            stationCache[id] = station
+            station.cnName = utils.getStationNameFromCn(station.cnName, "cn", station)
+            station.cnName
         } else {
             "未知站点(#$id)"
         }
@@ -285,21 +286,6 @@ class LineEditorActivity : BaseActivity() {
         updateLine { it.copy(downLineStation = serializeEntries(downEntries)) }
     }
 
-    /** 新建模式下保存并退出 */
-    private fun commitAndFinish() {
-        if (line.name.isBlank()) {
-            utils.showMsg("请输入路线名称")
-            return
-        }
-        val result = lineDatabaseHelper.insert(line)
-        if (result > 0) {
-            utils.showMsg("已保存")
-            finishWithResult()
-        } else {
-            utils.showMsg("保存失败")
-        }
-    }
-
     // ★ 新增：当前是否处于上行方向
     private fun isUpDirActive(): Boolean = currentDirState == 0
 
@@ -311,22 +297,6 @@ class LineEditorActivity : BaseActivity() {
         val controller = remember { ThemeController(ColorSchemeMode.System) }
         MiuixTheme(controller = controller) {
             Scaffold(
-                topBar = {
-                    AnSmallTopAppBar(
-                        activity = this,
-                        title = "编辑路线",
-                        leftActions = {
-                            IconButton(onClick = {
-                                if (isEditing) {
-                                    finishWithResult()
-                                } else {
-                                    commitAndFinish()
-                                }
-                            }) {
-                                Icon(MiuixIcons.Ok, contentDescription = "完成")
-                            }
-                        })
-                },
                 content = { innerPadding ->
                     MainContent(innerPadding)
                 }
@@ -557,7 +527,8 @@ class LineEditorActivity : BaseActivity() {
 
             StationCard(
                 entries = currentEntries,
-                setEntries = setCurrentEntries
+                setEntries = setCurrentEntries,
+                dirKey = currentDir
             )
         }
     }
@@ -565,7 +536,8 @@ class LineEditorActivity : BaseActivity() {
     @Composable
     private fun StationCard(
         entries: List<StationEntry>,
-        setEntries: (List<StationEntry>) -> Unit
+        setEntries: (List<StationEntry>) -> Unit,
+        dirKey: Int
     ) {
         // 编辑源文本对话框
         var showSourceDialog by remember { mutableStateOf(false) }
@@ -612,6 +584,16 @@ class LineEditorActivity : BaseActivity() {
                     mutable.add(to.index, item)
                     setEntries(mutable)
                 }
+
+                // 每个方向独立记录上一次 size；dirKey 变化时重新初始化
+                var lastSize by remember(dirKey) { mutableIntStateOf(entries.size) }
+                LaunchedEffect(dirKey, entries.size) {
+                    if (entries.size > lastSize) {
+                        lazyListState.animateScrollToItem(entries.size - 1)
+                    }
+                    lastSize = entries.size
+                }
+
                 LazyRow(
                     state = lazyListState,
                     modifier = Modifier
@@ -698,20 +680,26 @@ class LineEditorActivity : BaseActivity() {
                                                     // 等布局完成拿到 maxValue
                                                     snapshotFlow { scrollState.maxValue }.first { it > 0 }
 
-                                                    val speedPxPerMs = 0.05f   // ← 恒定速度：每毫秒滚多少 px，调它
+                                                    val speedPxPerMs =
+                                                        0.05f   // ← 恒定速度：每毫秒滚多少 px，调它
 
                                                     while (true) {
                                                         // 顶部停留
                                                         delay(1200.milliseconds)
 
                                                         // 匀速滚到底
-                                                        val distDown = scrollState.maxValue - scrollState.value
+                                                        val distDown =
+                                                            scrollState.maxValue - scrollState.value
                                                         if (distDown > 0) {
-                                                            val durDown = (abs(distDown) / speedPxPerMs)
-                                                                .toInt().coerceAtLeast(100)
+                                                            val durDown =
+                                                                (abs(distDown) / speedPxPerMs)
+                                                                    .toInt().coerceAtLeast(100)
                                                             scrollState.animateScrollTo(
                                                                 scrollState.maxValue,
-                                                                animationSpec = tween(durDown, easing = LinearEasing)
+                                                                animationSpec = tween(
+                                                                    durDown,
+                                                                    easing = LinearEasing
+                                                                )
                                                             )
                                                         }
 
@@ -793,12 +781,18 @@ class LineEditorActivity : BaseActivity() {
             }
         }
 
-        Text(
-            textAlign = TextAlign.Center,
+        // Card 包装
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            fontSize = 12.sp,
-            text = "* 轻触删除 长按拖动调整顺序"
-        )
+            cornerRadius = 8.dp
+        ) {
+            Text(
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = 12.sp,
+                text = "* 轻触删除 长按拖动调整顺序"
+            )
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -823,7 +817,7 @@ class LineEditorActivity : BaseActivity() {
             Button(
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    color = MiuixTheme.colorScheme.secondaryVariant.copy(alpha = 0.3f)
+                    color = MiuixTheme.colorScheme.secondaryVariant
                 ),
                 onClick = {
                     sourceText = entries.joinToString(" ") { it.stationId.toString() }
@@ -906,14 +900,16 @@ class LineEditorActivity : BaseActivity() {
             onPick = { station ->
                 val id = station.id ?: return@AddStationDialog
                 // 允许添加重复站点（环线/折返），仅在重复时给出轻提示
-                if (entries.any { it.stationId == id }) {
-                    utils.showMsg("该站点已存在，仍已追加")
-                }
+//                if (entries.any { it.stationId == id }) {
+//                    utils.showMsg("该站点已存在，仍已追加")
+//                }
+                utils.showMsg("已添加 ${station.cnName}", true)
                 setEntries(entries + StationEntry(nextUid(), id))
             }
         )
 
     }
+
 
     // —— 添加站点弹窗：搜索 + 列表点选（保持打开） ——
 
@@ -973,7 +969,7 @@ class LineEditorActivity : BaseActivity() {
                             ) { index ->
                                 val station = results[index]
                                 BasicComponent(
-                                    title = station.cnName,
+                                    title = "${station.id}${station.type} ${station.cnName}",
                                     onClick = { onPick(station) }
                                 )
                             }
@@ -1086,6 +1082,7 @@ class LineEditorActivity : BaseActivity() {
 
     // —— 地图（底层） ——
 
+    private var mapView: MapView? = null
     private var aMap: AMap? = null
 
     @Composable
@@ -1098,6 +1095,7 @@ class LineEditorActivity : BaseActivity() {
                 onCreate(Bundle())
             }
         }
+        this.mapView = mapView
 
         DisposableEffect(lifecycle, mapView) {
             val observer = LifecycleEventObserver { _, event ->
@@ -1125,24 +1123,44 @@ class LineEditorActivity : BaseActivity() {
             modifier = modifier
         )
 
-        // 监听上下行条目序列，变化时刷新地图
-        LaunchedEffect(upEntries, downEntries, currentDir) {
-
-            if (aMap == null) {
-                return@LaunchedEffect
+        // ★ 首次绘制 或 切换方向时才移动相机；增删/重排不移动
+        var shouldMoveToLine by remember { mutableStateOf(true) }
+        var lastDir by remember { mutableIntStateOf(currentDir) }
+        LaunchedEffect(currentDir) {
+            if (currentDir != lastDir) {
+                lastDir = currentDir
+                shouldMoveToLine = true   // 方向切换 → 重新定位到该方向的路线
             }
+        }
 
-            Log.d("AMapCompose", "currentDir: $currentDir")
+        LaunchedEffect(upEntries, downEntries, currentDir) {
+            val map = aMap ?: return@LaunchedEffect
+
+            Log.d("AMapCompose", "currentDir: $currentDir, moveMapToLine: $shouldMoveToLine")
+
             val currentEntries = if (currentDir == 0) upEntries else downEntries
             val stationList = currentEntries.map {
                 stationDatabaseHelper.queryById(it.stationId).firstOrNull()
                     ?: utils.getUnknownStation()
             }
+            stationList.forEach { it.cnName = utils.getStationNameFromCn(it.cnName, "cn", it) }
+
+            val moveNow = shouldMoveToLine
             linePathAndStationPointService.apply {
-                draw(aMap!!, ArrayList(stationList), null, line.name, "line")
+                draw(
+                    map,
+                    ArrayList(stationList),
+                    null,
+                    line.name,
+                    "line",
+                    moveMapToLine = moveNow,
+                    showInUpperHalf = true
+                )
                 onStationIndexChange(0)
                 onStationStateChange(StationStatus.ON_NEXT)
             }
+            // 消费掉标志，后续增删/重排不再移动
+            shouldMoveToLine = false
         }
     }
 
@@ -1180,7 +1198,6 @@ class LineEditorActivity : BaseActivity() {
 
 
             if (prefix == "line") {
-                // ★ 修改：完成 TODO —— 点击线路站点 marker 弹出删除确认
                 val index = stationIndex.toIntOrNull()
                 if (index != null) {
                     // 按当前方向 + index 反查 uid（index 会随重排变化，uid 才稳定）
@@ -1191,6 +1208,7 @@ class LineEditorActivity : BaseActivity() {
                     } else {
                         // 相机移到该站点
                         focusStationOnMap(entry.stationId)
+                        linePathAndStationPointService.onStationIndexChange(index)
                         // 记录 uid 并弹出删除确认
                         deleteTargetUid = entry.uid
                         showDeleteDialog = true
@@ -1225,14 +1243,26 @@ class LineEditorActivity : BaseActivity() {
 
     private fun focusStationOnMap(stationId: Int) {
         val station = stationDatabaseHelper.queryById(stationId).firstOrNull() ?: return
-        aMap?.animateCamera(
-            CameraUpdateFactory.newLatLng(
-                LatLng(
-                    station.latitude,
-                    station.longitude
-                )
+        val map = aMap ?: return
+        val view = mapView ?: return
+        val target = LatLng(station.latitude, station.longitude)
+
+        val projection = map.projection
+        // 目标点在"当前相机"下的屏幕位置
+        val screenPoint = projection.toScreenLocation(target)
+        val desiredX = view.width / 2f
+        val desiredY = view.height / 3f
+        val dx = screenPoint.x - desiredX
+        val dy = screenPoint.y - desiredY
+
+        val centerScreen = projection.toScreenLocation(map.cameraPosition.target)
+        val newCenter = projection.fromScreenLocation(
+            android.graphics.Point(
+                (centerScreen.x + dx).toInt(),
+                (centerScreen.y + dy).toInt()
             )
         )
+        map.animateCamera(CameraUpdateFactory.newLatLng(newCenter))
     }
 
     /** 通知 LineFragment 数据已变更后关闭 */
@@ -1243,6 +1273,9 @@ class LineEditorActivity : BaseActivity() {
 
     private fun addTotalStationPoint() {
         val totalStationList = stationDatabaseHelper.queryAll()
+        totalStationList.forEach {
+            it.cnName = utils.getStationNameFromCn(it.cnName, "cn", it)
+        }
         totalStationPointService.apply {
             draw(
                 aMap!!,
@@ -1250,7 +1283,8 @@ class LineEditorActivity : BaseActivity() {
                 null,
                 resources.getString(R.string.line_all),
                 "total",
-                LinePathAndStationPointService.MarkerNumberType.ID
+                LinePathAndStationPointService.MarkerNumberType.ID,
+                moveMapToLine = false
             )
             onStationIndexChange(totalStationList.size - 1)
         }
