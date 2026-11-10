@@ -45,10 +45,10 @@ class StationMarkerFactory(
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         val uiModeManager =
             appContext.getSystemService(UI_MODE_SERVICE) as UiModeManager
-        val backgroundColor = if(uiModeManager.nightMode == MODE_NIGHT_YES){
+        val backgroundColor = if (uiModeManager.nightMode == MODE_NIGHT_YES) {
             // 灰色
             "#36425A".toColorInt()
-        }else{
+        } else {
             Color.WHITE
         }
 
@@ -80,43 +80,58 @@ class StationMarkerFactory(
     /**
      * 创建站点 Marker Bitmap。
      *
-     * @param stationIndex 站点索引（0 基）
-     * @param newStationIndex 当前站点索引，null 表示未知
+     * @param stationNumber 站点索引（0 基）
+     * @param newStationNumber 当前站点索引或id，null 表示未知
      */
     fun createStationMarkerBitmap(
-        stationIndex: Int,
-        newStationIndex: Int?,
+        stationNumber: Int,
+        newStationNumber: Int?,
         zoomLevel: LinePathAndStationPointService.MapZoomLevel,
-        station: Station
+        station: Station,
+        markerNumberType: LinePathAndStationPointService.MarkerNumberType
     ): Bitmap {
-        val mainColor = when {
-            newStationIndex == null -> COLOR_UNKNOWN
-            stationIndex == newStationIndex -> COLOR_CURRENT
-            stationIndex > newStationIndex -> COLOR_FORWARD
+        var mainColor = when {
+            newStationNumber == null -> COLOR_UNKNOWN
+            stationNumber == newStationNumber -> COLOR_CURRENT
+            stationNumber > newStationNumber -> COLOR_FORWARD
             else -> COLOR_UNKNOWN
+        }
+
+        if (markerNumberType == LinePathAndStationPointService.MarkerNumberType.ID) {
+            mainColor = COLOR_UNKNOWN
         }
 
         // 缓存 key：颜色 + 站点序号 + 缩放级别（SMALL 还依赖 cnName 决定宽度）
         val cacheKey = buildString {
-            append(mainColor).append('-').append(stationIndex).append('-').append(zoomLevel)
+            append(mainColor)
+                .append('-')
+                .append(stationNumber)
+                .append('-')
+                .append(zoomLevel)
             if (zoomLevel == LinePathAndStationPointService.MapZoomLevel.SMALL) {
-                append('-').append(station.cnName)
+                append('-')
+                    .append(station.cnName)
             }
         }
         markerCache.get(cacheKey)?.let { return it }
 
         val bitmap = when (zoomLevel) {
             LinePathAndStationPointService.MapZoomLevel.LAGER ->
-                drawCircleMarker(stationIndex, mainColor)
+                drawCircleMarker(stationNumber, mainColor, markerNumberType)
+
             LinePathAndStationPointService.MapZoomLevel.SMALL ->
-                drawPillMarker(stationIndex, station.cnName, mainColor)
+                drawPillMarker(stationNumber, station.cnName, mainColor, markerNumberType)
         }
         markerCache.put(cacheKey, bitmap)
         return bitmap
     }
 
     // ==================== LAGER：圆形 marker（原逻辑） ====================
-    private fun drawCircleMarker(stationIndex: Int, mainColor: Int): Bitmap {
+    private fun drawCircleMarker(
+        stationNumber: Int,
+        mainColor: Int,
+        markerNumberType: LinePathAndStationPointService.MarkerNumberType
+    ): Bitmap {
         val bitmap = createBitmap(MARKER_SIZE, MARKER_SIZE)
         val canvas = Canvas(bitmap)
 
@@ -131,7 +146,11 @@ class StationMarkerFactory(
         canvas.drawCircle(radius, radius, drawRadius, strokePaint)
 
         // 绘制序号
-        val text = (stationIndex + 1).toString()
+        val text = if (markerNumberType == LinePathAndStationPointService.MarkerNumberType.INDEX) {
+            (stationNumber + 1).toString()
+        } else {
+            stationNumber.toString()
+        }
         textPaint.apply {
             color = mainColor
             textSize = if (text.length <= 2) {
@@ -151,8 +170,21 @@ class StationMarkerFactory(
     }
 
     // ==================== SMALL：pill marker（序号 + cnName） ====================
-    private fun drawPillMarker(stationIndex: Int, cnName: String, mainColor: Int): Bitmap {
-        val text = "${stationIndex + 1} $cnName"
+    private fun drawPillMarker(
+        stationNumber: Int,
+        cnName: String,
+        mainColor: Int,
+        markerNumberType: LinePathAndStationPointService.MarkerNumberType
+    ): Bitmap {
+
+        // 绘制序号与站点名称
+        val number = if (markerNumberType == LinePathAndStationPointService.MarkerNumberType.INDEX) {
+            (stationNumber + 1).toString()
+        } else {
+            stationNumber.toString()
+        }
+
+        val text = "$number $cnName"
 
         textPaint.apply {
             color = mainColor
@@ -161,14 +193,14 @@ class StationMarkerFactory(
         }
 
         val textWidth = textPaint.measureText(text)
-        val width = (textWidth + SMALL_MARKER_H_PADDING * 2f).toInt().coerceAtLeast(SMALL_MARKER_HEIGHT)
+        val width =
+            (textWidth + SMALL_MARKER_H_PADDING * 2f).toInt().coerceAtLeast(SMALL_MARKER_HEIGHT)
         val height = SMALL_MARKER_HEIGHT
 
         val bitmap = createBitmap(width, height)
         val canvas = Canvas(bitmap)
 
         val strokeWidth = strokePaint.strokeWidth
-        val drawRadius = height / 2f - strokeWidth / 2f
         val rect = RectF(
             strokeWidth / 2f,
             strokeWidth / 2f,

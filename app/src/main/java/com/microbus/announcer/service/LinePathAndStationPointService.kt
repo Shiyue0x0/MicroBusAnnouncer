@@ -48,6 +48,9 @@ class LinePathAndStationPointService(context: Context) {
 
     private val utils = Utils(appContext)
 
+
+    private var markerNumberType: MarkerNumberType = MarkerNumberType.INDEX
+
     enum class MapZoomLevel {
         SMALL,
         LAGER
@@ -65,6 +68,11 @@ class LinePathAndStationPointService(context: Context) {
         }
     }
 
+    enum class MarkerNumberType {
+        INDEX,
+        ID
+    }
+
     /**
      * 绘制线路和站点
      */
@@ -72,7 +80,9 @@ class LinePathAndStationPointService(context: Context) {
         aMap: AMap,
         stationList: ArrayList<Station>,
         steps: List<DrivingPlanning.Step>?,
-        lineName: String
+        lineName: String,
+        markerTitlePrefix: String = "marker",
+        markerNumberType: MarkerNumberType = MarkerNumberType.INDEX
     ) {
 
         oldStationIndex = null
@@ -81,6 +91,7 @@ class LinePathAndStationPointService(context: Context) {
         newStationState = null
 
         this.stationList = stationList
+        this.markerNumberType = markerNumberType
 
         // 路线
         clearLinePath()
@@ -93,7 +104,7 @@ class LinePathAndStationPointService(context: Context) {
 
         // 站点标点
         clearStationPoint()
-        drawStationPoint(aMap, stationList)
+        drawStationPoint(aMap, stationList, markerTitlePrefix)
 
         Log.d("draw", "draw finish: ${linePathList.size}, ${stationPointList.size}")
 
@@ -217,7 +228,6 @@ class LinePathAndStationPointService(context: Context) {
         val screenH = dm.heightPixels
 
         // 左右各不留，上下各留 120px
-        val paddingLeftRight = 0
         val paddingTopBottom = utils.dp2px(300f)
 
         // newLatLngBounds(bounds, width, height, padding) 的 width/height
@@ -331,25 +341,21 @@ class LinePathAndStationPointService(context: Context) {
     /**
      * 绘制站点标点
      */
-    private fun drawStationPoint(aMap: AMap, stationList: ArrayList<Station>) {
+    private fun drawStationPoint(aMap: AMap, stationList: ArrayList<Station>, titlePrefix: String) {
 
         stationList.forEachIndexed { index, station ->
-
-            val icon = BitmapDescriptorFactory.fromBitmap(
-                createStationMarkerBitmap(
-                    index,
-                    station,
-                    mapZoomLevel
-                )
-            )
 
             val marker = aMap.addMarker(
                 MarkerOptions()
                     .position(LatLng(station.latitude, station.longitude))
-                    .icon(icon)
                     .anchor(0.5f, 0.5f)
             )
+
+            updStationMarketIcon(marker, station, index, mapZoomLevel)
+
             marker.`object` = station
+            marker.title = "${titlePrefix}-${index}"
+
             stationPointList.add(marker)
         }
 
@@ -362,15 +368,17 @@ class LinePathAndStationPointService(context: Context) {
     }
 
     private fun createStationMarkerBitmap(
-        stationIndex: Int,
+        stationNumber: Int,
         station: Station,
-        zoomLevel: MapZoomLevel
+        zoomLevel: MapZoomLevel,
+        markerNumberType: MarkerNumberType
     ): Bitmap {
         val bitmap = stationMarkerFactory.createStationMarkerBitmap(
-            stationIndex = stationIndex,
+            stationNumber = stationNumber,
             station = station,
-            newStationIndex = newStationIndex,
-            zoomLevel = zoomLevel
+            newStationNumber = newStationIndex,
+            zoomLevel = zoomLevel,
+            markerNumberType = markerNumberType
         )
         return bitmap
     }
@@ -433,7 +441,12 @@ class LinePathAndStationPointService(context: Context) {
         Log.d("updView", "updRange: $updRange")
         for (i in updRange) {
             updLinePath(i)
-            updStationPoint(i, mapZoomLevel)
+            updStationPoint(i)
+        }
+
+        // 额外updLinePath startIndex - 1
+        if (startIndex > 0) {
+            updLinePath(startIndex - 1)
         }
 
     }
@@ -465,27 +478,40 @@ class LinePathAndStationPointService(context: Context) {
         polyline.setCustomTexture(customTexture)
     }
 
-    private fun updStationPoint(stationIndex: Int, zoomLevel: MapZoomLevel) {
+    private fun updStationPoint(stationIndex: Int) {
         val marker = stationPointList.getOrNull(stationIndex) ?: return
         val station = stationList.getOrNull(stationIndex) ?: return
-
-        val icon =
-            BitmapDescriptorFactory.fromBitmap(
-                createStationMarkerBitmap(
-                    stationIndex,
-                    station,
-                    zoomLevel
-                )
-            )
-
-        marker.setIcon(icon)
-
+        updStationMarketIcon(marker, station, stationIndex, mapZoomLevel)
     }
 
     fun updAllStationPoint(zoomLevel: MapZoomLevel) {
         this.mapZoomLevel = zoomLevel
-        stationPointList.forEachIndexed { index, marker ->
-            updStationPoint(index, zoomLevel)
+        stationPointList.forEachIndexed { index, _ ->
+            updStationPoint(index)
         }
+    }
+
+    fun updStationMarketIcon(
+        marker: Marker,
+        station: Station,
+        index: Int,
+        mapZoomLevel: MapZoomLevel
+    ) {
+
+        val number = when (markerNumberType) {
+            MarkerNumberType.INDEX -> index
+            MarkerNumberType.ID -> station.id
+        }!!
+
+        val icon = BitmapDescriptorFactory.fromBitmap(
+            createStationMarkerBitmap(
+                number,
+                station,
+                mapZoomLevel,
+                markerNumberType
+            )
+        )
+
+        marker.setIcon(icon)
     }
 }

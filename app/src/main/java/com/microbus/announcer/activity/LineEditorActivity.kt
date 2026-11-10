@@ -4,15 +4,16 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,15 +32,20 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,6 +69,8 @@ import com.microbus.announcer.database.StationDatabaseHelper
 import com.microbus.announcer.model.StationStatus
 import com.microbus.announcer.service.LinePathAndStationPointService
 import com.microbus.announcer.ui.compose.AnSmallTopAppBar
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -94,6 +102,20 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.window.WindowListPopup
+import kotlin.math.abs
+import kotlin.time.Duration.Companion.milliseconds
+
+/**
+ * 站点序列的一项 UI 条目。
+ *
+ * [uid] 仅在本次编辑会话内唯一，作为 Compose 的稳定 key，
+ * 用于在存在重复 [stationId] 时区分不同出现位置（如环线/折返）。
+ * [stationId] 才是写入数据库的真正站点 id。
+ */
+private data class StationEntry(
+    val uid: Long,
+    val stationId: Int
+)
 
 class LineEditorActivity : BaseActivity() {
 
@@ -120,17 +142,38 @@ class LineEditorActivity : BaseActivity() {
             lineState = value
         }
 
-    /** 上行站点 id 序列 */
-    private var upList by mutableStateOf<List<Int>>(emptyList())
+    /** 上行站点条目序列（含 uid，允许 stationId 重复） */
+    private var upEntries by mutableStateOf<List<StationEntry>>(emptyList())
 
-    /** 下行站点 id 序列 */
-    private var downList by mutableStateOf<List<Int>>(emptyList())
+    /** 下行站点条目序列（含 uid，允许 stationId 重复） */
+    private var downEntries by mutableStateOf<List<StationEntry>>(emptyList())
 
     /** 新建模式下是否有未保存的变更 */
     private var isDirty = false
 
     /** 站点 id -> Station 的缓存（用于展示站名） */
     private val stationCache = mutableMapOf<Int, Station>()
+
+    /** uid 生成器（会话内唯一） */
+    private var uidCounter by mutableLongStateOf(0L)
+    private fun nextUid(): Long = uidCounter++
+
+    // ★ 新增：当前编辑方向（0=上行，1=下行），提升到 Activity 供地图回调共享
+    private var currentDirState by mutableIntStateOf(0)
+
+    // ★ 新增：地图站点删除确认相关 state（提升到 Activity，供地图回调与 Compose 共享）
+    /** 待删除的站点条目 uid（null 表示无） */
+    private var deleteTargetUid by mutableStateOf<Long?>(null)
+
+    /** 删除确认弹窗是否显示 */
+    private var showDeleteDialog by mutableStateOf(false)
+
+
+    /** 地图上点击的 total 站点 id（null 表示无） */
+    private var totalPickStationId by mutableStateOf<Int?>(null)
+
+    /** 添加 total 站点对话框是否显示 */
+    private var showTotalPickDialog by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -166,26 +209,26 @@ class LineEditorActivity : BaseActivity() {
             line = Line(type = "B")
         }
 
-        // 加载并解析站点序列
-        upList = parseStationIds(line.upLineStation)
-        downList = parseStationIds(line.downLineStation)
+        // 加载并解析站点序列 -> StationEntry
+        upEntries = parseStationEntries(line.upLineStation)
+        downEntries = parseStationEntries(line.downLineStation)
 
         // 预热站点缓存
         preloadStationCache()
     }
 
     /**
-     * 把空格分隔的站点 id 字符串解析为 List<Int>。
-     * 非法 token（非数字）会被排除并提示。
+     * 把空格分隔的站点 id 字符串解析为 List<StationEntry>。
+     * 非法 token（非数字）会被排除并提示。重复 id 会保留（各自分配独立 uid）。
      */
-    private fun parseStationIds(raw: String): List<Int> {
+    private fun parseStationEntries(raw: String): List<StationEntry> {
         if (raw.isBlank()) return emptyList()
-        val result = mutableListOf<Int>()
+        val result = mutableListOf<StationEntry>()
         val invalid = mutableListOf<String>()
         raw.split(" ").forEach { token ->
             if (token.isBlank()) return@forEach
             val id = token.toIntOrNull()
-            if (id == null) invalid += token else result += id
+            if (id == null) invalid += token else result += StationEntry(nextUid(), id)
         }
         if (invalid.isNotEmpty()) {
             utils.showMsg("存在非法站点 id：${invalid.joinToString(", ")}，已忽略")
@@ -195,7 +238,7 @@ class LineEditorActivity : BaseActivity() {
 
     private fun preloadStationCache() {
         stationCache.clear()
-        (upList + downList).distinct().forEach { id ->
+        (upEntries + downEntries).map { it.stationId }.distinct().forEach { id ->
             val st = stationDatabaseHelper.queryById(id).firstOrNull()
             if (st != null) stationCache[id] = st
         }
@@ -228,14 +271,18 @@ class LineEditorActivity : BaseActivity() {
         saveLineNow()
     }
 
-    private fun updateUpList(transform: (List<Int>) -> List<Int>) {
-        upList = transform(upList)
-        updateLine { it.copy(upLineStation = upList.joinToString(" ")) }
+    /** 把 StationEntry 列表序列化为空格分隔的站点 id 字符串 */
+    private fun serializeEntries(entries: List<StationEntry>): String =
+        entries.joinToString(" ") { it.stationId.toString() }
+
+    private fun updateUpEntries(transform: (List<StationEntry>) -> List<StationEntry>) {
+        upEntries = transform(upEntries)
+        updateLine { it.copy(upLineStation = serializeEntries(upEntries)) }
     }
 
-    private fun updateDownList(transform: (List<Int>) -> List<Int>) {
-        downList = transform(downList)
-        updateLine { it.copy(downLineStation = downList.joinToString(" ")) }
+    private fun updateDownEntries(transform: (List<StationEntry>) -> List<StationEntry>) {
+        downEntries = transform(downEntries)
+        updateLine { it.copy(downLineStation = serializeEntries(downEntries)) }
     }
 
     /** 新建模式下保存并退出 */
@@ -252,6 +299,9 @@ class LineEditorActivity : BaseActivity() {
             utils.showMsg("保存失败")
         }
     }
+
+    // ★ 新增：当前是否处于上行方向
+    private fun isUpDirActive(): Boolean = currentDirState == 0
 
     // —— UI ——
 
@@ -287,8 +337,9 @@ class LineEditorActivity : BaseActivity() {
     @Composable
     private fun MainContent(innerPadding: PaddingValues) {
 
-        val (currentDir, setCurrentDir) = remember { mutableIntStateOf(0) }
-
+        // ★ 修改：currentDir 改为引用 Activity 成员 state，供地图回调共享
+        val currentDir = currentDirState
+        val setCurrentDir: (Int) -> Unit = { currentDirState = it }
 
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -310,8 +361,28 @@ class LineEditorActivity : BaseActivity() {
                     .padding(bottom = 16.dp)
             ) {
                 BasicInfoButton()
-                StationSequenceSection(scrollState, currentDir, setCurrentDir)
+                StationCardSection(currentDir, setCurrentDir)
             }
+
+            // ★ 新增：地图站点删除确认弹窗（在地图回调中被触发）
+            StationDeleteDialog(
+                show = showDeleteDialog,
+                targetUid = deleteTargetUid,
+                onDismiss = {
+                    showDeleteDialog = false
+                    deleteTargetUid = null
+                }
+            )
+
+            // 地图 total 站点点击：添加到末尾 / 删除
+            TotalPickDialog(
+                show = showTotalPickDialog,
+                stationId = totalPickStationId,
+                onDismiss = {
+                    showTotalPickDialog = false
+                    totalPickStationId = null
+                }
+            )
         }
     }
 
@@ -320,7 +391,6 @@ class LineEditorActivity : BaseActivity() {
     private fun BasicInfoButton() {
         var showDialog by remember { mutableStateOf(false) }
 
-        // 展示当前信息的摘要，方便用户不打开弹窗也能看到
         val typeLabel = when (line.type) {
             "C" -> "C 社区"
             "B" -> "B 公交"
@@ -349,7 +419,7 @@ class LineEditorActivity : BaseActivity() {
         onDismiss: () -> Unit
     ) {
         OverlayDialog(
-            title = "编辑基本信息",
+            title = "编辑路线基本信息",
             show = show,
             onDismissRequest = onDismiss
         ) {
@@ -447,12 +517,10 @@ class LineEditorActivity : BaseActivity() {
     // —— 站点序列区：tab + 卡片 + 源文本 + 添加 ——
 
     @Composable
-    private fun StationSequenceSection(
-        scrollState: ScrollState,
+    private fun StationCardSection(
         currentDir: Int,
         setCurrentDir: (Int) -> Unit
     ) {
-        // 当前方向：0=上行，1=下行
         // 环线切换后，若当前是下行则回到上行
         LaunchedEffect(line.isRingRoute) {
             if (line.isRingRoute && currentDir == 1) setCurrentDir(0)
@@ -470,31 +538,34 @@ class LineEditorActivity : BaseActivity() {
                     listState = tabListState,
                 )
             } else {
-                Text(
-                    textAlign = TextAlign.Center,
+                Card(
+                    insideMargin = PaddingValues(vertical = 8.dp),
                     modifier = Modifier.fillMaxWidth(),
-                    text = "环线（仅上行）"
-                )
+                ) {
+                    Text(
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                        text = "环线（仅上行）"
+                    )
+                }
             }
 
-            val currentList = if (currentDir == 0) upList else downList
-            val setCurrentList: (List<Int>) -> Unit = { newList ->
-                if (currentDir == 0) updateUpList { newList } else updateDownList { newList }
+            val currentEntries = if (currentDir == 0) upEntries else downEntries
+            val setCurrentEntries: (List<StationEntry>) -> Unit = { newList ->
+                if (currentDir == 0) updateUpEntries { newList } else updateDownEntries { newList }
             }
 
-            StationSequenceCard(
-                list = currentList,
-                setList = setCurrentList,
-                scrollState = scrollState
+            StationCard(
+                entries = currentEntries,
+                setEntries = setCurrentEntries
             )
         }
     }
 
     @Composable
-    private fun StationSequenceCard(
-        list: List<Int>,
-        setList: (List<Int>) -> Unit,
-        scrollState: androidx.compose.foundation.ScrollState
+    private fun StationCard(
+        entries: List<StationEntry>,
+        setEntries: (List<StationEntry>) -> Unit
     ) {
         // 编辑源文本对话框
         var showSourceDialog by remember { mutableStateOf(false) }
@@ -503,10 +574,6 @@ class LineEditorActivity : BaseActivity() {
         // 添加站点对话框
         var showAddDialog by remember { mutableStateOf(false) }
 
-        // 删除确认
-        var deleteTargetIndex by remember { mutableIntStateOf(-1) }
-        var showDeleteDialog by remember { mutableStateOf(false) }
-
         Card(
             modifier = Modifier
                 .border(
@@ -514,9 +581,8 @@ class LineEditorActivity : BaseActivity() {
                     color = MiuixTheme.colorScheme.primary,
                     shape = RoundedCornerShape(CardDefaults.CornerRadius)
                 )
-                .height(120.dp)
         ) {
-            if (list.isEmpty()) {
+            if (entries.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -540,7 +606,11 @@ class LineEditorActivity : BaseActivity() {
             } else {
                 val lazyListState = rememberLazyListState()
                 val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
-                    setList(list.toMutableList().apply { add(to.index, removeAt(from.index)) })
+                    // 按 uid 重排，重复 stationId 不影响
+                    val mutable = entries.toMutableList()
+                    val item = mutable.removeAt(from.index)
+                    mutable.add(to.index, item)
+                    setEntries(mutable)
                 }
                 LazyRow(
                     state = lazyListState,
@@ -550,11 +620,13 @@ class LineEditorActivity : BaseActivity() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(
-                        count = list.size,
-                        key = { index -> index }
+                        count = entries.size,
+                        // key 使用 uid，保证重复 stationId 时唯一且重排稳定
+                        key = { index -> entries[index].uid }
                     ) { index ->
-                        val stationId = list[index]
-                        ReorderableItem(reorderableState, key = index) { isDragging ->
+                        val entry = entries[index]
+                        val stationId = entry.stationId
+                        ReorderableItem(reorderableState, key = entry.uid) { isDragging ->
                             val scale by animateFloatAsState(
                                 targetValue = if (isDragging) 0.9f else 1f,
                                 animationSpec = tween(durationMillis = 150),
@@ -577,33 +649,142 @@ class LineEditorActivity : BaseActivity() {
                                         onDragStopped = { }
                                     ),
                                 onClick = {
-                                    deleteTargetIndex = index
+                                    // 记录 uid，交给统一的删除确认弹窗处理
+                                    deleteTargetUid = entry.uid
                                     showDeleteDialog = true
                                     // 地图移到站点位置
-                                    val station = stationDatabaseHelper.queryById(stationId).firstOrNull()
+                                    val station =
+                                        stationDatabaseHelper.queryById(stationId).firstOrNull()
                                     if (station != null) {
-                                        val latLng = LatLng(station.latitude, station.longitude)
-                                        aMap?.animateCamera(CameraUpdateFactory.newLatLng(latLng))
+                                        focusStationOnMap(stationId)
                                     }
-
                                 }
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(vertical = 4.dp, horizontal = 12.dp)
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
                                 ) {
+
+                                    // 站点序号
                                     Text(
+                                        modifier = Modifier.fillMaxWidth(),
                                         text = "${index + 1}",
-                                        fontSize = 14.sp,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                    )
-                                    Text(
-                                        modifier = Modifier.weight(1f),
-                                        text = getStationDisplayName(stationId).toCharArray()
-                                            .joinToString("\n"),
-                                        fontSize = 14.sp,
                                         textAlign = TextAlign.Center,
-                                        lineHeight = 16.sp
+                                        fontSize = 14.sp,
                                     )
+
+                                    // 站点名称
+                                    val name = getStationDisplayName(stationId)
+                                    val lineHeight = 16.sp
+                                    val fixedHeight =
+                                        with(LocalDensity.current) { (lineHeight * 4).toDp() }
+                                    val slotHeight =
+                                        with(LocalDensity.current) { lineHeight.toDp() }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .height(fixedHeight)
+                                            .clipToBounds(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        when {
+
+                                            // 超过 4 字：逐字竖排 + 匀速垂直滚动
+                                            name.length > 4 -> {
+                                                val scrollState = rememberScrollState()
+
+                                                LaunchedEffect(name) {
+                                                    // 等布局完成拿到 maxValue
+                                                    snapshotFlow { scrollState.maxValue }.first { it > 0 }
+
+                                                    val speedPxPerMs = 0.05f   // ← 恒定速度：每毫秒滚多少 px，调它
+
+                                                    while (true) {
+                                                        // 顶部停留
+                                                        delay(1200.milliseconds)
+
+                                                        // 匀速滚到底
+                                                        val distDown = scrollState.maxValue - scrollState.value
+                                                        if (distDown > 0) {
+                                                            val durDown = (abs(distDown) / speedPxPerMs)
+                                                                .toInt().coerceAtLeast(100)
+                                                            scrollState.animateScrollTo(
+                                                                scrollState.maxValue,
+                                                                animationSpec = tween(durDown, easing = LinearEasing)
+                                                            )
+                                                        }
+
+                                                        // 底部停留
+                                                        delay(1200.milliseconds)
+
+                                                        // 回顶
+                                                        scrollState.scrollTo(0)
+                                                    }
+                                                }
+
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .verticalScroll(scrollState),
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    name.forEach { ch ->
+                                                        Box(
+                                                            modifier = Modifier.height(slotHeight),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Text(
+                                                                text = ch.toString(),
+                                                                fontSize = 14.sp,
+                                                                lineHeight = lineHeight,
+                                                                textAlign = TextAlign.Center
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // 恰好 4 字：逐字换行，4 行填满
+                                            name.length == 4 -> {
+                                                Text(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    text = name.toCharArray().joinToString("\n"),
+                                                    fontSize = 14.sp,
+                                                    lineHeight = lineHeight,
+                                                    textAlign = TextAlign.Center,
+                                                    maxLines = 4,
+                                                    minLines = 4,
+                                                    overflow = TextOverflow.Clip
+                                                )
+                                            }
+
+                                            // 不足 4 字：4 槽位 SpaceBetween
+                                            else -> {
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .fillMaxHeight(),
+                                                    verticalArrangement = Arrangement.SpaceBetween,
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    name.forEach { ch ->
+                                                        Box(
+                                                            modifier = Modifier.height(slotHeight),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Text(
+                                                                text = ch.toString(),
+                                                                fontSize = 14.sp,
+                                                                lineHeight = lineHeight,
+                                                                textAlign = TextAlign.Center
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -645,7 +826,7 @@ class LineEditorActivity : BaseActivity() {
                     color = MiuixTheme.colorScheme.secondaryVariant.copy(alpha = 0.3f)
                 ),
                 onClick = {
-                    sourceText = list.joinToString(" ")
+                    sourceText = entries.joinToString(" ") { it.stationId.toString() }
                     showSourceDialog = true
                 }
             ) {
@@ -666,7 +847,7 @@ class LineEditorActivity : BaseActivity() {
         // —— 编辑源文本对话框（单行） ——
         OverlayDialog(
             title = "编辑站点序列源文本",
-            summary = "空格分隔的站点 id，例如 1 2 3 4",
+            summary = "空格分隔的站点 id，例如 1 2 3 4（允许重复）",
             show = showSourceDialog,
             onDismissRequest = { showSourceDialog = false }
         ) {
@@ -705,7 +886,8 @@ class LineEditorActivity : BaseActivity() {
                             ids += id
                         }
                         if (hasError) return@TextButton
-                        setList(ids)
+                        // 为每个 id 分配新的 uid（重复 id 各自独立）
+                        setEntries(ids.map { StationEntry(nextUid(), it) })
                         showSourceDialog = false
                     }
                 )
@@ -722,39 +904,15 @@ class LineEditorActivity : BaseActivity() {
             show = showAddDialog,
             onDismiss = { showAddDialog = false },
             onPick = { station ->
-                setList(list + station.id!!)
+                val id = station.id ?: return@AddStationDialog
+                // 允许添加重复站点（环线/折返），仅在重复时给出轻提示
+                if (entries.any { it.stationId == id }) {
+                    utils.showMsg("该站点已存在，仍已追加")
+                }
+                setEntries(entries + StationEntry(nextUid(), id))
             }
         )
 
-        // —— 删除确认对话框 ——
-        OverlayDialog(
-            title = "删除站点",
-            summary = "确认删除第 ${deleteTargetIndex + 1} 个站点吗？",
-            show = showDeleteDialog,
-            onDismissRequest = { showDeleteDialog = false }
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(
-                    text = "确认删除",
-                    colors = ButtonDefaults.textButtonColors(
-                        color = MiuixTheme.colorScheme.error,
-                        textColor = Color.White
-                    ),
-                    onClick = {
-                        if (deleteTargetIndex in list.indices) {
-                            setList(list.filterIndexed { i, _ -> i != deleteTargetIndex })
-                        }
-                        showDeleteDialog = false
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                TextButton(
-                    text = "取消",
-                    onClick = { showDeleteDialog = false },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
     }
 
     // —— 添加站点弹窗：搜索 + 列表点选（保持打开） ——
@@ -832,6 +990,100 @@ class LineEditorActivity : BaseActivity() {
         }
     }
 
+    // ★ 新增：地图站点删除确认弹窗
+    // 因为 initMap 是普通函数，没有 Compose 作用域，所以弹窗 state 提升到 Activity，
+    // 弹窗 UI 在 MainContent 的 Compose 树里渲染。
+    @Composable
+    private fun StationDeleteDialog(
+        show: Boolean,
+        targetUid: Long?,
+        onDismiss: () -> Unit
+    ) {
+        val currentEntries = if (isUpDirActive()) upEntries else downEntries
+        val targetIndex = currentEntries.indexOfFirst { it.uid == targetUid }
+        val targetEntry = currentEntries.getOrNull(targetIndex) ?: return
+        val stationName = getStationDisplayName(targetEntry.stationId)
+
+
+        OverlayDialog(
+            title = stationName,
+            summary = "第 ${targetIndex + 1} 站",
+            show = show,
+            onDismissRequest = onDismiss
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(
+                    text = "确认删除",
+                    colors = ButtonDefaults.textButtonColors(
+                        color = MiuixTheme.colorScheme.error,
+                        textColor = Color.White
+                    ),
+                    onClick = {
+                        if (targetUid != null) {
+                            // 按 uid 精确删除（兼容重复 stationId）
+                            if (isUpDirActive()) {
+                                updateUpEntries { list -> list.filterNot { it.uid == targetUid } }
+                            } else {
+                                updateDownEntries { list -> list.filterNot { it.uid == targetUid } }
+                            }
+                        }
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TextButton(
+                    text = "取消",
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+
+    @Composable
+    private fun TotalPickDialog(
+        show: Boolean,
+        stationId: Int?,
+        onDismiss: () -> Unit
+    ) {
+        if (!show || stationId == null) return
+
+        val stationName = getStationDisplayName(stationId)
+
+        OverlayDialog(
+            title = stationName,
+            summary = "id: $stationId",
+            show = true,
+            onDismissRequest = onDismiss
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(
+                    text = "添加到末尾",
+                    colors = ButtonDefaults.textButtonColors(
+                        color = MiuixTheme.colorScheme.primary,
+                        textColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        // 追加到当前方向末尾（允许重复站点）
+                        val newEntry = StationEntry(nextUid(), stationId)
+                        if (isUpDirActive()) {
+                            updateUpEntries { it + newEntry }
+                        } else {
+                            updateDownEntries { it + newEntry }
+                        }
+                        onDismiss()
+                    }
+                )
+                TextButton(
+                    text = "取消",
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onDismiss
+                )
+            }
+        }
+    }
+
     // —— 地图（底层） ——
 
     private var aMap: AMap? = null
@@ -863,7 +1115,6 @@ class LineEditorActivity : BaseActivity() {
             }
         }
 
-
         AndroidView(
             factory = {
                 mapView.also {
@@ -873,32 +1124,25 @@ class LineEditorActivity : BaseActivity() {
             },
             modifier = modifier
         )
-// upList
 
-
-        // 关键：监听上下行序列，变化时刷新地图
-        LaunchedEffect(upList, downList, currentDir) {
+        // 监听上下行条目序列，变化时刷新地图
+        LaunchedEffect(upEntries, downEntries, currentDir) {
 
             if (aMap == null) {
                 return@LaunchedEffect
             }
 
-            // 获取line序列
             Log.d("AMapCompose", "currentDir: $currentDir")
-            val lineStationStr = if (currentDir == 0) upList else downList
-            // 获取站点列表
-            val stationList = lineStationStr.map {
-                stationDatabaseHelper.queryById(it).firstOrNull() ?: utils.getUnknownStation()
+            val currentEntries = if (currentDir == 0) upEntries else downEntries
+            val stationList = currentEntries.map {
+                stationDatabaseHelper.queryById(it.stationId).firstOrNull()
+                    ?: utils.getUnknownStation()
             }
             linePathAndStationPointService.apply {
-                draw(aMap!!, ArrayList(stationList), null, line.name)
+                draw(aMap!!, ArrayList(stationList), null, line.name, "line")
                 onStationIndexChange(0)
                 onStationStateChange(StationStatus.ON_NEXT)
-//                updAllStationPoint(
-//                    LinePathAndStationPointService.MapZoomLevel.SMALL
-//                )
             }
-
         }
     }
 
@@ -926,6 +1170,69 @@ class LineEditorActivity : BaseActivity() {
                 )
             }
         })
+
+        aMap.setOnMarkerClickListener { marker ->
+            val prefix =
+                marker.title.split("-").firstOrNull() ?: return@setOnMarkerClickListener true
+            val stationIndex =
+                marker.title.split("-").lastOrNull() ?: return@setOnMarkerClickListener true
+            Log.d("AMapCompose", "prefix: $prefix, stationIndex: $stationIndex")
+
+
+            if (prefix == "line") {
+                // ★ 修改：完成 TODO —— 点击线路站点 marker 弹出删除确认
+                val index = stationIndex.toIntOrNull()
+                if (index != null) {
+                    // 按当前方向 + index 反查 uid（index 会随重排变化，uid 才稳定）
+                    val currentEntries = if (isUpDirActive()) upEntries else downEntries
+                    val entry = currentEntries.getOrNull(index)
+                    if (entry == null) {
+                        utils.showMsg("站点不存在或已被移除")
+                    } else {
+                        // 相机移到该站点
+                        focusStationOnMap(entry.stationId)
+                        // 记录 uid 并弹出删除确认
+                        deleteTargetUid = entry.uid
+                        showDeleteDialog = true
+
+                    }
+                }
+            } else if (prefix == "total") {
+                // 从 marker.title 解析站点 id（格式 "total-<index>"，index 对应 queryAll 的下标）
+                val index = stationIndex.toIntOrNull()
+                if (index != null) {
+                    val allStations = stationDatabaseHelper.queryAll()
+                    val station = allStations.getOrNull(index)
+
+
+                    if (station?.id == null) {
+                        utils.showMsg("站点不存在或已被移除")
+                        return@setOnMarkerClickListener true
+                    }
+
+                    // 相机移到该站点
+                    focusStationOnMap(station.id!!)
+                    // 记录站点 id 并弹出添加对话框
+                    totalPickStationId = station.id
+                    showTotalPickDialog = true
+                }
+            }
+
+
+            true
+        }
+    }
+
+    private fun focusStationOnMap(stationId: Int) {
+        val station = stationDatabaseHelper.queryById(stationId).firstOrNull() ?: return
+        aMap?.animateCamera(
+            CameraUpdateFactory.newLatLng(
+                LatLng(
+                    station.latitude,
+                    station.longitude
+                )
+            )
+        )
     }
 
     /** 通知 LineFragment 数据已变更后关闭 */
@@ -941,10 +1248,11 @@ class LineEditorActivity : BaseActivity() {
                 aMap!!,
                 ArrayList(totalStationList),
                 null,
-                resources.getString(R.string.line_all)
+                resources.getString(R.string.line_all),
+                "total",
+                LinePathAndStationPointService.MarkerNumberType.ID
             )
             onStationIndexChange(totalStationList.size - 1)
         }
-
     }
 }
