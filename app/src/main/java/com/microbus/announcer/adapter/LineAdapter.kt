@@ -1,15 +1,11 @@
 package com.microbus.announcer.adapter
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.ComponentActivity
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -18,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.microbus.announcer.R
 import com.microbus.announcer.Utils
-import com.microbus.announcer.activity.LineEditorActivity
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.bean.Station
 import com.microbus.announcer.database.LineDatabaseHelper
@@ -29,7 +24,6 @@ import com.microbus.announcer.databinding.ItemLineHeaderBinding
 
 class LineAdapter(
     private val context: Context,
-    private val activity: Activity,
     private val lineDatabaseHelper: LineDatabaseHelper,
     private var key: String = "",
     private var showStationPoint: Boolean = true,
@@ -68,7 +62,11 @@ class LineAdapter(
     init {
         setHasStableIds(true)
         val comparator = utils.getDefaultLineComparator()
-        allLineList = ArrayList(lineDatabaseHelper.queryAll().sortedWith(comparator))
+        allLineList = ArrayList(
+            lineDatabaseHelper.queryAll()
+                .filter { it.name.contains(key, ignoreCase = true) }
+                .sortedWith(comparator)
+        )
     }
 
     class LineViewHolder(
@@ -149,7 +147,7 @@ class LineAdapter(
         // LineViewHolder
         if (position == 0) {
             val holder = holder as LineHeaderViewHolder
-            holder.title.text = "本地路线共 ${allLineList.size} 条"
+            holder.title.text = "查找到路线 ${allLineList.size} 条"
         }
         // ItemLineHeaderHolder
         else {
@@ -356,7 +354,18 @@ class LineAdapter(
     }
 
     override fun getItemCount(): Int {
-        return lineDatabaseHelper.queryAll().size + 1
+        return allLineList.size + 1
+    }
+
+    fun updateSearchKey(newKey: String) {
+        this.key = newKey
+        allLineList = ArrayList(
+            lineDatabaseHelper.queryAll()
+                .filter { it.name.contains(newKey, ignoreCase = true) }
+                .sortedWith(utils.getDefaultLineComparator())
+        )
+        @SuppressLint("NotifyDataSetChanged")
+        notifyDataSetChanged()
     }
 
     override fun getItemId(position: Int): Long {

@@ -784,7 +784,8 @@ class LineEditorActivity : BaseActivity() {
         // Card 包装
         Card(
             modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 8.dp
+            cornerRadius = 8.dp,
+            insideMargin = PaddingValues(8.dp)
         ) {
             Text(
                 textAlign = TextAlign.Center,

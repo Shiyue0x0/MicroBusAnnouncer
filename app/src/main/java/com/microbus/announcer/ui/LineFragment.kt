@@ -1,7 +1,6 @@
 package com.microbus.announcer.ui
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
@@ -16,6 +15,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
@@ -35,7 +37,6 @@ import com.microbus.announcer.adapter.LineAdapter
 import com.microbus.announcer.bean.Line
 import com.microbus.announcer.database.LineDatabaseHelper
 import com.microbus.announcer.database.StationDatabaseHelper
-import com.microbus.announcer.databinding.DialogInputBinding
 import com.microbus.announcer.databinding.DialogLineInfoBinding
 import com.microbus.announcer.databinding.FragmentLineBinding
 import com.microbus.announcer.ui.compose.NavHelpBox
@@ -44,12 +45,12 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.FloatingToolbar
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.InputField
+import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
-import top.yukonga.miuix.kmp.icon.extended.All
-import top.yukonga.miuix.kmp.icon.extended.Edit
 import top.yukonga.miuix.kmp.icon.extended.Home
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -67,6 +68,8 @@ class LineFragment : Fragment() {
     private lateinit var alertBinding: DialogLineInfoBinding
 
     private lateinit var utils: Utils
+
+    private var searchText by mutableStateOf("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -115,11 +118,36 @@ class LineFragment : Fragment() {
                             )
                         }
                     )
+
+                    SearchBar(
+                        expanded = false,
+                        onExpandedChange = { },
+                        inputField = {
+                            InputField(
+                                query = searchText,
+                                expanded = false,
+                                onExpandedChange = { },
+                                label = "通过 路线名称 搜索",
+                                onQueryChange = {
+                                    searchText = it
+                                    if (searchText == "") {
+                                        refreshLineList(searchText)
+                                    }
+                                },
+                                onSearch = {
+                                    searchText = it
+                                    refreshLineList(searchText)
+                                },
+
+                                )
+                        }
+                    ) {
+                    }
                 }
             }
         }
 
-        refreshLineList("")
+        refreshLineList(searchText)
         initSwipeRefreshLayout()
 
         //添加点击添加站点事件
@@ -170,62 +198,66 @@ class LineFragment : Fragment() {
      */
     private fun refreshLineList(searchText: String) {
 
-        binding.lineRecyclerView.setHasFixedSize(true)
-        //获取所有路线，加载到界面
-        adapter = LineAdapter(
-            requireContext(),
-            requireActivity(),
-            lineDatabaseHelper,
-            showStationPoint = false,
-        )
+        if (!::adapter.isInitialized) {
+            binding.lineRecyclerView.setHasFixedSize(true)
+            //获取所有路线，加载到界面
+            adapter = LineAdapter(
+                requireContext(),
+                lineDatabaseHelper,
+                key = searchText,
+                showStationPoint = false,
+            )
 
-        // 新增：编辑路线（地图编辑）回调
-        adapter.setOnEditLineOnMapListener(object : LineAdapter.OnEditLineOnMapListener {
-            override fun onEditLineOnMap(lineId: Int?) {
-                val intent = Intent(requireContext(), LineEditorActivity::class.java).apply {
-                    putExtra("lineId", lineId)
+            // 新增：编辑路线（地图编辑）回调
+            adapter.setOnEditLineOnMapListener(object : LineAdapter.OnEditLineOnMapListener {
+                override fun onEditLineOnMap(lineId: Int?) {
+                    val intent = Intent(requireContext(), LineEditorActivity::class.java).apply {
+                        putExtra("lineId", lineId)
+                    }
+                    lineEditorLauncher.launch(intent)
                 }
-                lineEditorLauncher.launch(intent)
-            }
-        })
+            })
 
 
-        //点击路线切换到主控并运行
-        adapter.setOnItemClickListener(object : LineAdapter.OnItemClickListener {
-            override fun onItemClick(line: Line, position: Int) {
+            //点击路线切换到主控并运行
+            adapter.setOnItemClickListener(object : LineAdapter.OnItemClickListener {
+                override fun onItemClick(line: Line, position: Int) {
 
-                if (position == 0)
-                    return
+                    if (position == 0)
+                        return
 
-                val intent = Intent()
-                    .setAction(utils.switchLineActionName)
-                    .putExtra("id", line.id)
-                LocalBroadcastManager.getInstance(requireContext())
-                    .sendBroadcast(intent)
+                    val intent = Intent()
+                        .setAction(utils.switchLineActionName)
+                        .putExtra("id", line.id)
+                    LocalBroadcastManager.getInstance(requireContext())
+                        .sendBroadcast(intent)
 
-            }
-        })
-
-        binding.lineRecyclerView.setAdapter(adapter)
-
-        binding.lineRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                super.onScrolled(recyclerView, dx, dy)
-
-                if (!hasFirstOnScrolled) {
-                    hasFirstOnScrolled = true
-                    return
                 }
+            })
 
-                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
-                val firstVisibleItem = layoutManager.findFirstVisibleItemPosition()
-                val lastVisibleItem = layoutManager.findLastVisibleItemPosition()
+            binding.lineRecyclerView.setAdapter(adapter)
 
-                adapter.updateItemShown(firstVisibleItem, lastVisibleItem)
+            binding.lineRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+
+                    if (!hasFirstOnScrolled) {
+                        hasFirstOnScrolled = true
+                        return
+                    }
+
+                    val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                    val firstVisibleItem = layoutManager.findFirstVisibleItemPosition()
+                    val lastVisibleItem = layoutManager.findLastVisibleItemPosition()
+
+                    adapter.updateItemShown(firstVisibleItem, lastVisibleItem)
 //                Log.d("L190", "${firstVisibleItem} ${lastVisibleItem}")
-            }
-        })
+                }
+            })
 
+        } else {
+            adapter.updateSearchKey(searchText)
+        }
 
         @SuppressLint("NotifyDataSetChanged")
         adapter.notifyDataSetChanged()
@@ -234,7 +266,7 @@ class LineFragment : Fragment() {
 
     private val lineEditorLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { result ->
+    ) { _ ->
         refreshTotalLineList()
     }
     private fun addLine() {
@@ -290,7 +322,7 @@ class LineFragment : Fragment() {
                                     ?.setOnClickListener {
 
                                         utils.onSubmitLineDialog(alertBinding, "new", null) {
-                                            refreshLineList("")
+                                            refreshLineList(searchText)
                                             alertDialog.cancel()
                                         }
                                     }
@@ -313,7 +345,7 @@ class LineFragment : Fragment() {
     }
 
     private fun refreshTotalLineList() {
-        refreshLineList("")
+        refreshLineList(searchText)
         @SuppressLint("NotifyDataSetChanged")
         binding.lineRecyclerView.adapter!!.notifyDataSetChanged()
         binding.swipeRefreshLayout.isRefreshing = false

@@ -75,6 +75,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -244,7 +245,7 @@ class MainFragment : Fragment() {
     private var currentLine by mutableStateOf(Line())
 
     /**当前路线站点运行方向（上下行）*/
-    var currentLineDirection by mutableStateOf(LineDirection.ON_UP)
+    var currentLineDirection by mutableIntStateOf(LineDirection.ON_UP)
 
     /**当前路线运行方向站点列表*/
     private var currentLineStationList by mutableStateOf(ArrayList<Station>())
@@ -1590,35 +1591,35 @@ class MainFragment : Fragment() {
             refreshUIAndPreloadingStationVoice()
         }
 
-        if (false) {
-            //切换到起点站按钮
-            binding.startingStation.scaleX = -1f
-            binding.startingStation.setOnClickListener {
-                if (isOperationLock) {
-                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                    return@setOnClickListener
-                }
-                if (_currentLineStationCount.value != 0) {
-                    setStationAndState(0, StationStatus.ON_NEXT)
-                    utils.haptic(binding.startingStation)
-                }
-
-            }
-
-            //切换到终点站按钮
-            binding.terminal.scaleX = 1f
-            binding.terminal.setOnClickListener {
-                if (isOperationLock) {
-                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
-                    return@setOnClickListener
-                }
-                if (_currentLineStationCount.value != currentLineStationList.size - 1) {
-                    setStationAndState(currentLineStationList.size - 1, StationStatus.ON_ARRIVE)
-                    utils.haptic(binding.terminal)
-                }
-
-            }
-        }
+//        if (false) {
+//            //切换到起点站按钮
+//            binding.startingStation.scaleX = -1f
+//            binding.startingStation.setOnClickListener {
+//                if (isOperationLock) {
+//                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+//                    return@setOnClickListener
+//                }
+//                if (_currentLineStationCount.value != 0) {
+//                    setStationAndState(0, StationStatus.ON_NEXT)
+//                    utils.haptic(binding.startingStation)
+//                }
+//
+//            }
+//
+//            //切换到终点站按钮
+//            binding.terminal.scaleX = 1f
+//            binding.terminal.setOnClickListener {
+//                if (isOperationLock) {
+//                    utils.showMsg(resources.getString(R.string.operation_lock_on_tip))
+//                    return@setOnClickListener
+//                }
+//                if (_currentLineStationCount.value != currentLineStationList.size - 1) {
+//                    setStationAndState(currentLineStationList.size - 1, StationStatus.ON_ARRIVE)
+//                    utils.haptic(binding.terminal)
+//                }
+//
+//            }
+//        }
 
         // 上站：短按=上站，长按=跳起点站
         binding.lastStation.setupTapLongPress(
@@ -1940,9 +1941,9 @@ class MainFragment : Fragment() {
                     else
                         Line(name = "Line ${stationList.last().enName}", isUpAndDownInvert = false)
                 if (stationList.size >= 2) {
-                    for (station in stationList) {
-                        planLine.upLineStation += "${station.id} "
-                        planLine.downLineStation += "${station.id} "
+                    for ((id1) in stationList) {
+                        planLine.upLineStation += "$id1 "
+                        planLine.downLineStation += "$id1 "
                     }
                     val length = planLine.upLineStation.length
                     planLine.upLineStation = planLine.upLineStation.substring(0, length - 1)
@@ -2465,7 +2466,7 @@ class MainFragment : Fragment() {
                 lastLngLat.latitude, lastLngLat.longitude,
                 currentLngLat.latitude, currentLngLat.longitude
             )
-            Log.d("L2662", "${currentBearing}")
+            Log.d("L2662", "$currentBearing")
         }
 
 
@@ -2559,7 +2560,10 @@ class MainFragment : Fragment() {
 
         val rangeAfter = _currentLineStationCount.value until lineStationList.size
         val rangeBefore = _currentLineStationCount.value - 1 downTo 0
-        for (i in rangeAfter + rangeBefore) {
+        for (i in sequence {
+            yieldAll(rangeAfter)
+            yieldAll(rangeBefore)
+        }) {
 //            Log.d(tag, "find station $i")
             //进站条件：上次定位在这个站点外，现在定位在这个站点内
             if (lastDistanceToStationList[i] > inStationDistance &&
@@ -2904,7 +2908,7 @@ class MainFragment : Fragment() {
 
         //更新通知
         // TODO 实时动态开关
-        if (utils.getNotice() && true) {
+        if (utils.getNotice()) {
 
             initNotification()
 
@@ -3823,7 +3827,7 @@ class MainFragment : Fragment() {
         ))
         Log.d(
             "L4643",
-            "match with ${currentLineStation.cnName}, ${currentLineStation.bearing} to ${currentBearing}, angle: ${angle}"
+            "match with ${currentLineStation.cnName}, ${currentLineStation.bearing} to ${currentBearing}, angle: $angle"
         )
 
         return angle <= 22.5
